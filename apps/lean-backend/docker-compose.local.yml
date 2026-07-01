@@ -14,7 +14,7 @@ services:
       # host 5433 → 容器 5432，避開本機可能已佔用的 5432。
       - "5433:5432"
     volumes:
-      - lean-fullstack-pg-data:/var/lib/postgresql/data
+      - lean-stack-pg-data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d lean_stack"]
       interval: 5s
@@ -73,4 +73,4 @@ services:
         condition: service_healthy
 
 volumes:
-  lean-fullstack-pg-data:
+  lean-stack-pg-data:

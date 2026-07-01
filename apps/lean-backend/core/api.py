@@ -13,7 +13,7 @@ from apps.health.apis import router as health_router
 from apps.progress.apis import router as progress_router
 
 # title / version 會顯示在自動產生的 API 文件（/api/v1/docs）。
-api = NinjaAPI(title='lean-fullstack API', version='1.0.0')
+api = NinjaAPI(title='lean-stack API', version='1.0.0')
 
 # ──────────────────────────────────────────────────────────────
 # 新功能 router 註冊在這

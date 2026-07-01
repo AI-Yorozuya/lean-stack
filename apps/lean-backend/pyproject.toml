@@ -1,7 +1,7 @@
 [project]
-name = "lean-fullstack-backend"
+name = "lean-stack-backend"
 version = "0.1.0"
-description = "lean-fullstack 教學 sandbox 後端（Django 6 + django-ninja + Postgres）"
+description = "lean-stack 教學 sandbox 後端（Django 6 + django-ninja + Postgres）"
 readme = "README.md"
 requires-python = ">=3.12"
 # 教學版只留「能跑起來 + media 上傳 + 非同步任務」的最小依賴。

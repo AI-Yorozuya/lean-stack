@@ -317,7 +317,7 @@ wheels = [
 ]
 
 [[package]]
-name = "lean-fullstack-backend"
+name = "lean-stack-backend"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [

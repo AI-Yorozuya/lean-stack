@@ -1,6 +1,6 @@
 ---
 name: deploy
-description: 部署 lean-fullstack —— 先本機 docker 跑通，再 terraform plan→review→apply 開一台伺服器，最後 deploy app。內建 plan-first / 不碰機密的雲端紀律。當使用者要部署、上雲、或動 infra 時用。
+description: 部署 lean-stack —— 先本機 docker 跑通，再 terraform plan→review→apply 開一台伺服器，最後 deploy app。內建 plan-first / 不碰機密的雲端紀律。當使用者要部署、上雲、或動 infra 時用。
 ---
 
 # deploy（v0 stub）

@@ -1,7 +1,7 @@
 # 複製成 terraform.tfvars 後填入實際值（terraform.tfvars 已被 gitignore）。
 # 這裡只放「非機密」設定；真正的雲憑證走環境變數（見 README / DEPLOY）。
 
-project_name     = "lean-fullstack"
+project_name     = "lean-stack"
 aws_region       = "ap-northeast-1"
 instance_type    = "t3.small"
 

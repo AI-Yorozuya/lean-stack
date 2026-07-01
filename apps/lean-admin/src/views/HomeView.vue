@@ -21,7 +21,7 @@ onMounted(async () => {
 
 <template>
   <main style="font-family: system-ui, sans-serif; max-width: 480px; margin: 4rem auto; text-align: center;">
-    <h1>lean-fullstack 管理後台</h1>
+    <h1>lean-stack 管理後台</h1>
     <p style="color: #666;">後台 / Admin Console</p>
     <HealthBadge :status="status" />
     <!--

@@ -1,5 +1,5 @@
 """
-lean-fullstack 的 Django 設定。
+lean-stack 的 Django 設定。
 
 教學版精簡：沿用 top-erp 的慣例（django-environ 讀環境變數、apps/ 放各 app），
 但砍掉所有正式環境才需要的東西（Redis / Celery / S3 / JWT...），

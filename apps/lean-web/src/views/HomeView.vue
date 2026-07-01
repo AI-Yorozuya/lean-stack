@@ -21,7 +21,7 @@ onMounted(async () => {
 
 <template>
   <main style="font-family: system-ui, sans-serif; max-width: 480px; margin: 4rem auto; text-align: center;">
-    <h1>lean-fullstack</h1>
+    <h1>lean-stack</h1>
     <HealthBadge :status="status" />
     <p style="margin-top: 1.5rem;"><RouterLink to="/job">非同步任務示範 →</RouterLink></p>
   </main>

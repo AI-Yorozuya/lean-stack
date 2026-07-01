@@ -1,13 +1,13 @@
 ---
 name: add-feature
-description: INTENT-first 加一個功能到 lean-fullstack（INTENT → 後端 app/apis/schemas/models → Vue view + api 呼叫 → 在 core/api.py 註冊 router）。當使用者要在 lean-fullstack 新增一塊業務功能時用。
+description: INTENT-first 加一個功能到 lean-stack（INTENT → 後端 app/apis/schemas/models → Vue view + api 呼叫 → 在 core/api.py 註冊 router）。當使用者要在 lean-stack 新增一塊業務功能時用。
 ---
 
 # add-feature（v0 stub）
 
 > **v0 stub — 等第一次真正 dogfood 後再長出血肉。** 目前只描述流程骨架。
 
-照 lean-fullstack 的「先規則、後 code」做法加功能。完整慣例見 repo 根目錄 `CLAUDE.md`。
+照 lean-stack 的「先規則、後 code」做法加功能。完整慣例見 repo 根目錄 `CLAUDE.md`。
 
 ## 流程
 

@@ -16,7 +16,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
-      - lean-fullstack-pg-data-prod:/var/lib/postgresql/data
+      - lean-stack-pg-data-prod:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
@@ -79,4 +79,4 @@ services:
     restart: always
 
 volumes:
-  lean-fullstack-pg-data-prod:
+  lean-stack-pg-data-prod:

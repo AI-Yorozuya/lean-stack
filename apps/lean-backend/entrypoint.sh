@@ -6,7 +6,7 @@
 set -e
 
 echo "=================================="
-echo "Starting lean-fullstack ($*)"
+echo "Starting lean-stack ($*)"
 echo "=================================="
 
 # 等 PostgreSQL 開好（compose 裡 service 名就是 postgres，port 5432）。

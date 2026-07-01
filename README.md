@@ -1,4 +1,4 @@
-# lean-fullstack
+# lean-stack
 
 全端教學 sandbox。一條最小的端到端骨架：
 
@@ -8,6 +8,41 @@ Vue 3 (Vite)  →  /api/v1/health  →  django-ninja  →  Django 6  →  Postgr
 
 目前只有一個 health 端點，**還沒有任何領域模型**（帳本/訂單/交易等之後再以 INTENT-first 方式加）。
 結構與慣例沿用 `top-erp` 的三 app 慣例（top-backend / top-admin / top-web）。
+
+> **先看哪裡？**
+> - 👶 **第一次用、不會寫程式** → 往下看「**給新手：零終端機上手**」。不用終端機、不用背指令，用講的就好。
+> - 🛠 **工程師 / dogfood** → 看「**快速啟動**」與 `CLAUDE.md`。
+
+## 👶 給新手：零終端機上手
+
+沒寫過程式、沒碰過終端機也能把它跑起來。你只要**用講的**，指令的部分交給 AI。
+
+**你唯一要裝的：** [Claude 桌面 App](https://claude.ai/download)。就這樣——不用先裝 Python、Node、Docker、git，這些等下 AI 會幫你處理。
+
+**四步跑起來：**
+
+1. 打開 Claude 桌面 App，點上方 **Code** 分頁。
+   > ⚠️ 是 **Code**，不是 Chat。只有 Code 分頁能碰你電腦的檔案、幫你執行東西。
+2. 點 **Select folder**，選一個要放專案的資料夾（例如桌面上新開一個「我的專案」）。
+3. 直接打中文跟 Claude 說：
+   > 幫我把 `https://github.com/AI-Yorozuya/lean-stack` 這個專案抓下來，然後跑起來給我看。
+4. Claude 會自己抓專案、把環境裝好、開起來，最後給你一個網址。打開就看到畫面 ✓
+   > 第一次會等幾分鐘（在幫你裝環境），正常。之後就快了。
+
+**跑起來之後，你要做的都用「講的」——不用背任何指令：**
+
+| 你想做的 | 你就這樣說 |
+|---|---|
+| 存一下進度（怕等下改壞） | 「幫我**存個檔**」 |
+| 備份到雲端（換台電腦也在） | 「幫我**備份**上去」 |
+| 改壞了想回到上一個好版本 | 「**退回**上一個會動的版本」 |
+| 加一個新功能 | 「我想加一個 ⬚⬚⬚，幫我做」 |
+
+`git`、`docker`、`npm` 這些字你都不用懂——**那是 Claude 的工作，不是你的**。你負責「想做什麼」，它負責「怎麼做出來」。
+
+> 想懂剛剛每一步在幹嘛（白話版）？那是「第 0 課」教材的內容，跟這份 README 分開放。
+
+---
 
 ## 三個 app
 
@@ -22,7 +57,7 @@ Vue 3 (Vite)  →  /api/v1/health  →  django-ninja  →  Django 6  →  Postgr
 兩個前端都把 `/api` proxy 到同一個 `lean-backend`（:8000）。
 
 ```
-lean-fullstack/
+lean-stack/
 ├── apps/
 │   ├── lean-backend/   Django 6 + django-ninja + Postgres（uv 管理）
 │   │   ├── core/        settings / urls / api（root NinjaAPI）/ asgi / wsgi
@@ -53,6 +88,9 @@ lean-fullstack/
 - `.claude/skills/` — `add-feature`（INTENT→後端→前端→註冊 router）與 `deploy`（本機→plan/review/apply→部署）的 v0 stub。
 
 ## 快速啟動
+
+> 這一段是**手動起法**——也正是上面「給新手」流程裡，Claude 在幕後幫你跑的那些指令。
+> 想自己動手、或在做 dogfood 的工程師看這裡；純新手可以略過，交給 AI。
 
 ### 1. 後端 + 資料庫（Docker，一個指令）
 
@@ -99,7 +137,7 @@ npm install
 npm run dev
 ```
 
-打開 http://localhost:5174 ，看到「lean-fullstack 管理後台」加上「後端連線正常 ✓」，
+打開 http://localhost:5174 ，看到「lean-stack 管理後台」加上「後端連線正常 ✓」，
 就代表後台也接到同一個後端了。（同樣已設好 `/api` → :8000 的 proxy。）
 
 ## 後端一律用 Docker 起

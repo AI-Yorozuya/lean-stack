@@ -25,7 +25,7 @@ data "aws_ami" "ubuntu" {
 # 22 (SSH，鎖來源)、80 / 443 (給 nginx)。其餘一律擋。
 resource "aws_security_group" "app" {
   name        = "${var.project_name}-sg"
-  description = "lean-fullstack single-server: SSH + HTTP + HTTPS"
+  description = "lean-stack single-server: SSH + HTTP + HTTPS"
 
   ingress {
     description = "SSH"

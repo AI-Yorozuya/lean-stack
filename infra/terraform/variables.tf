@@ -2,9 +2,9 @@
 # 範例見 terraform.tfvars.example。
 
 variable "project_name" {
-  description = "資源命名前綴（對齊 repo 名 lean-fullstack）"
+  description = "資源命名前綴（對齊 repo 名 lean-stack）"
   type        = string
-  default     = "lean-fullstack"
+  default     = "lean-stack"
 }
 
 variable "aws_region" {
@@ -39,5 +39,5 @@ variable "root_volume_size" {
 variable "media_bucket_name" {
   description = "media 上傳用的 S3 bucket 名（全球唯一）。對齊 backend 的 AWS_STORAGE_BUCKET_NAME。"
   type        = string
-  default     = "lean-fullstack-media"
+  default     = "lean-stack-media"
 }

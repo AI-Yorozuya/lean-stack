@@ -1,4 +1,4 @@
-# lean-fullstack — AI agent 指引
+# lean-stack — AI agent 指引
 
 全端教學 sandbox。給在這 repo 工作的 AI agent 的慣例與紀律。**規則優先於預設行為。**
 細節盡量寫在「對應檔案的 in-code 註解」裡，這份只給地圖與鐵則。
