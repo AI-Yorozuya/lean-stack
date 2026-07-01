@@ -1,0 +1,91 @@
+# lean-fullstack — AI agent 指引
+
+全端教學 sandbox。給在這 repo 工作的 AI agent 的慣例與紀律。**規則優先於預設行為。**
+細節盡量寫在「對應檔案的 in-code 註解」裡，這份只給地圖與鐵則。
+
+## 三 app 佈局
+
+| app | 是什麼 | 技術 |
+|-----|--------|------|
+| `apps/lean-backend` | 後端 API + DB | Django 6 + django-ninja + Postgres（uv） |
+| `apps/lean-admin` | 管理後台（auth 之後長在這） | Vue 3 + Vite（:5174） |
+| `apps/lean-web` | 對外前台 | Vue 3 + Vite（:5173） |
+
+`infra/` = 部署層（terraform 一台 EC2 + 整套 prod compose + nginx）。`intents/` = 規則先於 code。
+
+## 後端慣例
+
+- **每個 feature app 一個 ninja `Router`**（不是 NinjaAPI），寫在該 app 的 `apis.py`。參考 `apps/lean-backend/apps/health/apis.py`。
+- **單一註冊點**：所有 router 在 `apps/lean-backend/core/api.py` 用 `api.add_router(...)` 掛上去（只有一個 NinjaAPI，掛在 `/api/v1/`）。新增端點不用改 `core/urls.py`。
+- **`_common.TimeStampedModel`**：領域 model 一律繼承它（自動 created_at / updated_at）。見 `apps/_common/models.py`。
+- schema 用 ninja `Schema`（pydantic）放各 app 的 `schemas.py`。
+- **後端一律用 docker compose 起**（`apps/lean-backend/docker-compose.local.yml`，一次帶 postgres+redis+worker；DEBUG=True → `uvicorn --reload` 熱重載，改 code 不用 rebuild）。**不跑本機 runserver**。管理指令走 `docker compose … exec backend uv run python manage.py <cmd>`。`uv` 是容器內套件管理器（依 `uv.lock`）。
+
+## INTENT-first 加功能（本 repo 的核心做法）
+
+先寫規則、再生 code。順序：
+
+1. **寫 INTENT**：在 `intents/` 依 `_TEMPLATE.md` 描述狀態機 + 權限 + 鐵則（語法見 `intents/README.md`）。
+2. **生後端**：依 INTENT 建 app（`apps.py`/`apis.py`/`schemas.py`/`models.py`，model 繼承 TimeStampedModel）→ 在 `core/api.py` 註冊 router → 容器內 `makemigrations && migrate`（`docker compose … exec backend uv run python manage.py …`）。
+3. **生前端頁**：在 `lean-web` 或 `lean-admin` 的 `src/views/` 加 view、`src/api/` 加呼叫、`src/router/index.js` 加一條路由（lazy load）。
+4. **接線驗證**：頁面打得到端點即通。
+
+對應 skill：`.claude/skills/add-feature`（v0 stub）。
+
+## 前端加一頁
+
+在 `src/views/` 加 `.vue` → `src/router/index.js` 的 `routes` 加一筆（`() => import(...)`）→ 共用 UI 放 `src/components/`、API 呼叫放 `src/api/`。lean-web 與 lean-admin 流程相同。
+
+## media 儲存（上傳檔）
+
+- 用 `USE_S3` env 開關切換（見 `apps/lean-backend/core/settings.py` 的 `STORAGES`）：
+  本機 `USE_S3=False` → 檔案系統 `/media`（零摩擦）；prod `USE_S3=True` → S3（私有 bucket）。
+- model 寫 `FileField` / `ImageField(upload_to=...)` **兩種模式都直接可用**，切換只改 env、不改 code。
+- prod 的 S3 bucket 由 `infra/terraform` 建（私有、擋 public access）；憑證走 instance role / 環境變數。
+
+## 非同步任務
+
+- **非同步＝celery（redis broker + worker）**，設定見 `core/celery.py` / `core/settings.py`（`CELERY_*`），範例見 `apps/progress`（DB 存 `Job` 進度 + `tasks.py` + 前端輪詢頁 `lean-web/.../JobView.vue`）。
+- **local 與 prod 同構（dev/prod parity）**：兩個 compose 都跑真 redis + 真 worker，**刻意不開 eager** —— eager 把任務當同步函式跑，會藏掉序列化/連線/worker 沒起來這類 async bug，正是「demo 會動、上 prod 垮」的牆。
+- 加任務：在某 app 寫 `tasks.py` 的 `@shared_task`（autodiscover 自動撿），API 端用 `.delay(...)` 派工，要追進度就照 `apps/progress` 用 `Job` 表。
+
+## infra / 部署紀律（鐵則）
+
+- **AI 不自動對真雲 `apply`。** plan 先、人 review 後人手 apply。把它當「新時代的金鑰外洩 / 上線垮」風險源。
+- **永不 commit**：`*.tfstate*`、`.terraform/`、`*.tfvars`、任何 `.env` / `.env.prod`。
+- **憑證走環境變數**（`AWS_PROFILE` / `AWS_ACCESS_KEY_ID`...），不進 repo、不寫進 `.tf` / `.tfvars`。
+- 本機先用 docker 跑通，再上雲。runbook：`infra/DEPLOY.md`。對應 skill：`.claude/skills/deploy`（v0 stub）。
+
+## 進階層（未內建，未來在此接入）
+
+- **auth/登入**：未內建。後端接縫在 `core/api.py`（`NinjaAPI(auth=...)`）；後台前端守衛接縫在 `apps/lean-admin/src/router/index.js`。
+
+## 版本控制（對新手：用生活語言演出來，別教 git 詞）
+
+在這 sandbox 工作的使用者多半是**不懂 git 的新手**。git 是通用知識、機制交給你——但**別教她背 `commit`/`push`/`checkout`**（那是把「記語法」的負擔換句話裝回去）。你的工作是**用生活語言把版本控制演出來**，她看著看著自己就內化了。
+
+**生活語言映射（她講左邊，你翻成右邊）：**
+
+| 她心裡的需求 | 她會講的話（生活語） | 你翻成 |
+|-----|-----|-----|
+| 存個進度、怕等下改壞 | 「幫我**存個檔**」/「先存起來」 | commit（照下方 commit 慣例寫 message） |
+| 這版穩了、想備份 / 上線 | 「**備份**一份」/「上傳到雲端」 | push |
+| 剛改壞了 | 「**退回**上一個會動的版本」 | checkout / reset 到某個 commit |
+
+心智模型就是**遊戲存檔**：commit＝存進度點（隨時回得來），push＝同步一份到雲端（換台電腦也在）。
+
+**主動旁白（不等她想起，你在對的時機用生活語言做 + 講）：**
+
+- **一個功能做到會跑了** → 主動存檔並報告：「這版會動了，我幫你**存了個進度點**『訂單功能 v1』，想退回這裡隨時說。」
+- **她要做大改 / 危險操作前** → 先存檔當還原點：「動這個之前，先幫你**存個檔**喔。」
+- **一個段落穩了 / 收工** → 提議備份：「要不要**備份**上 GitHub？換台電腦也在。」
+
+**危險操作護欄（單向門，動手前一定先問人）：** `push -f`、`reset --hard`、`rebase` 已推出去的分支、`branch -D`、`clean -fd`、任何會**真的抹掉 commit / 檔案**的操作。這些「通用但難回頭」——放手但底下要有網。
+
+## commit 慣例
+
+`type(scope): subject` — type: feat/fix/refactor/docs/chore/test；scope: lean-backend / lean-admin / lean-web / infra / docs。
+
+> 新手講「存個檔」時你仍照此格式寫 message（她無感，但歷史保持乾淨、可讀）。
+
+> **絕不 commit 機密 / state / .env。** 不確定的設計選擇先問人。
