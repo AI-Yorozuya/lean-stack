@@ -23,6 +23,8 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import Pagination from '@/components/Pagination.vue'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import {
   Dialog,
@@ -34,17 +36,13 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 
-// 沒有專用的 shadcn Select 元件時,原生 <select> 套這個 class 對齊 Input 外觀。
-const selectClass =
-  'border-input h-9 rounded-md border bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-3'
-
 // ── 列表狀態 ────────────────────────────────────────────
 const orders = ref([])
 const count = ref(0)
 const page = ref(1)
-const pageSize = 10
+const pageSize = 30 // 每頁筆數（固定；資料量小，不放使用者可調的下拉）
 const q = ref('')                 // input：模糊搜客戶名
-const filterCustomerId = ref('')  // select：精準篩客戶
+const filterCustomerId = ref('all')  // Select：精準篩客戶（'all' = 全部客戶）
 const customers = ref([])
 const loading = ref(false)
 const errorMsg = ref('')
@@ -59,7 +57,7 @@ async function load() {
       page: page.value,
       pageSize,
       q: q.value,
-      customerId: filterCustomerId.value || null,
+      customerId: filterCustomerId.value === 'all' ? null : Number(filterCustomerId.value),
     })
     orders.value = data.items
     count.value = data.count
@@ -110,7 +108,7 @@ function openCreate() {
 
 function openEdit(order) {
   editingId.value = order.id
-  form.customer_id = order.customer.id
+  form.customer_id = String(order.customer.id)
   // 只取表單需要的欄位（id/subtotal 是後端的事）
   form.items = order.items.map((i) => ({
     name: i.name,
@@ -172,7 +170,7 @@ async function submitNewCustomer() {
   if (!newCustomer.name) return
   const c = await createCustomer({ ...newCustomer })
   await loadCustomers()
-  form.customer_id = c.id // 建完直接選上
+  form.customer_id = String(c.id) // 建完直接選上
   newCustomer.name = ''
   newCustomer.phone = ''
   showNewCustomer.value = false
@@ -191,68 +189,82 @@ async function confirmDelete() {
 </script>
 
 <template>
-  <div>
-    <h1 class="text-2xl font-semibold tracking-tight">訂單管理</h1>
+  <!-- 整頁填滿可用高度：標題固定、卡片吃剩下的高，表格在卡內填滿並內捲、分頁釘在卡底 -->
+  <div class="flex h-full flex-col">
+    <h1 class="shrink-0 text-2xl font-semibold tracking-tight">訂單列表</h1>
 
     <!-- 大卡片（學 top-admin：標題下一張白卡，搜尋列/表格/分頁全包在裡面；卡片用陰影、不用邊框）-->
-    <div class="mt-4 rounded-lg bg-white p-5 shadow-sm">
-      <p v-if="errorMsg" class="text-destructive mb-3 text-sm">{{ errorMsg }}</p>
+    <div class="mt-4 flex min-h-0 flex-1 flex-col rounded-lg bg-white p-6 shadow-sm">
+      <p v-if="errorMsg" class="text-destructive mb-3 shrink-0 text-sm">{{ errorMsg }}</p>
 
       <!-- 工具列 -->
-      <div class="mb-4 flex items-center justify-between gap-2">
+      <div class="mb-4 flex shrink-0 items-center justify-between gap-2">
         <div class="flex flex-wrap items-center gap-2">
           <Input v-model="q" placeholder="搜客戶名…" class="w-40" @keyup.enter="search" />
-          <select v-model="filterCustomerId" :class="selectClass" @change="search">
-            <option value="">全部客戶</option>
-            <option v-for="c in customers" :key="c.id" :value="c.id">{{ c.name }}</option>
-          </select>
+          <Select v-model="filterCustomerId" @update:model-value="search">
+            <SelectTrigger class="w-40"><SelectValue placeholder="全部客戶" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">全部客戶</SelectItem>
+              <SelectItem v-for="c in customers" :key="c.id" :value="String(c.id)">{{ c.name }}</SelectItem>
+            </SelectContent>
+          </Select>
           <Button variant="outline" @click="search">搜尋</Button>
         </div>
         <Button @click="openCreate"><Plus class="size-4" /> 新增訂單</Button>
       </div>
 
-      <!-- 表格：自己一張帶邊框的框，嵌在白卡裡（密度/表頭底色由 ui/table 統一）-->
-      <div class="overflow-hidden rounded-lg border">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead class="w-16">#</TableHead>
-            <TableHead>客戶</TableHead>
-            <TableHead>日期</TableHead>
-            <TableHead>明細</TableHead>
-            <TableHead class="text-right">總額</TableHead>
-            <TableHead class="w-32"></TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          <TableRow v-for="o in orders" :key="o.id">
-            <TableCell class="text-muted-foreground">{{ o.id }}</TableCell>
-            <TableCell class="font-medium">{{ o.customer.name }}</TableCell>
-            <TableCell class="text-muted-foreground">{{ o.order_date }}</TableCell>
-            <TableCell class="text-muted-foreground">{{ o.items.length }} 筆</TableCell>
-            <TableCell class="text-right tabular-nums">{{ o.total.toLocaleString() }}</TableCell>
-            <TableCell class="text-right whitespace-nowrap">
-              <Button variant="ghost" size="sm" @click="openEdit(o)">編輯</Button>
-              <Button variant="ghost" size="sm" class="text-destructive hover:text-destructive" @click="deleting = o">刪除</Button>
-            </TableCell>
-          </TableRow>
-          <TableRow v-if="!loading && orders.length === 0">
-            <TableCell colspan="6" class="text-muted-foreground py-16 text-center">
-              沒有訂單——按右上「＋ 新增訂單」開第一張
-            </TableCell>
-          </TableRow>
-        </TableBody>
-      </Table>
+      <!-- 表格：表頭固定（在捲動區外，捲軸不碰它）＋ 表身內捲；兩張 table 用同一組 colgroup 對齊。
+           表身保留捲軸槽（scrollbar-gutter），表頭補等寬 padding，欄位才對得齊。-->
+      <div class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border">
+        <!-- 表頭（固定）：保留捲軸槽對齊表身；容器底色＝表頭色，讓那條保留槽不露白 -->
+        <div class="scroll-thin bg-muted shrink-0 overflow-y-auto [scrollbar-gutter:stable]">
+          <Table class="table-fixed">
+            <colgroup>
+              <col class="w-14" /><col /><col class="w-32" /><col class="w-20" /><col class="w-28" /><col class="w-[8.5rem]" />
+            </colgroup>
+            <TableHeader>
+              <TableRow>
+                <TableHead>#</TableHead>
+                <TableHead>客戶</TableHead>
+                <TableHead>日期</TableHead>
+                <TableHead>明細</TableHead>
+                <TableHead class="text-right">總額</TableHead>
+                <TableHead></TableHead>
+              </TableRow>
+            </TableHeader>
+          </Table>
+        </div>
+        <!-- 表身（內捲；捲軸只在這）-->
+        <div class="scroll-thin min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable]">
+          <Table class="table-fixed">
+            <colgroup>
+              <col class="w-14" /><col /><col class="w-32" /><col class="w-20" /><col class="w-28" /><col class="w-[8.5rem]" />
+            </colgroup>
+            <TableBody>
+              <TableRow v-for="o in orders" :key="o.id">
+                <TableCell class="text-muted-foreground">{{ o.id }}</TableCell>
+                <TableCell class="font-medium">{{ o.customer.name }}</TableCell>
+                <TableCell class="text-muted-foreground">{{ o.order_date }}</TableCell>
+                <TableCell class="text-muted-foreground">{{ o.items.length }} 筆</TableCell>
+                <TableCell class="text-right tabular-nums">{{ o.total.toLocaleString() }}</TableCell>
+                <TableCell class="text-right whitespace-nowrap">
+                  <Button variant="ghost" size="sm" @click="openEdit(o)">編輯</Button>
+                  <Button variant="ghost" size="sm" class="text-destructive hover:text-destructive" @click="deleting = o">刪除</Button>
+                </TableCell>
+              </TableRow>
+              <TableRow v-if="!loading && orders.length === 0">
+                <TableCell colspan="6" class="text-muted-foreground py-16 text-center">
+                  沒有訂單——按右上「＋ 新增訂單」開第一張
+                </TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+        </div>
       </div>
 
-      <!-- 分頁 -->
-      <div class="mt-4 flex items-center justify-between gap-4 text-sm">
-        <span class="text-muted-foreground">共 {{ count }} 筆</span>
-        <div class="flex items-center gap-3">
-          <Button variant="outline" size="sm" :disabled="page <= 1" @click="goPage(page - 1)">上一頁</Button>
-          <span class="text-muted-foreground tabular-nums">{{ page }} / {{ totalPages }}</span>
-          <Button variant="outline" size="sm" :disabled="page >= totalPages" @click="goPage(page + 1)">下一頁</Button>
-        </div>
+      <!-- 分頁（極簡：置中數字頁碼；釘在卡底）-->
+      <div class="mt-4 shrink-0">
+        <Pagination :page="page" :total-pages="totalPages" @update:page="goPage" />
       </div>
     </div>
 
@@ -268,10 +280,12 @@ async function confirmDelete() {
           <div class="flex flex-col gap-1.5">
             <Label>客戶</Label>
             <div class="flex gap-2">
-              <select v-model="form.customer_id" :class="[selectClass, 'flex-1']">
-                <option value="" disabled>選擇客戶</option>
-                <option v-for="c in customers" :key="c.id" :value="c.id">{{ c.name }}</option>
-              </select>
+              <Select v-model="form.customer_id">
+                <SelectTrigger class="flex-1"><SelectValue placeholder="選擇客戶" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem v-for="c in customers" :key="c.id" :value="String(c.id)">{{ c.name }}</SelectItem>
+                </SelectContent>
+              </Select>
               <Button variant="outline" @click="showNewCustomer = !showNewCustomer">＋ 新客戶</Button>
             </div>
             <div v-if="showNewCustomer" class="bg-muted flex gap-2 rounded-md p-2">

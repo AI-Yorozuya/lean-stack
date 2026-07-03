@@ -12,7 +12,7 @@ import { ref, onBeforeMount, onMounted, onBeforeUnmount } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 // 選單 icon 一律取「同一套 lucide、視覺重量相近的實心輪廓物件」——參 top-admin 的
 // constants/icons.js（避免混入 Activity 那種稀疏脈衝線，破壞整體一致性）。
-import { LayoutDashboard, ShoppingCart, RefreshCw, ChevronDown, ChevronsLeft, ChevronsRight } from '@lucide/vue'
+import { LayoutDashboard, ShoppingCart, RefreshCw, ChevronDown, ChevronsLeft, ChevronsRight, User } from '@lucide/vue'
 import { getHealth } from '@/api'
 import HealthBadge from '@/components/HealthBadge.vue'
 
@@ -23,8 +23,8 @@ const nav = [
     label: '訂單管理',
     icon: ShoppingCart,
     children: [
-      { to: '/orders', label: '無狀態示範' },
-      { to: '/orders/lifecycle', label: '有狀態示範' },
+      { to: '/orders', label: '訂單(無狀態)' },
+      { to: '/orders/lifecycle', label: '訂單(有狀態)' },
     ],
   },
   { to: '/job', label: '非同步示範', icon: RefreshCw },
@@ -76,8 +76,17 @@ function handleResize() {
 
 // ── 後端連線狀態（殼掛載時打一次 health）──
 const status = ref('checking') // checking | ok | error
+
+// ── 使用者選單（avatar；目前無 auth，是佔位＋之後接使用者的接縫）──
+const userMenuOpen = ref(false)
+const userMenuRef = ref(null)
+function onClickOutside(e) {
+  if (userMenuRef.value && !userMenuRef.value.contains(e.target)) userMenuOpen.value = false
+}
+
 onMounted(async () => {
   window.addEventListener('resize', handleResize)
+  document.addEventListener('click', onClickOutside)
   try {
     const data = await getHealth()
     status.value = data.status === 'ok' ? 'ok' : 'error'
@@ -86,14 +95,17 @@ onMounted(async () => {
     status.value = 'error'
   }
 })
-onBeforeUnmount(() => window.removeEventListener('resize', handleResize))
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', handleResize)
+  document.removeEventListener('click', onClickOutside)
+})
 </script>
 
 <template>
   <div class="flex h-screen w-screen overflow-hidden">
     <!-- ── 左側 sidebar（白底極簡，可收合）───────────────── -->
     <aside
-      class="flex h-full flex-col overflow-hidden border-r border-neutral-200 bg-white transition-[width] duration-200"
+      class="flex h-full flex-col overflow-hidden border-r border-slate-200 bg-white transition-[width] duration-200"
       :class="expanded ? 'w-56' : 'w-16'"
     >
       <!-- Logo（學 top-admin 的三件事：①整塊是「回首頁」的連結 ②h-14 對齊頂 bar、
@@ -102,12 +114,12 @@ onBeforeUnmount(() => window.removeEventListener('resize', handleResize))
       <button
         type="button"
         title="回首頁"
-        class="flex h-14 shrink-0 cursor-pointer items-center gap-2.5 overflow-hidden border-b border-neutral-200 text-left transition-opacity hover:opacity-70"
+        class="flex h-14 shrink-0 cursor-pointer items-center gap-2.5 overflow-hidden border-b border-slate-200 text-left transition-opacity hover:opacity-70"
         :class="expanded ? 'justify-start px-4' : 'justify-center'"
         @click="$router.push('/')"
       >
-        <div class="flex size-7 shrink-0 items-center justify-center rounded-md bg-neutral-900 text-sm font-bold text-white">L</div>
-        <span v-show="expanded" class="whitespace-nowrap text-base font-semibold tracking-wide text-neutral-800">lean-stack 後台</span>
+        <div class="flex size-7 shrink-0 items-center justify-center rounded-md bg-slate-900 text-sm font-bold text-white">萬</div>
+        <span v-show="expanded" class="whitespace-nowrap text-base font-semibold tracking-wide text-slate-800">AI萬事屋後台</span>
       </button>
 
       <!-- Menu -->
@@ -121,8 +133,8 @@ onBeforeUnmount(() => window.removeEventListener('resize', handleResize))
                 'flex w-full items-center rounded-md text-sm transition-colors',
                 expanded ? 'gap-3 px-3 py-2' : 'justify-center px-0 py-2.5',
                 isItemActive(item.to)
-                  ? 'relative bg-neutral-100 font-medium text-neutral-900 before:absolute before:top-1/2 before:left-0 before:h-5 before:w-[3px] before:-translate-y-1/2 before:rounded-full before:bg-neutral-900'
-                  : 'text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900',
+                  ? 'relative bg-slate-100 font-medium text-slate-900 before:absolute before:top-1/2 before:left-0 before:h-5 before:w-[3px] before:-translate-y-1/2 before:rounded-full before:bg-slate-900'
+                  : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900',
               ]"
               @click="$router.push(item.to)"
             >
@@ -139,8 +151,8 @@ onBeforeUnmount(() => window.removeEventListener('resize', handleResize))
                 'flex w-full items-center rounded-md text-sm transition-colors',
                 expanded ? 'gap-3 px-3 py-2' : 'justify-center px-0 py-2.5',
                 isGroupActive(item)
-                  ? 'font-medium text-neutral-900'
-                  : 'text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900',
+                  ? 'font-medium text-slate-900'
+                  : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900',
               ]"
               @click="toggleGroup(item)"
             >
@@ -158,8 +170,8 @@ onBeforeUnmount(() => window.removeEventListener('resize', handleResize))
                   :class="[
                     'flex w-full items-center rounded-md py-2 pl-11 pr-3 text-left text-sm transition-colors',
                     isItemActive(child.to)
-                      ? 'relative bg-neutral-100 font-medium text-neutral-900 before:absolute before:top-1/2 before:left-0 before:h-4 before:w-[3px] before:-translate-y-1/2 before:rounded-full before:bg-neutral-900'
-                      : 'text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900',
+                      ? 'relative bg-slate-100 font-medium text-slate-900 before:absolute before:top-1/2 before:left-8 before:h-4 before:w-[3px] before:-translate-y-1/2 before:rounded-full before:bg-slate-900'
+                      : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900',
                   ]"
                   @click="$router.push(child.to)"
                 >
@@ -171,24 +183,49 @@ onBeforeUnmount(() => window.removeEventListener('resize', handleResize))
         </template>
       </nav>
 
-      <div v-show="expanded" class="p-4 text-xs text-neutral-400">教學 sandbox · admin</div>
+      <div v-show="expanded" class="p-4 text-xs text-slate-400">lean-stack · admin</div>
     </aside>
 
     <!-- ── 右側：頂部 bar + 內容 ─────────────────────── -->
     <div class="flex flex-1 flex-col overflow-hidden">
-      <header class="flex h-14 shrink-0 items-center justify-between border-b border-neutral-200 bg-white px-6">
+      <header class="flex h-14 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-6">
         <button
           type="button"
           :title="expanded ? '收合側邊欄' : '展開側邊欄'"
-          class="inline-flex size-9 items-center justify-center rounded-lg text-neutral-500 transition-all hover:bg-neutral-100 hover:text-neutral-900 active:scale-95"
+          class="-ml-2 inline-flex size-9 items-center justify-center rounded-lg text-slate-500 transition-all hover:bg-slate-100 hover:text-slate-900 active:scale-95"
           @click="toggle"
         >
           <ChevronsLeft v-if="expanded" class="size-5" />
           <ChevronsRight v-else class="size-5" />
         </button>
 
-        <!-- 後端連線指示（auth 之後換成使用者選單）-->
-        <HealthBadge :status="status" />
+        <!-- 右：後端連線指示 + 使用者 avatar（avatar 是 auth 之後接使用者選單的接縫）-->
+        <div class="flex items-center gap-4">
+          <HealthBadge :status="status" />
+          <div ref="userMenuRef" class="relative">
+            <button
+              type="button"
+              title="訪客（尚未登入）"
+              class="inline-flex size-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm transition-all hover:bg-slate-50 hover:text-slate-900 active:scale-95"
+              :class="userMenuOpen ? 'ring-2 ring-slate-300 ring-offset-2' : ''"
+              @click="userMenuOpen = !userMenuOpen"
+            >
+              <User class="size-4" />
+            </button>
+            <transition
+              enter-active-class="transition duration-100 ease-out"
+              enter-from-class="-translate-y-1 scale-95 opacity-0"
+              enter-to-class="translate-y-0 scale-100 opacity-100"
+              leave-active-class="transition duration-75 ease-in"
+              leave-to-class="-translate-y-1 scale-95 opacity-0"
+            >
+              <div v-if="userMenuOpen" class="absolute top-full right-0 z-50 mt-2 min-w-44 origin-top-right rounded-md border border-slate-200 bg-white py-1 shadow-lg">
+                <div class="border-b border-slate-100 px-4 py-2 text-sm font-medium text-slate-800">訪客</div>
+                <div class="px-4 py-2 text-xs text-muted-foreground">尚未登入 · auth 之後在這接使用者選單</div>
+              </div>
+            </transition>
+          </div>
+        </div>
       </header>
 
       <main class="main-content min-w-0 flex-1 overflow-auto p-6">
@@ -201,15 +238,20 @@ onBeforeUnmount(() => window.removeEventListener('resize', handleResize))
 <style scoped>
 /* 內容區底色（極淺灰，讓白卡片浮起來）+ 中性捲軸。 */
 .main-content {
-  background-color: #f7f7f8;
+  background-color: #f5f7fa;
 }
 .main-content::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 11px;
+  height: 11px;
 }
 .main-content::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.18);
-  border-radius: 3px;
+  background-color: rgb(120 144 196 / 0.45);
+  border-radius: 9999px;
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+.main-content::-webkit-scrollbar-thumb:hover {
+  background-color: rgb(120 144 196 / 0.75);
 }
 nav::-webkit-scrollbar {
   width: 4px;
