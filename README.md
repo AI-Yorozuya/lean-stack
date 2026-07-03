@@ -6,7 +6,7 @@
 Vue 3 (Vite)  →  /api/v1/health  →  django-ninja  →  Django 6  →  PostgreSQL
 ```
 
-範例 app：`health`（router 範例）、`progress`（celery 非同步示範）。領域功能以 INTENT-first 方式加——`intents/` 已有**訂單管理、會員管理**兩份 INTENT（code 生成中）。
+範例 app：`health`（router 範例）、`progress`（celery 非同步示範）、`order`（**訂單管理 Stage A 無狀態 CRUD ＋ Stage B 有狀態狀態機**，INTENT-first dogfood 的成品）。`intents/` 另有 `會員管理` 待生。
 兩個 app：後端（lean-backend）＋管理後台（lean-admin）。
 
 > **先看哪裡？**
@@ -25,7 +25,7 @@ Vue 3 (Vite)  →  /api/v1/health  →  django-ninja  →  Django 6  →  Postgr
 | app | 是什麼 | 技術 | dev port |
 |-----|--------|------|----------|
 | **lean-backend** | 後端 API + DB | Django 6 + django-ninja + Postgres（uv） | 8000 |
-| **lean-admin** | 管理後台 / 後台 console | Vue 3 + Vite | 5174 |
+| **lean-admin** | 管理後台 / 後台 console | Vue 3 + Vite + shadcn-vue（Tailwind v4） | 5174 |
 
 `lean-admin` 把 `/api` proxy 到 `lean-backend`（:8000）；admin 是之後 **登入/權限** 真正重要的地方。
 
@@ -37,8 +37,8 @@ lean-stack/
 │   │   └── apps/
 │   │       ├── _common/ 共用抽象 model（TimeStampedModel）
 │   │       └── health/  health 端點（router 範例）
-│   └── lean-admin/     Vue 3 + Vite（管理後台，:5174）
-│       └── src/         api/（client）router/（路由＋auth 接縫）views/ components/
+│   └── lean-admin/     Vue 3 + Vite + shadcn-vue（管理後台，:5174）
+│       └── src/         api/ router/（路由＋auth 接縫）views/ components/ui（shadcn）components/layout（外殼）
 ├── infra/              部署層：terraform（一台 EC2 + SG + media S3）、prod compose、nginx、deploy 腳本
 │   ├── terraform/      flat 單環境 HCL（plan-first 紀律）
 │   ├── docker-compose.prod.yml   整套 prod 編排（postgres + backend + nginx）
@@ -107,9 +107,12 @@ docker compose -f infra/docker-compose.local.yml exec backend uv run python mana
 
 ### 加一個前端頁面（lean-admin）
 
-1. 在 `src/views/` 新增一個 `.vue`。
+1. 在 `src/views/` 新增一個 `.vue`——UI 積木用 `@/components/ui/*`（shadcn-vue + Tailwind：button/input/card/table/dialog…），圖示用 `@lucide/vue`，缺的元件 `npx shadcn-vue@latest add <name>` 補。
 2. 在 `src/router/index.js` 的 `routes` 加一筆（建議用 `() => import(...)` lazy load）。
-3. 共用 UI 放 `src/components/`；呼叫後端的函式集中放 `src/api/`。
+3. 要進側邊欄就在 `src/components/layout/AppShell.vue` 的 `nav` 陣列加一筆（`{ to, label, icon }`）。
+4. 呼叫後端的函式集中放 `src/api/`。
+
+> 設計系統：常駐外殼（sidebar + 頂部 bar）在 `src/components/layout/AppShell.vue`；顏色 token 在 `src/assets/index.css`（換主題只改這）。
 
 ### 上傳檔 / media（env 切換，零摩擦）
 

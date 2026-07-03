@@ -34,3 +34,11 @@ export function updateOrder(id, payload) {
 export function deleteOrder(id) {
   return http.delete(`/order/${id}`).then((res) => res.data)
 }
+
+// ── 訂單狀態機（Stage B）──────────────────
+// 每個函式對應一條「合法轉移」。非法轉移後端會回 422（狀態機擋下來），
+// 前端把 detail 訊息顯示給人看即可（真相/守門在後端）。
+// action ∈ pay | ship | complete | refund
+export function transitionOrder(id, action) {
+  return http.post(`/order/${id}/${action}`).then((res) => res.data)
+}

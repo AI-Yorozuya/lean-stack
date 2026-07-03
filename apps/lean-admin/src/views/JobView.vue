@@ -5,6 +5,8 @@
 // 這證明「前端 → 後端派工 → celery worker 背景跑 → 前端輪詢」整條 async 路通了。
 import { ref, onUnmounted } from 'vue'
 import { startDemoJob, getJob } from '@/api'
+import { Button } from '@/components/ui/button'
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 
 const job = ref(null)      // { id, name, status, progress, message }
 const error = ref('')
@@ -48,34 +50,37 @@ onUnmounted(stopPolling)
 </script>
 
 <template>
-  <main style="font-family: system-ui, sans-serif; max-width: 480px; margin: 4rem auto;">
-    <h1>非同步任務示範</h1>
-    <p style="color: #666;">按下按鈕會派一個背景任務給 celery worker，前端每秒輪詢進度。</p>
+  <div class="mx-auto max-w-lg">
+    <h1 class="text-2xl font-semibold tracking-tight">非同步任務示範</h1>
+    <p class="text-muted-foreground mt-1 text-sm">按下按鈕會派一個背景任務給 celery worker，前端每秒輪詢進度。</p>
 
-    <button :disabled="!!timer" @click="run" style="padding: 0.5rem 1rem; font-size: 1rem;">
-      {{ timer ? '執行中…' : '跑示範任務' }}
-    </button>
+    <Card class="mt-5">
+      <CardHeader>
+        <CardTitle>示範任務</CardTitle>
+        <CardDescription>派工 → 背景執行 → 輪詢進度 0→100</CardDescription>
+      </CardHeader>
+      <CardContent class="flex flex-col gap-4">
+        <Button :disabled="!!timer" class="w-fit" @click="run">
+          {{ timer ? '執行中…' : '跑示範任務' }}
+        </Button>
 
-    <div v-if="job" style="margin-top: 1.5rem;">
-      <!-- 進度條：用一個外框 + 內部寬度隨 progress 變 -->
-      <div style="background: #eee; border-radius: 6px; overflow: hidden; height: 22px;">
-        <div
-          :style="{
-            width: job.progress + '%',
-            height: '100%',
-            background: job.status === 'FAILED' ? 'crimson' : '#2d8cff',
-            transition: 'width .3s',
-          }"
-        ></div>
-      </div>
-      <p style="margin-top: .5rem;">
-        狀態：<strong>{{ job.status }}</strong> — {{ job.progress }}%
-      </p>
-      <p v-if="job.message" style="color: #666;">{{ job.message }}</p>
-    </div>
+        <div v-if="job" class="flex flex-col gap-2">
+          <!-- 進度條：外框 + 內部寬度隨 progress 變 -->
+          <div class="bg-secondary h-2.5 w-full overflow-hidden rounded-full">
+            <div
+              class="h-full rounded-full transition-all duration-300"
+              :class="job.status === 'FAILED' ? 'bg-destructive' : 'bg-primary'"
+              :style="{ width: job.progress + '%' }"
+            />
+          </div>
+          <p class="text-sm">
+            狀態：<span class="font-medium">{{ job.status }}</span> — {{ job.progress }}%
+          </p>
+          <p v-if="job.message" class="text-muted-foreground text-sm">{{ job.message }}</p>
+        </div>
 
-    <p v-if="error" style="color: crimson;">{{ error }}</p>
-
-    <p style="margin-top: 2rem;"><router-link to="/">← 回首頁</router-link></p>
-  </main>
+        <p v-if="error" class="text-destructive text-sm">{{ error }}</p>
+      </CardContent>
+    </Card>
+  </div>
 </template>

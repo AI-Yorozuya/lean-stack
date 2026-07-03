@@ -1,7 +1,10 @@
 <script setup>
-// 最外層：只放 router-view，讓路由決定要顯示哪個 view。
+// 最外層：套上應用外殼（sidebar + 頂部 bar），內容交給路由。
+import AppShell from '@/components/layout/AppShell.vue'
 </script>
 
 <template>
-  <router-view />
+  <AppShell>
+    <router-view />
+  </AppShell>
 </template>

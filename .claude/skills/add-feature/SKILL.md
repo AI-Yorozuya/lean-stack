@@ -23,8 +23,9 @@ description: INTENT-first 加一個功能到 lean-stack（INTENT → 後端 app/
 
 3. **生前端頁**（`apps/lean-admin`）
    - `src/api/` 加呼叫後端的函式。
-   - `src/views/` 加 view、`src/components/` 放共用 UI。
+   - `src/views/` 加 view——**UI 積木用 `@/components/ui/*`（shadcn-vue：button/input/card/table/dialog…），別手刻內聯樣式**；缺的用 `npx shadcn-vue@latest add <name>` 補。圖示用 `@lucide/vue`、顏色用語意 token（見 CLAUDE.md「前端設計系統」）。
    - `src/router/index.js` 的 `routes` 加一筆（`() => import(...)` lazy load）。
+   - 要進側邊欄就在 `src/components/layout/AppShell.vue` 的 `nav` 陣列加一筆：單一項 `{ to, label, icon }`，要分子選單用群組 `{ label, icon, children: [{ to, label }, …] }`。
 
 4. **接線驗證**
    - 後端 `manage.py check` 通過；前端頁面打得到端點、拿到資料即通。
@@ -40,7 +41,8 @@ description: INTENT-first 加一個功能到 lean-stack（INTENT → 後端 app/
 
 - INTENT：`intents/訂單管理.md`（Stage A/B、鐵則、5W）
 - 後端：`apps/lean-backend/apps/order/`（models/schemas/apis 都有教學註解）
-- 前端：`apps/lean-admin/src/views/OrderListView.vue` ＋ `src/api/order.js`
+  - Stage A（無狀態 CRUD）＋ Stage B（有狀態）：狀態機在 `models.py` 的 `TRANSITIONS` 表 + `apply_transition()`（非法轉移 raise `TransitionError` → apis 轉 422），是「狀態機/被禁止的轉移」的參考範本。
+- 前端：Stage A `OrderListView.vue`、Stage B `OrderLifecycleView.vue`（狀態 badge + 只長合法動作按鈕）＋ `src/api/order.js`
 
 ## 常見坑（dogfood 踩過的，動手前先讀）
 

@@ -9,8 +9,10 @@ import HomeView from '@/views/HomeView.vue'
 
 const routes = [
   { path: '/', name: 'home', component: HomeView },
-  // 訂單管理（Stage A CRUD）——「加一頁」流程的第一個真實範例
+  // 訂單管理 Stage A（無狀態 CRUD）——「加一頁」流程的第一個真實範例
   { path: '/orders', name: 'orders', component: () => import('@/views/OrderListView.vue') },
+  // 訂單管理 Stage B（有狀態：生命週期狀態機）
+  { path: '/orders/lifecycle', name: 'orders-lifecycle', component: () => import('@/views/OrderLifecycleView.vue') },
   // 非同步任務示範頁（celery 範例，lazy load）
   { path: '/job', name: 'job', component: () => import('@/views/JobView.vue') },
   // 新頁面路由加在這

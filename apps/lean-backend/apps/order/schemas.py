@@ -53,10 +53,23 @@ class OrderSchema(Schema):
     order_date: str = Field(..., alias='order_date')
     total: float                               # 後端算的（鐵則），非手填
     items: list[OrderItemSchema]
+    # Stage B：狀態機相關（Stage A 頁面收到但不理它）。
+    status: str                                # 狀態 code（PENDING / PAID / …）
+    status_display: str                        # 中文（待付款 / 已付款 / …）
+    paid_amount: float                         # 已收金額（收款後 = 總額）
+    available_actions: list[str]               # 目前合法的動作（pay/ship/complete/refund）
 
     @staticmethod
     def resolve_order_date(obj):
         return str(obj.order_date)
+
+    @staticmethod
+    def resolve_status_display(obj):
+        return obj.get_status_display()
+
+    @staticmethod
+    def resolve_available_actions(obj):
+        return obj.available_actions()
 
 
 class OrderListSchema(Schema):

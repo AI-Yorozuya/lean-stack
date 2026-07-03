@@ -31,9 +31,15 @@
 
 對應 skill：`.claude/skills/add-feature`（v0 stub）。
 
+## 前端設計系統（shadcn-vue + Tailwind）
+
+- **UI 積木一律用 `@/components/ui/*`（shadcn-vue，Tailwind v4）**，別再手刻內聯樣式。已有：`button`、`input`、`label`、`card`、`table`、`dialog`、`badge`。缺的用 `npx shadcn-vue@latest add <name>` 補（元件是複製進 repo 的 .vue 檔，你擁有、可改）。
+- **顏色只用語意 token**（`bg-background`/`text-muted-foreground`/`bg-primary`/`border`…），定義在 `src/assets/index.css` 的 `:root`（換主題只改這裡）。圖示用 `@lucide/vue`。
+- **版面外殼在 `src/components/layout/AppShell.vue`**（常駐 sidebar + 頂部 bar + 內容區）。頁面只寫自己的內容，殼由 `App.vue` 套上。
+
 ## 前端加一頁
 
-在 `lean-admin` 的 `src/views/` 加 `.vue` → `src/router/index.js` 的 `routes` 加一筆（`() => import(...)`）→ 共用 UI 放 `src/components/`、API 呼叫放 `src/api/`。
+在 `lean-admin` 的 `src/views/` 加 `.vue`（用 `@/components/ui/*` 拼版面）→ `src/router/index.js` 的 `routes` 加一筆（`() => import(...)`）→ **要進 sidebar 就在 `AppShell.vue` 的 `nav` 陣列加一筆**：單一項 `{ to, label, icon }`；要分子選單就用群組 `{ label, icon, children: [{ to, label }, …] }`（含 active 子項會自動展開）→ API 呼叫放 `src/api/`。
 
 ## media 儲存（上傳檔）
 

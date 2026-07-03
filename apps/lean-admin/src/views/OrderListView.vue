@@ -5,11 +5,13 @@
 //   篩選         → input + select + button（讀清單·帶條件）
 //   新增 / 編輯  → button → dialog + form （建立 / 修改）
 //   刪除         → button → dialog 確認   （刪除）
-// 七個元件、四個 API，每個都因為一個動作而存在。
+// 七個元件、四個 API,每個都因為一個動作而存在。
+// UI 積木一律用 @/components/ui 的 shadcn-vue 元件（樣式一致、無障礙內建）。
 //
 // 鐵則的分工（重要）：表單裡的「小計/總計」是前端算給人看的即時回饋；
 // 送出後一律以後端回傳為準——錢的真相在後端（見後端 models.py）。
 import { computed, onMounted, reactive, ref } from 'vue'
+import { Plus, X } from '@lucide/vue'
 import {
   createCustomer,
   createOrder,
@@ -18,6 +20,23 @@ import {
   listOrders,
   updateOrder,
 } from '@/api/order'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
+import {
+  Dialog,
+  DialogContent,
+  DialogScrollContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog'
+
+// 沒有專用的 shadcn Select 元件時,原生 <select> 套這個 class 對齊 Input 外觀。
+const selectClass =
+  'border-input h-9 rounded-md border bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-3'
 
 // ── 列表狀態 ────────────────────────────────────────────
 const orders = ref([])
@@ -45,7 +64,7 @@ async function load() {
     orders.value = data.items
     count.value = data.count
   } catch (e) {
-    errorMsg.value = '載入失敗，請稍後再試'
+    errorMsg.value = '載入失敗,請稍後再試'
     console.error(e)
   } finally {
     loading.value = false
@@ -107,7 +126,7 @@ function addItem() {
 }
 
 function removeItem(idx) {
-  // 鐵則 {至少一筆明細}：前端先擋（體驗），後端也會擋（真相）。
+  // 鐵則 {至少一筆明細}：前端先擋（體驗）,後端也會擋（真相）。
   if (form.items.length <= 1) {
     formError.value = '鐵則：一張訂單至少要有一筆明細'
     return
@@ -140,7 +159,7 @@ async function submitForm() {
     load()
   } catch (e) {
     // 後端擋下的（422 = 鐵則/驗證不過）給人看得懂的訊息
-    formError.value = e.response?.status === 422 ? '資料不合規則：請檢查明細（數量要 > 0、至少一筆）' : '儲存失敗，請稍後再試'
+    formError.value = e.response?.status === 422 ? '資料不合規則：請檢查明細（數量要 > 0、至少一筆）' : '儲存失敗,請稍後再試'
     console.error(e)
   }
 }
@@ -165,145 +184,144 @@ const deleting = ref(null) // 存要刪的 order 物件
 async function confirmDelete() {
   await deleteOrder(deleting.value.id)
   deleting.value = null
-  // 刪掉本頁最後一筆時退一頁，別停在空頁上
+  // 刪掉本頁最後一筆時退一頁,別停在空頁上
   if (orders.value.length === 1 && page.value > 1) page.value -= 1
   load()
 }
 </script>
 
 <template>
-  <main class="page">
-    <h1>訂單管理</h1>
-    <p class="hint">Stage A：無狀態 CRUD——訂單就是一筆「有明細、有客戶」的資料（規則見 intents/訂單管理.md）</p>
+  <div>
+    <h1 class="text-2xl font-semibold tracking-tight">訂單管理</h1>
 
-    <!-- 篩選列：input + select + button -->
-    <div class="toolbar">
-      <input v-model="q" placeholder="搜客戶名…" @keyup.enter="search" />
-      <select v-model="filterCustomerId" @change="search">
-        <option value="">全部客戶</option>
-        <option v-for="c in customers" :key="c.id" :value="c.id">{{ c.name }}</option>
-      </select>
-      <button @click="search">搜尋</button>
-      <button class="primary" style="margin-left: auto" @click="openCreate">＋ 新增訂單</button>
-    </div>
+    <!-- 大卡片（學 top-admin：標題下一張白卡，搜尋列/表格/分頁全包在裡面；卡片用陰影、不用邊框）-->
+    <div class="mt-4 rounded-lg bg-white p-5 shadow-sm">
+      <p v-if="errorMsg" class="text-destructive mb-3 text-sm">{{ errorMsg }}</p>
 
-    <p v-if="errorMsg" class="error">{{ errorMsg }}</p>
+      <!-- 工具列 -->
+      <div class="mb-4 flex items-center justify-between gap-2">
+        <div class="flex flex-wrap items-center gap-2">
+          <Input v-model="q" placeholder="搜客戶名…" class="w-40" @keyup.enter="search" />
+          <select v-model="filterCustomerId" :class="selectClass" @change="search">
+            <option value="">全部客戶</option>
+            <option v-for="c in customers" :key="c.id" :value="c.id">{{ c.name }}</option>
+          </select>
+          <Button variant="outline" @click="search">搜尋</Button>
+        </div>
+        <Button @click="openCreate"><Plus class="size-4" /> 新增訂單</Button>
+      </div>
 
-    <!-- table -->
-    <table>
-      <thead>
-        <tr><th>#</th><th>客戶</th><th>日期</th><th>明細</th><th class="num">總額</th><th></th></tr>
-      </thead>
-      <tbody>
-        <tr v-for="o in orders" :key="o.id">
-          <td>{{ o.id }}</td>
-          <td>{{ o.customer.name }}</td>
-          <td>{{ o.order_date }}</td>
-          <td>{{ o.items.length }} 筆</td>
-          <td class="num">{{ o.total.toLocaleString() }}</td>
-          <td class="ops">
-            <button @click="openEdit(o)">編輯</button>
-            <button class="danger" @click="deleting = o">刪除</button>
-          </td>
-        </tr>
-        <tr v-if="!loading && orders.length === 0">
-          <td colspan="6" class="empty">沒有訂單——按右上「＋ 新增訂單」開第一張</td>
-        </tr>
-      </tbody>
-    </table>
+      <!-- 表格：自己一張帶邊框的框，嵌在白卡裡（密度/表頭底色由 ui/table 統一）-->
+      <div class="overflow-hidden rounded-lg border">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead class="w-16">#</TableHead>
+            <TableHead>客戶</TableHead>
+            <TableHead>日期</TableHead>
+            <TableHead>明細</TableHead>
+            <TableHead class="text-right">總額</TableHead>
+            <TableHead class="w-32"></TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          <TableRow v-for="o in orders" :key="o.id">
+            <TableCell class="text-muted-foreground">{{ o.id }}</TableCell>
+            <TableCell class="font-medium">{{ o.customer.name }}</TableCell>
+            <TableCell class="text-muted-foreground">{{ o.order_date }}</TableCell>
+            <TableCell class="text-muted-foreground">{{ o.items.length }} 筆</TableCell>
+            <TableCell class="text-right tabular-nums">{{ o.total.toLocaleString() }}</TableCell>
+            <TableCell class="text-right whitespace-nowrap">
+              <Button variant="ghost" size="sm" @click="openEdit(o)">編輯</Button>
+              <Button variant="ghost" size="sm" class="text-destructive hover:text-destructive" @click="deleting = o">刪除</Button>
+            </TableCell>
+          </TableRow>
+          <TableRow v-if="!loading && orders.length === 0">
+            <TableCell colspan="6" class="text-muted-foreground py-16 text-center">
+              沒有訂單——按右上「＋ 新增訂單」開第一張
+            </TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>
+      </div>
 
-    <!-- pagination -->
-    <div class="pager">
-      <button :disabled="page <= 1" @click="goPage(page - 1)">上一頁</button>
-      <span>{{ page }} / {{ totalPages }}（共 {{ count }} 筆）</span>
-      <button :disabled="page >= totalPages" @click="goPage(page + 1)">下一頁</button>
+      <!-- 分頁 -->
+      <div class="mt-4 flex items-center justify-between gap-4 text-sm">
+        <span class="text-muted-foreground">共 {{ count }} 筆</span>
+        <div class="flex items-center gap-3">
+          <Button variant="outline" size="sm" :disabled="page <= 1" @click="goPage(page - 1)">上一頁</Button>
+          <span class="text-muted-foreground tabular-nums">{{ page }} / {{ totalPages }}</span>
+          <Button variant="outline" size="sm" :disabled="page >= totalPages" @click="goPage(page + 1)">下一頁</Button>
+        </div>
+      </div>
     </div>
 
     <!-- 新增/編輯 dialog + form -->
-    <div v-if="showForm" class="overlay" @click.self="showForm = false">
-      <div class="dialog">
-        <h2>{{ editingId ? `編輯訂單 #${editingId}` : '新增訂單' }}</h2>
+    <Dialog v-model:open="showForm">
+      <DialogScrollContent class="sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>{{ editingId ? `編輯訂單 #${editingId}` : '新增訂單' }}</DialogTitle>
+          <DialogDescription>選客戶、填明細；小計/總計是顯示用,存檔後以後端計算為準。</DialogDescription>
+        </DialogHeader>
 
-        <label>客戶</label>
-        <div class="row">
-          <select v-model="form.customer_id">
-            <option value="" disabled>選擇客戶</option>
-            <option v-for="c in customers" :key="c.id" :value="c.id">{{ c.name }}</option>
-          </select>
-          <button @click="showNewCustomer = !showNewCustomer">＋ 新客戶</button>
-        </div>
-        <div v-if="showNewCustomer" class="row subform">
-          <input v-model="newCustomer.name" placeholder="客戶姓名" />
-          <input v-model="newCustomer.phone" placeholder="電話（選填）" />
-          <button class="primary" @click="submitNewCustomer">建立</button>
+        <div class="flex flex-col gap-4 py-2">
+          <div class="flex flex-col gap-1.5">
+            <Label>客戶</Label>
+            <div class="flex gap-2">
+              <select v-model="form.customer_id" :class="[selectClass, 'flex-1']">
+                <option value="" disabled>選擇客戶</option>
+                <option v-for="c in customers" :key="c.id" :value="c.id">{{ c.name }}</option>
+              </select>
+              <Button variant="outline" @click="showNewCustomer = !showNewCustomer">＋ 新客戶</Button>
+            </div>
+            <div v-if="showNewCustomer" class="bg-muted flex gap-2 rounded-md p-2">
+              <Input v-model="newCustomer.name" placeholder="客戶姓名" />
+              <Input v-model="newCustomer.phone" placeholder="電話（選填）" />
+              <Button @click="submitNewCustomer">建立</Button>
+            </div>
+          </div>
+
+          <div class="flex flex-col gap-2">
+            <Label>明細（小計 = 數量 × 單價,自動算）</Label>
+            <div v-for="(item, idx) in form.items" :key="idx" class="flex items-center gap-2">
+              <Input v-model="item.name" placeholder="品項名" class="flex-1" />
+              <Input v-model.number="item.quantity" type="number" min="1" class="w-20" />
+              <span class="text-muted-foreground">×</span>
+              <Input v-model.number="item.unit_price" type="number" min="0" class="w-28" />
+              <span class="text-muted-foreground w-24 text-right text-sm tabular-nums">= {{ itemSubtotal(item).toLocaleString() }}</span>
+              <Button variant="ghost" size="icon-sm" class="text-destructive" @click="removeItem(idx)"><X class="size-4" /></Button>
+            </div>
+            <Button variant="outline" size="sm" class="w-fit" @click="addItem"><Plus class="size-4" /> 加一筆明細</Button>
+          </div>
+
+          <p class="font-semibold">
+            總計：{{ formTotal.toLocaleString() }}
+            <span class="text-muted-foreground ml-2 text-sm font-normal">（顯示用；存檔後以後端計算為準）</span>
+          </p>
+          <p v-if="formError" class="text-destructive text-sm">{{ formError }}</p>
         </div>
 
-        <label>明細（小計 = 數量 × 單價，自動算）</label>
-        <div v-for="(item, idx) in form.items" :key="idx" class="row item-row">
-          <input v-model="item.name" placeholder="品項名" class="grow" />
-          <input v-model.number="item.quantity" type="number" min="1" class="qty" />
-          <span>×</span>
-          <input v-model.number="item.unit_price" type="number" min="0" class="price" />
-          <span class="subtotal">= {{ itemSubtotal(item).toLocaleString() }}</span>
-          <button class="danger" @click="removeItem(idx)">✕</button>
-        </div>
-        <button @click="addItem">＋ 加一筆明細</button>
-
-        <p class="total">總計：{{ formTotal.toLocaleString() }}<small>（顯示用；存檔後以後端計算為準）</small></p>
-        <p v-if="formError" class="error">{{ formError }}</p>
-
-        <div class="row end">
-          <button @click="showForm = false">取消</button>
-          <button class="primary" @click="submitForm">儲存</button>
-        </div>
-      </div>
-    </div>
+        <DialogFooter>
+          <Button variant="outline" @click="showForm = false">取消</Button>
+          <Button @click="submitForm">儲存</Button>
+        </DialogFooter>
+      </DialogScrollContent>
+    </Dialog>
 
     <!-- 刪除確認 dialog -->
-    <div v-if="deleting" class="overlay" @click.self="deleting = null">
-      <div class="dialog narrow">
-        <h2>刪除訂單 #{{ deleting.id }}？</h2>
-        <p>客戶 {{ deleting.customer.name }}、總額 {{ deleting.total.toLocaleString() }}。刪了就沒了（明細一起刪）。</p>
-        <div class="row end">
-          <button @click="deleting = null">取消</button>
-          <button class="danger" @click="confirmDelete">確定刪除</button>
-        </div>
-      </div>
-    </div>
-  </main>
+    <Dialog :open="!!deleting" @update:open="(v) => { if (!v) deleting = null }">
+      <DialogContent class="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>刪除訂單 #{{ deleting?.id }}？</DialogTitle>
+          <DialogDescription>
+            客戶 {{ deleting?.customer.name }}、總額 {{ deleting?.total.toLocaleString() }}。刪了就沒了（明細一起刪）。
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="outline" @click="deleting = null">取消</Button>
+          <Button variant="destructive" @click="confirmDelete">確定刪除</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  </div>
 </template>
-
-<style scoped>
-.page { font-family: system-ui, sans-serif; max-width: 880px; margin: 2rem auto; padding: 0 1rem; }
-h1 { margin-bottom: 0.25rem; }
-.hint { color: #888; font-size: 0.85rem; margin-bottom: 1rem; }
-.toolbar { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
-input, select { padding: 0.4rem 0.6rem; border: 1px solid #ccc; border-radius: 6px; font: inherit; }
-button { padding: 0.4rem 0.8rem; border: 1px solid #ccc; border-radius: 6px; background: #fff; cursor: pointer; font: inherit; }
-button:hover { background: #f5f5f5; }
-button.primary { background: #1a73e8; border-color: #1a73e8; color: #fff; }
-button.primary:hover { background: #1765cc; }
-button.danger { color: #c62828; border-color: #e0b4b4; }
-button:disabled { opacity: 0.4; cursor: default; }
-table { width: 100%; border-collapse: collapse; }
-th, td { text-align: left; padding: 0.5rem 0.6rem; border-bottom: 1px solid #eee; }
-.num { text-align: right; }
-.ops { text-align: right; white-space: nowrap; }
-.ops button { margin-left: 0.3rem; }
-.empty { text-align: center; color: #999; padding: 2rem 0; }
-.pager { display: flex; gap: 1rem; align-items: center; justify-content: center; margin-top: 1rem; }
-.error { color: #c62828; }
-.overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.35); display: flex; align-items: center; justify-content: center; }
-.dialog { background: #fff; border-radius: 10px; padding: 1.5rem; width: min(640px, 92vw); max-height: 88vh; overflow-y: auto; }
-.dialog.narrow { width: min(400px, 92vw); }
-.dialog label { display: block; margin: 0.9rem 0 0.3rem; font-weight: 600; font-size: 0.9rem; }
-.row { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.4rem; }
-.row.end { justify-content: flex-end; margin-top: 1rem; }
-.subform { background: #f7f7f7; padding: 0.5rem; border-radius: 6px; }
-.grow { flex: 1; }
-.qty { width: 4.5rem; }
-.price { width: 6.5rem; }
-.subtotal { min-width: 6rem; text-align: right; color: #555; }
-.total { margin-top: 0.8rem; font-weight: 700; }
-.total small { font-weight: 400; color: #999; margin-left: 0.5rem; }
-</style>
