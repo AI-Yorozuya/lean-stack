@@ -19,7 +19,7 @@
 - **單一註冊點**：所有 router 在 `apps/lean-backend/core/api.py` 用 `api.add_router(...)` 掛上去（只有一個 NinjaAPI，掛在 `/api/v1/`）。新增端點不用改 `core/urls.py`。
 - **`_common.TimeStampedModel`**：領域 model 一律繼承它（自動 created_at / updated_at）。見 `apps/_common/models.py`。
 - schema 用 ninja `Schema`（pydantic）放各 app 的 `schemas.py`。
-- **整套一律用 docker compose 起**（repo 根的 `docker-compose.local.yml`，一次帶 postgres+redis+backend+worker+兩個前端；backend `uvicorn --reload`、前端 vite dev，改 code 都即時反映不用 rebuild）。**不跑本機 runserver / 不在 host 跑 npm dev**——Docker Desktop 是唯一狀態視窗（六綠燈=活著），log 用 `docker compose logs <service>` 直讀。管理指令走 `docker compose -f docker-compose.local.yml exec backend uv run python manage.py <cmd>`。`uv`/`npm` 都是容器內的事。撞 port 用 `LEAN_BACKEND_PORT`/`LEAN_WEB_PORT`/`LEAN_ADMIN_PORT` 覆寫。新手啟動劇本見 `START.md`（下半是給 AI 的 runbook，照做）。
+- **整套一律用 docker compose 起**（repo 根的 `docker-compose.local.yml`，一次帶 postgres+redis+backend+worker+兩個前端；backend `uvicorn --reload`、前端 vite dev，改 code 都即時反映不用 rebuild）。**預設全走 docker、不跑本機 runserver**——Docker Desktop 是唯一狀態視窗（六綠燈=活著），log 用 `docker compose logs <service>` 直讀。（工程師例外：host 直接 `npm run dev` 可以，vite proxy 沒設 env 時 fallback `localhost:8000`——那是 dogfood 用的後門，新手流程一律 docker。）管理指令走 `docker compose -f docker-compose.local.yml exec backend uv run python manage.py <cmd>`。`uv`/`npm` 都是容器內的事。撞 port 用 `LEAN_BACKEND_PORT`/`LEAN_WEB_PORT`/`LEAN_ADMIN_PORT` 覆寫。新手啟動劇本見 `START.md`（下半是給 AI 的 runbook，照做）。
 
 ## INTENT-first 加功能（本 repo 的核心做法）
 
