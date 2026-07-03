@@ -10,6 +10,7 @@
 from ninja import NinjaAPI
 
 from apps.health.apis import router as health_router
+from apps.order.apis import router as order_router
 from apps.progress.apis import router as progress_router
 
 # title / version 會顯示在自動產生的 API 文件（/api/v1/docs）。
@@ -22,6 +23,7 @@ api = NinjaAPI(title='lean-stack API', version='1.0.0')
 # ──────────────────────────────────────────────────────────────
 api.add_router('/health', health_router)
 api.add_router('/progress', progress_router)
+api.add_router('/order', order_router)
 
 # 之後要加登入驗證時：
 #   1) 寫一個 ninja 的 auth class（例如 JWT / session）

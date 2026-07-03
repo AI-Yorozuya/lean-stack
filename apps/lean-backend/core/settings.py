@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     'apps._common',  # 共用：抽象 model（TimeStampedModel）等
     'apps.health',
     'apps.progress',  # 非同步任務進度（celery 範例）
+    'apps.order',  # 訂單管理（Stage A：CRUD＋關聯＋鐵則；規則見 intents/訂單管理.md）
 ]
 
 MIDDLEWARE = [

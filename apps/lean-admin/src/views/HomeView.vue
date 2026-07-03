@@ -24,6 +24,9 @@ onMounted(async () => {
     <h1>lean-stack 管理後台</h1>
     <p style="color: #666;">後台 / Admin Console</p>
     <HealthBadge :status="status" />
+    <nav style="margin-top: 2rem;">
+      <RouterLink to="/orders" style="color: #1a73e8;">→ 訂單管理</RouterLink>
+    </nav>
     <!--
       之後加登入：後台是 auth 真正重要的地方。
       登入頁與權限守衛的接縫已留在 src/router/index.js（見該檔註解）。

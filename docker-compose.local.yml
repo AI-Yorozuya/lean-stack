@@ -44,6 +44,10 @@ services:
       CELERY_BROKER_URL: redis://redis:6379/0
       DJANGO_SECRET_KEY: dev-only-insecure-change-me
       DEBUG: "True"
+      # 強制 uvicorn reload 用輪詢：bind mount 下「watch 啟動後才新建的目錄」
+      # 檔案事件可能不傳（Docker VirtioFS 怪癖）→ 新增 app 後改 code 不會 reload。
+      # 教學 sandbox 穩定優先，輪詢成本對這個量級可忽略。
+      WATCHFILES_FORCE_POLLING: "true"
     ports:
       # host port 可用 env 覆寫（LEAN_BACKEND_PORT），預設 8000；
       # 開發機同時跑多專案撞 port 時用：LEAN_BACKEND_PORT=8001 docker compose ... up

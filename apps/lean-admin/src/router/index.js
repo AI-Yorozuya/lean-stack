@@ -10,6 +10,8 @@ import HomeView from '@/views/HomeView.vue'
 
 const routes = [
   { path: '/', name: 'home', component: HomeView },
+  // 訂單管理（Stage A CRUD）——「加一頁」流程的第一個真實範例
+  { path: '/orders', name: 'orders', component: () => import('@/views/OrderListView.vue') },
   // 新頁面路由加在這
   // 之後的登入頁也在這加：{ path: '/login', name: 'login', component: () => import('@/views/LoginView.vue') }
 ]
