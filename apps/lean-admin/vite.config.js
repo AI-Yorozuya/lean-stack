@@ -13,9 +13,9 @@ export default defineConfig({
   },
 
   server: {
-    // 後台用 5174，跟前台 lean-web(5173) 區隔，兩者可同時開。
+    // 後台用 5174。
     port: 5174,
-    // 把打到 /api 的請求，dev 時轉給後端的 :8000（與 lean-web 同一個後端）。
+    // 把打到 /api 的請求，dev 時轉給後端的 :8000。
     // 好處：前端程式碼一律用相對路徑 /api/...，不用管 CORS、也不用寫死後端網址。
     proxy: {
       '/api': {

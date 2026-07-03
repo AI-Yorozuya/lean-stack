@@ -13,7 +13,7 @@
 後端 + DB + redis + celery worker（一個指令全起，與 prod 同構）：
 
 ```bash
-docker compose -f docker-compose.local.yml up --build
+docker compose -f infra/docker-compose.local.yml up --build
 curl -s localhost:8000/api/v1/health    # {"status": "ok"}
 
 # 試非同步任務：派工後輪詢進度，會看到 progress 0→100、status 變 SUCCESS。
@@ -24,7 +24,6 @@ curl -s localhost:8000/api/v1/progress/$JOB
 前端 dev server：
 
 ```bash
-cd apps/lean-web   && npm install && npm run dev   # :5173
 cd apps/lean-admin && npm install && npm run dev   # :5174
 ```
 
@@ -32,8 +31,7 @@ cd apps/lean-admin && npm install && npm run dev   # :5174
 
 ```bash
 cp infra/.env.prod.example infra/.env.prod          # 填值
-cd apps/lean-web && npm ci && npm run build && cd -  # 先 build 前端
-cd apps/lean-admin && npm ci && npm run build && cd -
+cd apps/lean-admin && npm ci && npm run build && cd -  # 先 build 前端
 docker compose -f infra/docker-compose.prod.yml --env-file infra/.env.prod up -d --build
 curl -s localhost/api/v1/health
 ```
@@ -68,7 +66,7 @@ cp infra/.env.prod.example infra/.env.prod     # 填正式值（強密碼 / SECR
 bash infra/scripts/deploy.sh
 ```
 
-`deploy.sh` 會：build 兩個前端 → `docker compose -f infra/docker-compose.prod.yml up -d --build`
+`deploy.sh` 會：build admin 前端 → `docker compose -f infra/docker-compose.prod.yml up -d --build`
 （起 postgres + redis + backend + **celery-worker** + nginx）→ `migrate`。redis 與 worker 是內部服務，不經 nginx。
 驗證：
 
@@ -76,7 +74,7 @@ bash infra/scripts/deploy.sh
 curl -s localhost/api/v1/health    # {"status": "ok"}
 ```
 
-DNS：把網域 A record 指到 `terraform output public_ip`（前台 + `admin.` 子網域）。
+DNS：把網域 A record 指到 `terraform output public_ip`。
 TLS：拿到憑證後依 `infra/nginx/nginx.conf` 末段說明開 443。
 
 媒體檔（上傳）：prod 設 `USE_S3=True`，media 直接存/取 S3（`terraform output media_bucket_name`），

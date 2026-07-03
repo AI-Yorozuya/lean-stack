@@ -19,9 +19,9 @@ description: INTENT-first 加一個功能到 lean-stack（INTENT → 後端 app/
    - `schemas.py`（ninja `Schema`）、`apis.py`（建一個 ninja `Router`，`@router.get/post...`）。參考 `apps/health/`。
    - 把 app 加進 `core/settings.py` 的 `INSTALLED_APPS`。
    - **在 `core/api.py` 用 `api.add_router('/<功能>/', <功能>_router)` 註冊**（唯一註冊點）。
-   - migration 在容器內跑：`docker compose -f docker-compose.local.yml exec backend uv run python manage.py makemigrations <app> && … migrate`。
+   - migration 在容器內跑：`docker compose -f infra/docker-compose.local.yml exec backend uv run python manage.py makemigrations <app> && … migrate`。
 
-3. **生前端頁**（`apps/lean-web` 或 `apps/lean-admin`）
+3. **生前端頁**（`apps/lean-admin`）
    - `src/api/` 加呼叫後端的函式。
    - `src/views/` 加 view、`src/components/` 放共用 UI。
    - `src/router/index.js` 的 `routes` 加一筆（`() => import(...)` lazy load）。
@@ -46,7 +46,7 @@ description: INTENT-first 加一個功能到 lean-stack（INTENT → 後端 app/
 
 1. **錢一律 Decimal，不准 float。** schema 用 `Decimal = Field(..., ge=0)`；model 計算再包一層 `Decimal(str(...))` 防禦（float×Decimal 會 TypeError；float 算錢會飄）。
 2. **鐵則兩層守**：schema 在門口擋（如 `min_length=1`）、model `save()`/helper 守真相（如小計自動算、`recalc_total()`）。前端的即時計算只是顯示用——真相永遠是後端回傳。
-3. **新建 app 目錄後 reload 可能漏**：compose 已設 `WATCHFILES_FORCE_POLLING`；若疑似跑舊 code，`docker compose -f docker-compose.local.yml up -d backend` 重建一次再測。
+3. **新建 app 目錄後 reload 可能漏**：compose 已設 `WATCHFILES_FORCE_POLLING`；若疑似跑舊 code，`docker compose -f infra/docker-compose.local.yml up -d backend` 重建一次再測。
 4. **父子一起建要 `transaction.atomic`**（訂單＋明細要嘛全存要嘛全不存）。
 5. **子路由命名**：靜態路徑（`/customers`）與 `/{id:int}` 可共存（int converter 不吃字串），但靜態的先註冊、少賭。
 6. **驗證順序**：先 curl 打 API（含**故意違反鐵則**看 422）→ 再開瀏覽器走 UI 流程（建→列→刪）＋看 console 零錯誤。中文 query 用 `curl -G --data-urlencode`，不然是 client 端壞不是 API 壞。

@@ -1,7 +1,6 @@
 <script setup>
 // 後台首頁 view：掛載時打後端 health 端點，把狀態交給 HealthBadge 元件顯示。
-// 這頁能顯示「後端連線正常」就證明「後台 → 同一個後端」整條路通了
-// （lean-admin 與 lean-web 共用 GET /api/v1/health 這個後端）。
+// 這頁能顯示「後端連線正常」就證明「後台 → 後端」整條路通了。
 import { ref, onMounted } from 'vue'
 import { getHealth } from '@/api'
 import HealthBadge from '@/components/HealthBadge.vue'
@@ -24,8 +23,9 @@ onMounted(async () => {
     <h1>lean-stack 管理後台</h1>
     <p style="color: #666;">後台 / Admin Console</p>
     <HealthBadge :status="status" />
-    <nav style="margin-top: 2rem;">
+    <nav style="margin-top: 2rem; display: flex; flex-direction: column; gap: .5rem;">
       <RouterLink to="/orders" style="color: #1a73e8;">→ 訂單管理</RouterLink>
+      <RouterLink to="/job" style="color: #1a73e8;">→ 非同步任務示範</RouterLink>
     </nav>
     <!--
       之後加登入：後台是 auth 真正重要的地方。

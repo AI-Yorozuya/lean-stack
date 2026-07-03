@@ -3,13 +3,12 @@
 全端教學 sandbox。給在這 repo 工作的 AI agent 的慣例與紀律。**規則優先於預設行為。**
 細節盡量寫在「對應檔案的 in-code 註解」裡，這份只給地圖與鐵則。
 
-## 三 app 佈局
+## 兩 app 佈局
 
 | app | 是什麼 | 技術 |
 |-----|--------|------|
 | `apps/lean-backend` | 後端 API + DB | Django 6 + django-ninja + Postgres（uv） |
 | `apps/lean-admin` | 管理後台（auth 之後長在這） | Vue 3 + Vite（:5174） |
-| `apps/lean-web` | 對外前台 | Vue 3 + Vite（:5173） |
 
 `infra/` = 部署層（terraform 一台 EC2 + 整套 prod compose + nginx）。`intents/` = 規則先於 code。
 
@@ -19,7 +18,7 @@
 - **單一註冊點**：所有 router 在 `apps/lean-backend/core/api.py` 用 `api.add_router(...)` 掛上去（只有一個 NinjaAPI，掛在 `/api/v1/`）。新增端點不用改 `core/urls.py`。
 - **`_common.TimeStampedModel`**：領域 model 一律繼承它（自動 created_at / updated_at）。見 `apps/_common/models.py`。
 - schema 用 ninja `Schema`（pydantic）放各 app 的 `schemas.py`。
-- **整套一律用 docker compose 起**（repo 根的 `docker-compose.local.yml`，一次帶 postgres+redis+backend+worker+兩個前端；backend `uvicorn --reload`、前端 vite dev，改 code 都即時反映不用 rebuild）。**預設全走 docker、不跑本機 runserver**——Docker Desktop 是唯一狀態視窗（六綠燈=活著），log 用 `docker compose logs <service>` 直讀。（工程師例外：host 直接 `npm run dev` 可以，vite proxy 沒設 env 時 fallback `localhost:8000`——那是 dogfood 用的後門，新手流程一律 docker。）管理指令走 `docker compose -f docker-compose.local.yml exec backend uv run python manage.py <cmd>`。`uv`/`npm` 都是容器內的事。撞 port 用 `LEAN_BACKEND_PORT`/`LEAN_WEB_PORT`/`LEAN_ADMIN_PORT` 覆寫。新手啟動劇本見 `START.md`（下半是給 AI 的 runbook，照做）。
+- **整套一律用 docker compose 起**（`infra/docker-compose.local.yml`，從 repo 根目錄跑；一次帶 postgres+redis+backend+worker+admin 前端；backend `uvicorn --reload`、前端 vite dev，改 code 都即時反映不用 rebuild）。**預設全走 docker、不跑本機 runserver**——Docker Desktop 是唯一狀態視窗（五綠燈=活著），log 用 `docker compose logs <service>` 直讀。（工程師例外：host 直接 `npm run dev` 可以，vite proxy 沒設 env 時 fallback `localhost:8000`——那是 dogfood 用的後門，新手流程一律 docker。）管理指令走 `docker compose -f infra/docker-compose.local.yml exec backend uv run python manage.py <cmd>`。`uv`/`npm` 都是容器內的事。撞 port 用 `LEAN_BACKEND_PORT`/`LEAN_ADMIN_PORT` 覆寫。新手啟動劇本見 `START.md`（下半是給 AI 的 runbook，照做）。
 
 ## INTENT-first 加功能（本 repo 的核心做法）
 
@@ -27,14 +26,14 @@
 
 1. **寫 INTENT**：在 `intents/` 依 `_TEMPLATE.md` 描述狀態機 + 權限 + 鐵則（語法見 `intents/README.md`）。
 2. **生後端**：依 INTENT 建 app（`apps.py`/`apis.py`/`schemas.py`/`models.py`，model 繼承 TimeStampedModel）→ 在 `core/api.py` 註冊 router → 容器內 `makemigrations && migrate`（`docker compose … exec backend uv run python manage.py …`）。
-3. **生前端頁**：在 `lean-web` 或 `lean-admin` 的 `src/views/` 加 view、`src/api/` 加呼叫、`src/router/index.js` 加一條路由（lazy load）。
+3. **生前端頁**：在 `lean-admin` 的 `src/views/` 加 view、`src/api/` 加呼叫、`src/router/index.js` 加一條路由（lazy load）。
 4. **接線驗證**：頁面打得到端點即通。
 
 對應 skill：`.claude/skills/add-feature`（v0 stub）。
 
 ## 前端加一頁
 
-在 `src/views/` 加 `.vue` → `src/router/index.js` 的 `routes` 加一筆（`() => import(...)`）→ 共用 UI 放 `src/components/`、API 呼叫放 `src/api/`。lean-web 與 lean-admin 流程相同。
+在 `lean-admin` 的 `src/views/` 加 `.vue` → `src/router/index.js` 的 `routes` 加一筆（`() => import(...)`）→ 共用 UI 放 `src/components/`、API 呼叫放 `src/api/`。
 
 ## media 儲存（上傳檔）
 
@@ -45,7 +44,7 @@
 
 ## 非同步任務
 
-- **非同步＝celery（redis broker + worker）**，設定見 `core/celery.py` / `core/settings.py`（`CELERY_*`），範例見 `apps/progress`（DB 存 `Job` 進度 + `tasks.py` + 前端輪詢頁 `lean-web/.../JobView.vue`）。
+- **非同步＝celery（redis broker + worker）**，設定見 `core/celery.py` / `core/settings.py`（`CELERY_*`），範例見 `apps/progress`（DB 存 `Job` 進度 + `tasks.py` + 前端輪詢頁 `lean-admin/.../JobView.vue`）。
 - **local 與 prod 同構（dev/prod parity）**：兩個 compose 都跑真 redis + 真 worker，**刻意不開 eager** —— eager 把任務當同步函式跑，會藏掉序列化/連線/worker 沒起來這類 async bug，正是「demo 會動、上 prod 垮」的牆。
 - 加任務：在某 app 寫 `tasks.py` 的 `@shared_task`（autodiscover 自動撿），API 端用 `.delay(...)` 派工，要追進度就照 `apps/progress` 用 `Job` 表。
 
@@ -84,7 +83,7 @@
 
 ## commit 慣例
 
-`type(scope): subject` — type: feat/fix/refactor/docs/chore/test；scope: lean-backend / lean-admin / lean-web / infra / docs。
+`type(scope): subject` — type: feat/fix/refactor/docs/chore/test；scope: lean-backend / lean-admin / infra / docs。
 
 > 新手講「存個檔」時你仍照此格式寫 message（她無感，但歷史保持乾淨、可讀）。
 

@@ -18,9 +18,8 @@ if [ ! -f infra/.env.prod ]; then
   exit 1
 fi
 
-# 1. build 兩個前端的靜態檔（nginx 會掛 dist/ 進去服務）。
-echo "==> building frontends (lean-web, lean-admin)"
-( cd apps/lean-web   && npm ci && npm run build )
+# 1. build admin 前端的靜態檔（nginx 會掛 dist/ 進去服務）。
+echo "==> building frontend (lean-admin)"
 ( cd apps/lean-admin && npm ci && npm run build )
 
 # 2. build image 並啟動整套（postgres + backend + nginx）。

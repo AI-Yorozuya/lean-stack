@@ -40,7 +40,7 @@ if DEBUG:
 else:
     ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=[])
     CORS_ALLOW_ALL_ORIGINS = False
-    # 例如 http://localhost:5173（Vite dev server）。
+    # 例如 http://localhost:5174（Vite dev server）。
     CORS_ALLOWED_ORIGINS = env.list('CORS_ALLOWED_ORIGINS', default=[])
 
 # ---- Apps -----------------------------------------------------------------

@@ -1,5 +1,5 @@
 # 正式環境「整套」編排，跑在 terraform 開的那台 EC2 上。
-#   postgres + redis + backend(gunicorn/uvicorn) + celery-worker + nginx(服務兩個前端 + 反代 /api)
+#   postgres + redis + backend(gunicorn/uvicorn) + celery-worker + nginx(服務 admin 前端 + 反代 /api)
 # 與 local compose「同構」：一樣的 redis + worker，一樣不開 eager（dev/prod parity）。
 #
 # 跑法（見 infra/DEPLOY.md / infra/scripts/deploy.sh）：
@@ -71,8 +71,7 @@ services:
       - "443:443"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
-      # 兩個前端的 build 產物（vite build 後的 dist/），用唯讀掛進來給 nginx 服務。
-      - ../apps/lean-web/dist:/usr/share/nginx/lean-web:ro
+      # admin 前端的 build 產物（vite build 後的 dist/），用唯讀掛進來給 nginx 服務。
       - ../apps/lean-admin/dist:/usr/share/nginx/lean-admin:ro
     depends_on:
       - backend

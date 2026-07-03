@@ -12,4 +12,15 @@ export function getHealth() {
   return http.get('/health').then((res) => res.data)
 }
 
+// ── 非同步任務（progress）─────────────────────────────────────
+// POST /api/v1/progress/demo → 派一個示範任務，回 { id, name, status, progress, message }
+export function startDemoJob() {
+  return http.post('/progress/demo').then((res) => res.data)
+}
+
+// GET /api/v1/progress/{id} → 查任務目前進度（前端輪詢用）
+export function getJob(id) {
+  return http.get(`/progress/${id}`).then((res) => res.data)
+}
+
 export default http

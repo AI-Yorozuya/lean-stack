@@ -1,5 +1,4 @@
-// 後台路由（目前只有一條）。結構與 lean-web 完全一致：
-// 「怎麼加一頁」的流程在三個 app 之間都一樣。
+// 後台路由。
 //
 // 教學重點（怎麼加一頁）：
 //   1) 在 src/views/ 新增一個 .vue（例如 UsersView.vue）。
@@ -12,6 +11,8 @@ const routes = [
   { path: '/', name: 'home', component: HomeView },
   // 訂單管理（Stage A CRUD）——「加一頁」流程的第一個真實範例
   { path: '/orders', name: 'orders', component: () => import('@/views/OrderListView.vue') },
+  // 非同步任務示範頁（celery 範例，lazy load）
+  { path: '/job', name: 'job', component: () => import('@/views/JobView.vue') },
   // 新頁面路由加在這
   // 之後的登入頁也在這加：{ path: '/login', name: 'login', component: () => import('@/views/LoginView.vue') }
 ]
