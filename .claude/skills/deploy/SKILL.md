@@ -19,7 +19,7 @@ description: 部署 lean-stack —— 先本機 docker 跑通，再 terraform pl
 ## 流程
 
 1. **本機 docker 先跑通**
-   - 後端+DB：`docker compose -f apps/lean-backend/docker-compose.local.yml up --build` → `curl localhost:8000/api/v1/health`。
+   - 後端+DB：`docker compose -f docker-compose.local.yml up --build` → `curl localhost:8000/api/v1/health`。
    - 要試整套：build 兩個前端 → `docker compose -f infra/docker-compose.prod.yml --env-file infra/.env.prod up -d --build`。
 
 2. **Terraform 開伺服器（plan → REVIEW → apply）**

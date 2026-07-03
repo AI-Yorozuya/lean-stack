@@ -1,0 +1,114 @@
+# 本機開發用：一句話起整套 —— postgres + backend + redis + celery worker + 兩個前端。
+# 跑法（repo 根目錄）：docker compose -f docker-compose.local.yml up --build -d
+#
+# 設計重點：
+# 1. dev/prod parity：本機就跑「真 redis + 真 worker」，不開 celery eager ——
+#    eager 會藏掉只有真 worker 才會炸的 async bug，那正是「demo 會動、上 prod 垮」的牆。
+# 2. 前端也收進 compose：整個 app 的狀態在 Docker Desktop 一眼看完（綠燈=活著），
+#    log 由 AI 直接 `docker compose logs <service>` 讀 —— 新手永遠不用開終端機盯 log。
+# 3. 前端不做 image：node 官方 image 掛 source volume 直接跑 vite dev（node_modules
+#    留在容器的匿名 volume，不污染 host、也不被 host 蓋掉）。
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: lean_stack
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      # host 5434 → 容器 5432，避開本機可能已佔用的 5432/5433（top-erp 用 5433）。
+      - "5434:5432"
+    volumes:
+      - lean-stack-pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d lean_stack"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    # 不對外開 port（backend / worker 走 compose 內網用 service 名 redis 連）。
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  backend:
+    build:
+      context: ./apps/lean-backend
+    # DATABASE_URL / CELERY_BROKER_URL 用 compose 的 service 名當 host。
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/lean_stack
+      CELERY_BROKER_URL: redis://redis:6379/0
+      DJANGO_SECRET_KEY: dev-only-insecure-change-me
+      DEBUG: "True"
+    ports:
+      # host port 可用 env 覆寫（LEAN_BACKEND_PORT），預設 8000；
+      # 開發機同時跑多專案撞 port 時用：LEAN_BACKEND_PORT=8001 docker compose ... up
+      - "${LEAN_BACKEND_PORT:-8000}:8000"
+    # 掛 source → 改 code 即時反映（配 entrypoint 的 uvicorn --reload）。
+    # /app/.venv 用匿名 volume 保住容器內建好的 venv，不被 host 的蓋掉。
+    volumes:
+      - ./apps/lean-backend:/app
+      - /app/.venv
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # 背景 worker：重用 backend 的 image，只是換成跑 celery worker。
+  celery-worker:
+    build:
+      context: ./apps/lean-backend
+    command: uv run celery -A core worker -l info
+    # 掛 source（celery 無自動 reload；改 worker code 後 docker compose restart celery-worker）。
+    volumes:
+      - ./apps/lean-backend:/app
+      - /app/.venv
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/lean_stack
+      CELERY_BROKER_URL: redis://redis:6379/0
+      DJANGO_SECRET_KEY: dev-only-insecure-change-me
+      DEBUG: "True"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # ── 兩個前端：node image + source volume，起來就是 vite dev ──
+  # 容器內 proxy 打不到 host 的 localhost:8000，所以用 VITE_API_PROXY_TARGET
+  # 指到 compose 內網的 backend（vite.config.js 會讀，沒設就 fallback localhost）。
+  web:
+    image: node:22-alpine
+    working_dir: /app
+    command: sh -c "npm install && npm run dev -- --host"
+    environment:
+      VITE_API_PROXY_TARGET: http://backend:8000
+    ports:
+      - "${LEAN_WEB_PORT:-5173}:5173"
+    volumes:
+      - ./apps/lean-web:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+
+  admin:
+    image: node:22-alpine
+    working_dir: /app
+    command: sh -c "npm install && npm run dev -- --host"
+    environment:
+      VITE_API_PROXY_TARGET: http://backend:8000
+    ports:
+      - "${LEAN_ADMIN_PORT:-5174}:5174"
+    volumes:
+      - ./apps/lean-admin:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+
+volumes:
+  lean-stack-pg-data:

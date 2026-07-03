@@ -13,7 +13,7 @@
 後端 + DB + redis + celery worker（一個指令全起，與 prod 同構）：
 
 ```bash
-docker compose -f apps/lean-backend/docker-compose.local.yml up --build
+docker compose -f docker-compose.local.yml up --build
 curl -s localhost:8000/api/v1/health    # {"status": "ok"}
 
 # 試非同步任務：派工後輪詢進度，會看到 progress 0→100、status 變 SUCCESS。

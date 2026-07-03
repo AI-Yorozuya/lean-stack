@@ -21,6 +21,6 @@
 ## 快速本機驗證
 
 ```bash
-docker compose -f apps/lean-backend/docker-compose.local.yml up --build
+docker compose -f docker-compose.local.yml up --build
 curl -s localhost:8000/api/v1/health    # {"status": "ok"}
 ```
