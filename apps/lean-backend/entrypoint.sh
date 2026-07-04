@@ -26,6 +26,14 @@ fi
 echo "Running migrations..."
 uv run python manage.py migrate --noinput
 
+# 本機開發（DEBUG）→ 灌擬真示範資料（會員＋訂單），第一次起來就有東西看。
+# 指令冪等（已有訂單自己跳過），所以每次開機都跑也安全。
+# prod 不灌：entrypoint 是 local/prod 共用，這裡用 DEBUG 擋住。
+if [ "${DEBUG}" = "True" ] || [ "${DEBUG}" = "true" ] || [ "${DEBUG}" = "1" ]; then
+  echo "Seeding demo data (DEBUG only)..."
+  uv run python manage.py seed_demo
+fi
+
 # DEBUG=True（本機開發）→ uvicorn --reload：改 code 自動重載（需掛 source volume，見 local compose）。
 # 否則（prod）→ gunicorn + uvicorn worker。
 if [ "${DEBUG}" = "True" ] || [ "${DEBUG}" = "true" ] || [ "${DEBUG}" = "1" ]; then

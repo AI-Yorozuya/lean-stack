@@ -5,6 +5,7 @@
 （不用 websocket、不用 celery result 細節，一張表就懂）。
 """
 from django.db import models
+from django.utils import timezone
 
 from apps._common.models import TimeStampedModel
 
@@ -26,15 +27,25 @@ class Job(TimeStampedModel):
     )
     progress = models.IntegerField(default=0)  # 0–100
     message = models.TextField(blank=True)      # 給人看的訊息（失敗原因等）
+    started_at = models.DateTimeField(null=True, blank=True)    # 開始執行（mark_running 時記）
+    completed_at = models.DateTimeField(null=True, blank=True)  # 結束（成功/失敗時記）
 
     def __str__(self):
         return f'Job#{self.pk} {self.name} [{self.status}] {self.progress}%'
+
+    @property
+    def elapsed_seconds(self):
+        """花費秒數（開始→結束）。還沒結束就回 None。"""
+        if self.started_at and self.completed_at:
+            return round((self.completed_at - self.started_at).total_seconds(), 2)
+        return None
 
     # ── 狀態轉換 helper：集中在 model，task 只管呼叫 ──────────────
     def mark_running(self):
         self.status = self.Status.RUNNING
         self.progress = 0
-        self.save(update_fields=['status', 'progress', 'updated_at'])
+        self.started_at = timezone.now()
+        self.save(update_fields=['status', 'progress', 'started_at', 'updated_at'])
 
     def set_progress(self, percent, message=''):
         self.progress = max(0, min(100, int(percent)))  # 夾在 0–100
@@ -46,9 +57,11 @@ class Job(TimeStampedModel):
         self.status = self.Status.SUCCESS
         self.progress = 100
         self.message = message
-        self.save(update_fields=['status', 'progress', 'message', 'updated_at'])
+        self.completed_at = timezone.now()
+        self.save(update_fields=['status', 'progress', 'message', 'completed_at', 'updated_at'])
 
     def mark_failed(self, message):
         self.status = self.Status.FAILED
         self.message = str(message)
-        self.save(update_fields=['status', 'message', 'updated_at'])
+        self.completed_at = timezone.now()
+        self.save(update_fields=['status', 'message', 'completed_at', 'updated_at'])

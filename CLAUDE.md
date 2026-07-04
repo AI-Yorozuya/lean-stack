@@ -24,7 +24,7 @@
 
 先寫規則、再生 code。順序：
 
-1. **寫 INTENT**：在 `intents/` 依 `_TEMPLATE.md` 描述狀態機 + 權限 + 鐵則（語法見 `intents/README.md`）。
+1. **寫 INTENT**：在 `intents/` 依 `_TEMPLATE.md` 描述狀態機 + 權限 + 鐵則（語法見 `intents/README.md`）。**「名詞」段附一張 Mermaid `erDiagram` 畫資料模型**（純文字、GitHub 直接渲染、學員可直接改）；model 設計原則（快照／衍生／業務識別碼／停用不刪）見 `intents/資料模型設計原則.md`。
 2. **生後端**：依 INTENT 建 app（`apps.py`/`apis.py`/`schemas.py`/`models.py`，model 繼承 TimeStampedModel）→ 在 `core/api.py` 註冊 router → 容器內 `makemigrations && migrate`（`docker compose … exec backend uv run python manage.py …`）。
 3. **生前端頁**：在 `lean-admin` 的 `src/views/` 加 view、`src/api/` 加呼叫、`src/router/index.js` 加一條路由（lazy load）。
 4. **接線驗證**：頁面打得到端點即通。
@@ -50,7 +50,7 @@
 
 ## 非同步任務
 
-- **非同步＝celery（redis broker + worker）**，設定見 `core/celery.py` / `core/settings.py`（`CELERY_*`），範例見 `apps/progress`（DB 存 `Job` 進度 + `tasks.py` + 前端輪詢頁 `lean-admin/.../JobView.vue`）。
+- **非同步＝celery（redis broker + worker）**，設定見 `core/celery.py` / `core/settings.py`（`CELERY_*`），範例見 `apps/progress`（DB 存 `Job` 進度 + `tasks.py` + 前端「背景任務」清單頁 `lean-admin/.../BackgroundTaskView.vue`，有 RUNNING 就輪詢）。
 - **local 與 prod 同構（dev/prod parity）**：兩個 compose 都跑真 redis + 真 worker，**刻意不開 eager** —— eager 把任務當同步函式跑，會藏掉序列化/連線/worker 沒起來這類 async bug，正是「demo 會動、上 prod 垮」的牆。
 - 加任務：在某 app 寫 `tasks.py` 的 `@shared_task`（autodiscover 自動撿），API 端用 `.delay(...)` 派工，要追進度就照 `apps/progress` 用 `Job` 表。
 

@@ -12,13 +12,13 @@ import { ref, onBeforeMount, onMounted, onBeforeUnmount } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 // 選單 icon 一律取「同一套 lucide、視覺重量相近的實心輪廓物件」——參 top-admin 的
 // constants/icons.js（避免混入 Activity 那種稀疏脈衝線，破壞整體一致性）。
-import { LayoutDashboard, ShoppingCart, RefreshCw, ChevronDown, ChevronsLeft, ChevronsRight, User } from '@lucide/vue'
+import { LayoutGrid, ShoppingCart, Server, ChevronDown, ChevronsLeft, ChevronsRight, User } from '@lucide/vue'
 import { getHealth } from '@/api'
 import HealthBadge from '@/components/HealthBadge.vue'
 
 // 導覽：單一項 { to, label, icon }；群組 { label, icon, children:[{ to, label }] }。
 const nav = [
-  { to: '/', label: '首頁', icon: LayoutDashboard },
+  { to: '/', label: '首頁', icon: LayoutGrid },
   {
     label: '訂單管理',
     icon: ShoppingCart,
@@ -27,7 +27,7 @@ const nav = [
       { to: '/orders/lifecycle', label: '訂單(有狀態)' },
     ],
   },
-  { to: '/job', label: '非同步示範', icon: RefreshCw },
+  { to: '/job', label: '背景任務', icon: Server },
 ]
 
 const route = useRoute()
@@ -106,7 +106,7 @@ onBeforeUnmount(() => {
     <!-- ── 左側 sidebar（白底極簡，可收合）───────────────── -->
     <aside
       class="flex h-full flex-col overflow-hidden border-r border-slate-200 bg-white transition-[width] duration-200"
-      :class="expanded ? 'w-56' : 'w-16'"
+      :class="expanded ? 'w-52' : 'w-16'"
     >
       <!-- Logo（學 top-admin 的三件事：①整塊是「回首頁」的連結 ②h-14 對齊頂 bar、
            展開/收合都靠同一顆標記垂直對齊下方選單 icon ③標題收斂質感 text-base +

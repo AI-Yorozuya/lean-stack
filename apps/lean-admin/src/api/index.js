@@ -12,13 +12,18 @@ export function getHealth() {
   return http.get('/health').then((res) => res.data)
 }
 
-// ── 非同步任務（progress）─────────────────────────────────────
-// POST /api/v1/progress/demo → 派一個示範任務，回 { id, name, status, progress, message }
+// ── 背景任務（progress）─────────────────────────────────────
+// GET /api/v1/progress → 所有背景任務清單（最新在前）。有 RUNNING 就每 3 秒輪詢。
+export function listJobs() {
+  return http.get('/progress').then((res) => res.data)
+}
+
+// POST /api/v1/progress/demo → 派一個示範任務，回 job 資料
 export function startDemoJob() {
   return http.post('/progress/demo').then((res) => res.data)
 }
 
-// GET /api/v1/progress/{id} → 查任務目前進度（前端輪詢用）
+// GET /api/v1/progress/{id} → 查單一任務目前進度
 export function getJob(id) {
   return http.get(`/progress/${id}`).then((res) => res.data)
 }
