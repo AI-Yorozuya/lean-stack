@@ -40,7 +40,7 @@ const columns = [
   { label: '品號', width: 'w-36' },
   { label: '品名' },
   { label: '牌價', width: 'w-28', align: 'right' },
-  { label: '上架日期', width: 'w-32' },
+  { label: '上架日期', width: 'w-32', align: 'center' },
   { label: '上架狀態', width: 'w-24', align: 'center' },
 ]
 

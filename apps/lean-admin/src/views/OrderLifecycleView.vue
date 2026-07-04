@@ -29,8 +29,8 @@ const columns = [
   { label: '狀態', width: 'w-36', align: 'center' },
   { label: '總額', width: 'w-28', align: 'right' },
   { label: '備註' },
-  { label: '下訂日期', width: 'w-32' },
-  { label: '修改日期', width: 'w-32' },
+  { label: '下訂日期', width: 'w-32', align: 'center' },
+  { label: '修改日期', width: 'w-32', align: 'center' },
 ]
 
 // 狀態不用 tag，改文字樣式：進行中（待付款/待出貨）粗體黑字，終態（已出貨/已取消）灰字。

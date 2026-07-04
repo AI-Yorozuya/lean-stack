@@ -40,7 +40,7 @@ const columns = [
   { label: '姓名', width: 'w-40' },
   { label: 'email' },
   { label: '電話', width: 'w-36' },
-  { label: '註冊日期', width: 'w-32' },
+  { label: '註冊日期', width: 'w-32', align: 'center' },
   { label: '啟用狀態', width: 'w-24', align: 'center' },
 ]
 
