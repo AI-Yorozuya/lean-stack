@@ -40,21 +40,19 @@ class Order(TimeStampedModel):
     class Status(models.TextChoices):
         # value（存 DB / 走 API）  , label（給人看的中文）
         PENDING = 'PENDING', '待付款'
-        PAID = 'PAID', '已付款'
-        SHIPPED = 'SHIPPED', '已出貨'
-        COMPLETED = 'COMPLETED', '已完成'
-        REFUNDED = 'REFUNDED', '已退款'
+        AWAITING = 'AWAITING', '待出貨'      # 已收款、等出貨
+        SHIPPED = 'SHIPPED', '已出貨'        # 終態：成功
+        CANCELLED = 'CANCELLED', '已取消'    # 終態：作廢
 
     # ── 狀態機的「真相」：合法轉移表。action → 從哪些狀態、轉去哪、動詞。──
     # 沒列在這裡的 (狀態, 動作) 組合＝非法（含終態不可轉、跳步不可轉）。
     TRANSITIONS = {
-        'pay':      {'from': (Status.PENDING,),               'to': Status.PAID,      'verb': '收款'},
-        'ship':     {'from': (Status.PAID,),                  'to': Status.SHIPPED,   'verb': '出貨'},
-        'complete': {'from': (Status.SHIPPED,),               'to': Status.COMPLETED, 'verb': '完成'},
-        'refund':   {'from': (Status.PAID, Status.SHIPPED),   'to': Status.REFUNDED,  'verb': '退款'},
+        'pay':    {'from': (Status.PENDING,),                  'to': Status.AWAITING,  'verb': '收款'},
+        'ship':   {'from': (Status.AWAITING,),                 'to': Status.SHIPPED,   'verb': '出貨'},
+        'cancel': {'from': (Status.PENDING, Status.AWAITING),  'to': Status.CANCELLED, 'verb': '取消'},
     }
-    # 鐵則 {已出貨後明細/總額不可改}：只有這兩個狀態能動明細。
-    EDITABLE_STATUSES = (Status.PENDING, Status.PAID)
+    # 鐵則 {已出貨後明細/總額不可改}：只有這兩個狀態能動明細（出貨前）。
+    EDITABLE_STATUSES = (Status.PENDING, Status.AWAITING)
 
     # 業務識別碼（單號）≠ DB 主鍵：對外對帳看 order_no，pk 是內部的事。
     # 建立時自動從 pk 衍生（見 save()）；unique 保證不撞。
@@ -70,6 +68,7 @@ class Order(TimeStampedModel):
     # Stage B：生命週期狀態（預設待付款）＋ 已收金額（收款時鎖成總額）。
     status = models.CharField(max_length=12, choices=Status.choices, default=Status.PENDING)
     paid_amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0'))
+    note = models.CharField(max_length=200, blank=True)  # 備註（自由文字，選填）
 
     def __str__(self):
         return f'{self.order_no} {self.member} ${self.total} [{self.get_status_display()}]'
@@ -113,8 +112,7 @@ class Order(TimeStampedModel):
             )
         if action == 'pay':
             self.paid_amount = self.total   # [收款金額 = 總額]
-        # 退款：INTENT park 了部分/多次退款 → 做全額單次退，
-        # 退款額 = paid_amount ≤ paid_amount，鐵則 {退款 ≤ 已付} 恆成立。
+        # 取消：只是把狀態作廢（出貨前才可取消）。已收的錢怎麼退＝金流，INTENT park。
         self.status = t['to']
         self.save(update_fields=['status', 'paid_amount', 'updated_at'])
 

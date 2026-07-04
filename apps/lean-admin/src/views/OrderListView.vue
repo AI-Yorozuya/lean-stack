@@ -14,8 +14,8 @@
 // 鐵則的分工（重要）：表單裡的「小計/總計」是前端算給人看的即時回饋；
 // 送出後一律以後端回傳為準——錢的真相在後端（見後端 models.py）。
 import { computed, onMounted, reactive, ref } from 'vue'
-import { Plus, X } from '@lucide/vue'
-import { createOrder, deleteOrder, listOrders, updateOrder } from '@/api/order'
+import { Plus, X, Pencil, Trash2 } from '@lucide/vue'
+import { createOrder, deleteOrder, listOrders, updateOrder, updateOrderNote } from '@/api/order'
 import { createMember, listMembers } from '@/api/member'
 import { listProducts } from '@/api/product'
 import { Button } from '@/components/ui/button'
@@ -45,6 +45,13 @@ const members = ref([])
 const products = ref([])           // 全部商品（含下架；價格 map 用）
 const loading = ref(false)
 const errorMsg = ref('')
+
+// 表頭／表身是兩張表：垂直捲軸只長在表身（碰不到表頭）。橫捲時讓表頭跟著表身捲。
+const headScroll = ref(null)
+const bodyScroll = ref(null)
+function syncHead() {
+  if (headScroll.value && bodyScroll.value) headScroll.value.scrollLeft = bodyScroll.value.scrollLeft
+}
 
 const totalPages = computed(() => Math.max(1, Math.ceil(count.value / pageSize)))
 // 只有上架商品能被挑進新明細（下架＝停售）。
@@ -207,15 +214,37 @@ async function confirmDelete() {
   if (orders.value.length === 1 && page.value > 1) page.value -= 1
   load()
 }
+
+// ── 備註 inline dialog（點備註欄的鉛筆 → 只改備註）──
+const noteOrder = ref(null)
+const noteText = ref('')
+const noteSaving = ref(false)
+function openNote(o) {
+  noteOrder.value = o
+  noteText.value = o.note || ''
+}
+async function saveNote() {
+  noteSaving.value = true
+  try {
+    const updated = await updateOrderNote(noteOrder.value.id, noteText.value)
+    const i = orders.value.findIndex((x) => x.id === updated.id)
+    if (i > -1) orders.value[i] = updated
+    noteOrder.value = null
+  } catch (e) {
+    console.error(e)
+  } finally {
+    noteSaving.value = false
+  }
+}
 </script>
 
 <template>
   <!-- 整頁填滿可用高度：標題固定、卡片吃剩下的高，表格在卡內填滿並內捲、分頁釘在卡底 -->
   <div class="flex h-full flex-col">
-    <h1 class="shrink-0 text-2xl font-semibold tracking-tight">訂單列表</h1>
+    <h1 class="shrink-0 text-lg font-semibold leading-none tracking-tight">訂單列表</h1>
 
     <!-- 大卡片（學 top-admin：標題下一張白卡，搜尋列/表格/分頁全包在裡面；卡片用陰影、不用邊框）-->
-    <div class="mt-4 flex min-h-0 flex-1 flex-col rounded-lg bg-white p-6 shadow-sm">
+    <div class="mt-5 flex min-h-0 flex-1 flex-col rounded-lg border bg-card p-5 shadow-sm">
       <p v-if="errorMsg" class="text-destructive mb-3 shrink-0 text-sm">{{ errorMsg }}</p>
 
       <!-- 工具列 -->
@@ -234,51 +263,71 @@ async function confirmDelete() {
         <Button @click="openCreate"><Plus class="size-4" /> 新增訂單</Button>
       </div>
 
-      <!-- 表格：表頭固定（在捲動區外，捲軸不碰它）＋ 表身內捲；兩張 table 用同一組 colgroup 對齊。
-           表身保留捲軸槽（scrollbar-gutter），表頭補等寬 padding，欄位才對得齊。-->
+      <!-- 表格：表頭／表身「兩張表、共用 colgroup」。垂直捲軸只長在表身 → 碰不到表頭；
+           表頭右側也 overflow-y-scroll、掛同一個 .scroll-thin，預留跟表身捲軸同寬的空位 → 右緣對齊。
+           水平方向表頭由 syncHead() 跟著表身左右捲。 -->
       <div class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border">
-        <!-- 表頭（固定）：保留捲軸槽對齊表身；容器底色＝表頭色，讓那條保留槽不露白 -->
-        <div class="scroll-thin bg-muted shrink-0 overflow-y-auto [scrollbar-gutter:stable]">
-          <Table class="table-fixed">
+        <!-- 表頭（不參與垂直捲；右側預留捲軸槽）-->
+        <div ref="headScroll" class="scroll-thin shrink-0 overflow-x-hidden overflow-y-scroll border-b bg-card">
+          <!-- 底線整條只由外層 wrapper 的 border-b 畫（full-width、含右邊捲軸槽）；th 自己不畫，免得最右段變細。 -->
+          <Table class="table-fixed [&_th]:border-b-0">
             <colgroup>
-              <col class="w-28" /><col /><col class="w-32" /><col class="w-20" /><col class="w-28" /><col class="w-[8.5rem]" />
+              <col class="w-28" /><col class="w-32" /><col class="w-28" /><col /><col class="w-32" /><col class="w-32" /><col class="w-28" />
             </colgroup>
             <TableHeader>
               <TableRow>
                 <TableHead>單號</TableHead>
                 <TableHead>會員</TableHead>
-                <TableHead>日期</TableHead>
-                <TableHead>明細</TableHead>
                 <TableHead class="text-right">總額</TableHead>
-                <TableHead></TableHead>
+                <TableHead>備註</TableHead>
+                <TableHead>下訂日期</TableHead>
+                <TableHead>修改日期</TableHead>
+                <TableHead class="bg-card sticky right-0 z-20 border-l text-center">操作</TableHead>
               </TableRow>
             </TableHeader>
           </Table>
         </div>
-        <!-- 表身（內捲；捲軸只在這）-->
-        <div class="scroll-thin min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable]">
+        <!-- 表身（垂直捲軸只在這裡；橫捲時同步表頭）-->
+        <div ref="bodyScroll" class="scroll-thin min-h-0 flex-1 overflow-x-auto overflow-y-scroll" @scroll="syncHead">
           <Table class="table-fixed">
             <colgroup>
-              <col class="w-28" /><col /><col class="w-32" /><col class="w-20" /><col class="w-28" /><col class="w-[8.5rem]" />
+              <col class="w-28" /><col class="w-32" /><col class="w-28" /><col /><col class="w-32" /><col class="w-32" /><col class="w-28" />
             </colgroup>
             <TableBody>
-              <TableRow v-for="o in orders" :key="o.id">
-                <TableCell class="text-muted-foreground tabular-nums">{{ o.order_no }}</TableCell>
-                <TableCell class="font-medium">{{ o.member.name }}</TableCell>
-                <TableCell class="text-muted-foreground">{{ o.order_date }}</TableCell>
-                <TableCell class="text-muted-foreground">{{ o.items.length }} 筆</TableCell>
-                <TableCell class="text-right tabular-nums">{{ o.total.toLocaleString() }}</TableCell>
-                <TableCell class="text-right whitespace-nowrap">
-                  <Button variant="ghost" size="sm" @click="openEdit(o)">編輯</Button>
-                  <Button variant="ghost" size="sm" class="text-destructive hover:text-destructive" @click="deleting = o">刪除</Button>
-                </TableCell>
-              </TableRow>
-              <TableRow v-if="!loading && orders.length === 0">
-                <TableCell colspan="6" class="text-muted-foreground py-16 text-center">
-                  沒有訂單——按右上「＋ 新增訂單」開第一張
-                </TableCell>
-              </TableRow>
-            </TableBody>
+            <TableRow v-for="o in orders" :key="o.id" class="group">
+              <TableCell class="text-muted-foreground tabular-nums">{{ o.order_no }}</TableCell>
+              <TableCell class="font-medium">{{ o.member.name }}</TableCell>
+              <TableCell class="text-right tabular-nums">{{ o.total.toLocaleString() }}</TableCell>
+              <TableCell>
+                <div class="flex items-center gap-1.5">
+                  <span class="min-w-0 truncate">{{ o.note }}</span>
+                  <button
+                    type="button"
+                    class="text-muted-foreground/60 hover:text-foreground shrink-0"
+                    title="改備註"
+                    @click="openNote(o)"
+                  ><Pencil class="size-3.5" /></button>
+                </div>
+              </TableCell>
+              <TableCell class="tabular-nums">{{ o.order_date }}</TableCell>
+              <TableCell class="tabular-nums">{{ o.updated_at }}</TableCell>
+              <TableCell class="bg-card group-hover:bg-muted/50 sticky right-0 z-10 border-l">
+                <div class="flex items-center justify-center gap-1">
+                  <Button variant="ghost" size="icon-sm" class="text-muted-foreground hover:text-foreground" title="編輯" @click="openEdit(o)">
+                    <Pencil class="size-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon-sm" class="text-destructive hover:text-destructive" title="刪除" @click="deleting = o">
+                    <Trash2 class="size-4" />
+                  </Button>
+                </div>
+              </TableCell>
+            </TableRow>
+            <TableRow v-if="!loading && orders.length === 0">
+              <TableCell colspan="7" class="text-muted-foreground py-16 text-center">
+                沒有訂單——按右上「＋ 新增訂單」開第一張
+              </TableCell>
+            </TableRow>
+          </TableBody>
           </Table>
         </div>
       </div>
@@ -350,6 +399,23 @@ async function confirmDelete() {
           <Button @click="submitForm">儲存</Button>
         </DialogFooter>
       </DialogScrollContent>
+    </Dialog>
+
+    <!-- 備註 inline dialog（只改備註）-->
+    <Dialog :open="!!noteOrder" @update:open="(v) => { if (!v) noteOrder = null }">
+      <DialogContent class="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>備註 · {{ noteOrder?.order_no }}</DialogTitle>
+          <DialogDescription>自由文字，跟訂單狀態無關、隨時可改。</DialogDescription>
+        </DialogHeader>
+        <div class="py-2">
+          <Input v-model="noteText" placeholder="輸入備註…" maxlength="200" @keyup.enter="saveNote" />
+        </div>
+        <DialogFooter>
+          <Button variant="outline" @click="noteOrder = null">取消</Button>
+          <Button :disabled="noteSaving" @click="saveNote">儲存</Button>
+        </DialogFooter>
+      </DialogContent>
     </Dialog>
 
     <!-- 刪除確認 dialog -->

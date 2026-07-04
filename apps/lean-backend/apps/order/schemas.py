@@ -43,18 +43,24 @@ class OrderSchema(Schema):
     id: int
     order_no: str                              # 業務單號（≠ 主鍵）
     member: OrderMemberSchema
-    order_date: str = Field(..., alias='order_date')
+    order_date: str = Field(..., alias='order_date')  # 下訂日期
+    updated_at: str                            # 修改日期（最後一次變動）
+    note: str                                  # 備註（自由文字）
     total: float                               # 後端算的（鐵則），非手填
     items: list[OrderItemSchema]
     # Stage B：狀態機相關（Stage A 頁面收到但不理它）。
-    status: str                                # 狀態 code（PENDING / PAID / …）
-    status_display: str                        # 中文（待付款 / 已付款 / …）
+    status: str                                # 狀態 code（PENDING / AWAITING / SHIPPED / CANCELLED）
+    status_display: str                        # 中文（待付款 / 待出貨 / 已出貨 / 已取消）
     paid_amount: float                         # 已收金額（收款後 = 總額）
-    available_actions: list[str]               # 目前合法的動作（pay/ship/complete/refund）
+    available_actions: list[str]               # 目前合法的動作（pay/ship/cancel）
 
     @staticmethod
     def resolve_order_date(obj):
         return str(obj.order_date)
+
+    @staticmethod
+    def resolve_updated_at(obj):
+        return str(obj.updated_at.date())      # 只到日期（列表夠用）
 
     @staticmethod
     def resolve_status_display(obj):
@@ -69,6 +75,11 @@ class OrderListSchema(Schema):
     """列表回應：items + count，配合前端的 table + pagination。"""
     items: list[OrderSchema]
     count: int
+
+
+class OrderNoteIn(Schema):
+    """只改備註（自由文字，跟狀態機無關，隨時可改）。"""
+    note: str = ''
 
 
 class MessageSchema(Schema):

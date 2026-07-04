@@ -9,7 +9,8 @@
 冪等：已經有任何訂單就整個跳過，所以可以安全地每次開機都跑（entrypoint.sh 只在
   DEBUG 灌）。要重灌：先清資料再跑。
 
-資料串起三個 app：會員（下單的人）＋商品目錄（單一真相）→ 訂單從目錄挑、抄快照。
+訂單量刻意做「夠多」（ORDER_COUNT）——跨過列表分頁（每頁 30）＋表身會出現捲軸，
+  這樣分頁與捲動這兩個 UI 元件在 demo 裡看得到、學員摸得到。
 """
 from django.core.management.base import BaseCommand
 from django.db import transaction
@@ -26,6 +27,12 @@ MEMBERS = [
     ('張家豪', 'jiahao.chang@example.com', '0955-778-990'),
     ('吳佩珊', 'peishan.wu@example.com', '0966-224-668'),
     ('劉俊傑', 'junjie.liu@example.com', '0988-336-996'),
+    ('王思涵', 'sihan.wang@example.com', '0911-223-344'),
+    ('蔡宗翰', 'zonghan.tsai@example.com', '0977-445-668'),
+    ('鄭雅雯', 'yawen.cheng@example.com', '0933-889-221'),
+    ('許志明', 'zhiming.hsu@example.com', '0955-667-889'),
+    ('楊佳穎', 'jiaying.yang@example.com', '0966-778-990'),
+    ('周建成', 'jiancheng.chou@example.com', '0988-112-334'),
 ]
 
 # 商品／服務目錄：(sku, 品名, 牌價)。訂單明細下單當下從這裡抄快照。
@@ -42,31 +49,44 @@ PRODUCTS = [
     ('SVC-FLOWER', '花藝代送', 550),
 ]
 
-# 一張訂單的藍圖：(會員 index, [(商品 sku, 數量)…], 要推到哪個狀態)。
-ORDERS = [
-    (0, [('SVC-CLEAN', 1), ('SVC-AC', 2)], 'COMPLETED'),
-    (1, [('SVC-MOVE', 1)], 'SHIPPED'),
-    (2, [('SVC-PET', 3), ('SVC-GIFT', 2)], 'PAID'),
-    (3, [('SVC-PC', 1), ('SVC-FIX', 1)], 'PENDING'),
-    (4, [('SVC-TUTOR', 4)], 'COMPLETED'),
-    (5, [('SVC-QUEUE', 2), ('SVC-FLOWER', 1)], 'REFUNDED'),
-    (0, [('SVC-AC', 1)], 'PENDING'),
-    (2, [('SVC-CLEAN', 1), ('SVC-FIX', 2), ('SVC-GIFT', 1)], 'PAID'),
+# 一張訂單的「明細組合」藍圖（[(商品 sku, 數量)…]）。產生訂單時輪流套用。
+COMBOS = [
+    [('SVC-CLEAN', 1), ('SVC-AC', 2)],
+    [('SVC-MOVE', 1)],
+    [('SVC-PET', 3), ('SVC-GIFT', 2)],
+    [('SVC-PC', 1), ('SVC-FIX', 1)],
+    [('SVC-TUTOR', 4)],
+    [('SVC-QUEUE', 2), ('SVC-FLOWER', 1)],
+    [('SVC-AC', 1)],
+    [('SVC-CLEAN', 1), ('SVC-FIX', 2), ('SVC-GIFT', 1)],
+    [('SVC-FLOWER', 3)],
+    [('SVC-PET', 1), ('SVC-TUTOR', 2)],
 ]
 
+# 狀態分佈（輪流套用，鋪滿「待付款～已取消」整條生命週期）。
+STATUS_CYCLE = ['PENDING', 'AWAITING', 'SHIPPED', 'SHIPPED', 'AWAITING',
+                'PENDING', 'CANCELLED', 'AWAITING', 'SHIPPED', 'CANCELLED']
+
 # 推到某狀態要走的動作序列——全走真狀態機 apply_transition()，不硬塞 status。
-# 鋪出「待付款～已退款」整條生命週期，清單頁和狀態頁都活起來。
 PATH_TO = {
     'PENDING':   [],
-    'PAID':      ['pay'],
+    'AWAITING':  ['pay'],
     'SHIPPED':   ['pay', 'ship'],
-    'COMPLETED': ['pay', 'ship', 'complete'],
-    'REFUNDED':  ['pay', 'ship', 'refund'],
+    'CANCELLED': ['cancel'],   # 從待付款直接取消（出貨前才可取消）
 }
+
+# 備註（自由文字，輪流套用；刻意留幾個空的，示範「有些訂單沒備註」）。
+NOTES = [
+    '客戶指定下午時段', '', '需開立收據', '大樓無電梯、搬運加時', '',
+    '對貓毛過敏請注意', '急件、優先處理', '', '巷弄小、機車可達', '回購熟客',
+]
+
+# 訂單筆數：刻意 > 每頁 30，讓分頁與表身捲軸都看得到。
+ORDER_COUNT = 48
 
 
 class Command(BaseCommand):
-    help = '灌入擬真示範資料（會員＋商品＋訂單）。冪等：已有訂單就跳過。'
+    help = '灌入擬真示範資料（會員＋商品＋訂單，含足量訂單看分頁/捲軸）。冪等：已有訂單就跳過。'
 
     @transaction.atomic
     def handle(self, *args, **options):
@@ -90,8 +110,13 @@ class Command(BaseCommand):
             )
             catalog[sku] = p
 
-        for member_idx, lines, target in ORDERS:
-            order = Order.objects.create(member=members[member_idx])
+        # 產生足量訂單：輪流套用會員 / 明細組合 / 目標狀態（不用亂數，重跑結果一致）。
+        for i in range(ORDER_COUNT):
+            member = members[i % len(members)]
+            lines = COMBOS[i % len(COMBOS)]
+            target = STATUS_CYCLE[i % len(STATUS_CYCLE)]
+
+            order = Order.objects.create(member=member, note=NOTES[i % len(NOTES)])
             for sku, qty in lines:
                 # 經真 model：從目錄抄品名＋單價快照，save() 再算 subtotal（鐵則發火）。
                 OrderItem.snapshot_from(order, catalog[sku], qty)
@@ -100,5 +125,5 @@ class Command(BaseCommand):
                 order.apply_transition(action)      # 走真狀態機推進生命週期
 
         self.stdout.write(self.style.SUCCESS(
-            f'seed_demo 完成：{len(members)} 位會員、{len(catalog)} 個商品、{len(ORDERS)} 筆訂單。'
+            f'seed_demo 完成：{len(members)} 位會員、{len(catalog)} 個商品、{ORDER_COUNT} 筆訂單。'
         ))

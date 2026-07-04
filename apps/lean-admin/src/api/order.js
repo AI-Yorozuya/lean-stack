@@ -14,9 +14,18 @@ export function listOrders({ page = 1, pageSize = 10, q = '', memberId = null } 
   return http.get('/order', { params }).then((res) => res.data) // → { items, count }
 }
 
+export function getOrder(id) {
+  return http.get(`/order/${id}`).then((res) => res.data)
+}
+
 export function createOrder(payload) {
   // payload: { member_id, items: [{ product_id, quantity }] }
   return http.post('/order', payload).then((res) => res.data)
+}
+
+export function updateOrderNote(id, note) {
+  // 只改備註（inline dialog 用）
+  return http.post(`/order/${id}/note`, { note }).then((res) => res.data)
 }
 
 export function updateOrder(id, payload) {
@@ -30,7 +39,7 @@ export function deleteOrder(id) {
 // ── 訂單狀態機（Stage B）──────────────────
 // 每個函式對應一條「合法轉移」。非法轉移後端會回 422（狀態機擋下來），
 // 前端把 detail 訊息顯示給人看即可（真相/守門在後端）。
-// action ∈ pay | ship | complete | refund
+// action ∈ pay | ship | cancel
 export function transitionOrder(id, action) {
   return http.post(`/order/${id}/${action}`).then((res) => res.data)
 }

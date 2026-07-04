@@ -15,7 +15,7 @@ const props = defineProps({
     data-slot="table-head"
     :class="
       cn(
-        'text-muted-foreground h-11 px-4 text-left align-middle text-xs font-medium tracking-wide whitespace-nowrap [&:has([role=checkbox])]:pr-0 *:[[role=checkbox]]:translate-y-0.5',
+        'text-muted-foreground h-11 border-b px-4 text-left align-middle text-sm font-medium whitespace-nowrap [&:has([role=checkbox])]:pr-0 *:[[role=checkbox]]:translate-y-0.5',
         props.class,
       )
     "

@@ -110,9 +110,9 @@ async function toggleActive(p) {
 
 <template>
   <div class="flex h-full flex-col">
-    <h1 class="shrink-0 text-2xl font-semibold tracking-tight">商品管理</h1>
+    <h1 class="shrink-0 text-lg font-semibold leading-none tracking-tight">商品管理</h1>
 
-    <div class="mt-4 flex min-h-0 flex-1 flex-col rounded-lg bg-white p-6 shadow-sm">
+    <div class="mt-5 flex min-h-0 flex-1 flex-col rounded-lg border bg-card p-5 shadow-sm">
       <p v-if="errorMsg" class="text-destructive mb-3 shrink-0 text-sm">{{ errorMsg }}</p>
 
       <!-- 工具列 -->
@@ -126,7 +126,7 @@ async function toggleActive(p) {
 
       <!-- 表格 -->
       <div class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border">
-        <div class="scroll-thin bg-muted shrink-0 overflow-y-auto [scrollbar-gutter:stable]">
+        <div class="scroll-thin bg-card shrink-0 overflow-y-auto">
           <Table class="table-fixed">
             <colgroup><col class="w-36" /><col /><col class="w-28" /><col class="w-20" /><col class="w-36" /></colgroup>
             <TableHeader>
@@ -140,7 +140,7 @@ async function toggleActive(p) {
             </TableHeader>
           </Table>
         </div>
-        <div class="scroll-thin min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable]">
+        <div class="scroll-thin min-h-0 flex-1 overflow-y-auto">
           <Table class="table-fixed">
             <colgroup><col class="w-36" /><col /><col class="w-28" /><col class="w-20" /><col class="w-36" /></colgroup>
             <TableBody>

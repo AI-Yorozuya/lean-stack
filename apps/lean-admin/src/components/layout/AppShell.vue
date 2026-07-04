@@ -15,6 +15,8 @@ import { RouterLink, useRoute } from 'vue-router'
 import { LayoutGrid, Users, Package, ShoppingCart, Server, ChevronDown, ChevronsLeft, ChevronsRight, User } from '@lucide/vue'
 import { getHealth } from '@/api'
 import HealthBadge from '@/components/HealthBadge.vue'
+// 品牌標：AI萬事屋忍者熊頭（奶油圓底徽章）。import 進來讓 vite 打包＋hash。
+import bearBadge from '@/assets/bearhead_badge.png'
 
 // 導覽：單一項 { to, label, icon }；群組 { label, icon, children:[{ to, label }] }。
 const nav = [
@@ -107,7 +109,7 @@ onBeforeUnmount(() => {
   <div class="flex h-screen w-screen overflow-hidden">
     <!-- ── 左側 sidebar（白底極簡，可收合）───────────────── -->
     <aside
-      class="flex h-full flex-col overflow-hidden border-r border-slate-200 bg-white transition-[width] duration-200"
+      class="flex h-full flex-col overflow-hidden border-r border-border bg-card transition-[width] duration-200"
       :class="expanded ? 'w-52' : 'w-16'"
     >
       <!-- Logo（學 top-admin 的三件事：①整塊是「回首頁」的連結 ②h-14 對齊頂 bar、
@@ -116,12 +118,12 @@ onBeforeUnmount(() => {
       <button
         type="button"
         title="回首頁"
-        class="flex h-14 shrink-0 cursor-pointer items-center gap-2.5 overflow-hidden border-b border-slate-200 text-left transition-opacity hover:opacity-70"
+        class="flex h-14 shrink-0 cursor-pointer items-center gap-3.5 overflow-hidden border-b border-border text-left transition-opacity hover:opacity-70"
         :class="expanded ? 'justify-start px-4' : 'justify-center'"
         @click="$router.push('/')"
       >
-        <div class="flex size-7 shrink-0 items-center justify-center rounded-md bg-slate-900 text-sm font-bold text-white">萬</div>
-        <span v-show="expanded" class="whitespace-nowrap text-base font-semibold tracking-wide text-slate-800">AI萬事屋後台</span>
+        <img :src="bearBadge" alt="AI萬事屋" class="size-9 shrink-0" />
+        <span v-show="expanded" class="whitespace-nowrap text-base font-semibold tracking-wide text-foreground">AI萬事屋後台</span>
       </button>
 
       <!-- Menu -->
@@ -135,8 +137,8 @@ onBeforeUnmount(() => {
                 'flex w-full items-center rounded-md text-sm transition-colors',
                 expanded ? 'gap-3 px-3 py-2' : 'justify-center px-0 py-2.5',
                 isItemActive(item.to)
-                  ? 'relative bg-slate-100 font-medium text-slate-900 before:absolute before:top-1/2 before:left-0 before:h-5 before:w-[3px] before:-translate-y-1/2 before:rounded-full before:bg-slate-900'
-                  : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900',
+                  ? 'relative bg-muted font-medium text-foreground before:absolute before:top-1/2 before:left-0 before:h-5 before:w-[3px] before:-translate-y-1/2 before:rounded-full before:bg-primary'
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground',
               ]"
               @click="$router.push(item.to)"
             >
@@ -153,8 +155,8 @@ onBeforeUnmount(() => {
                 'flex w-full items-center rounded-md text-sm transition-colors',
                 expanded ? 'gap-3 px-3 py-2' : 'justify-center px-0 py-2.5',
                 isGroupActive(item)
-                  ? 'font-medium text-slate-900'
-                  : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900',
+                  ? 'font-medium text-foreground'
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground',
               ]"
               @click="toggleGroup(item)"
             >
@@ -172,8 +174,8 @@ onBeforeUnmount(() => {
                   :class="[
                     'flex w-full items-center rounded-md py-2 pl-11 pr-3 text-left text-sm transition-colors',
                     isItemActive(child.to)
-                      ? 'relative bg-slate-100 font-medium text-slate-900 before:absolute before:top-1/2 before:left-8 before:h-4 before:w-[3px] before:-translate-y-1/2 before:rounded-full before:bg-slate-900'
-                      : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900',
+                      ? 'relative bg-muted font-medium text-foreground before:absolute before:top-1/2 before:left-8 before:h-4 before:w-[3px] before:-translate-y-1/2 before:rounded-full before:bg-primary'
+                      : 'text-muted-foreground hover:bg-muted hover:text-foreground',
                   ]"
                   @click="$router.push(child.to)"
                 >
@@ -185,16 +187,16 @@ onBeforeUnmount(() => {
         </template>
       </nav>
 
-      <div v-show="expanded" class="p-4 text-xs text-slate-400">lean-stack · admin</div>
+      <div v-show="expanded" class="p-4 text-xs text-muted-foreground">lean-stack · admin</div>
     </aside>
 
     <!-- ── 右側：頂部 bar + 內容 ─────────────────────── -->
     <div class="flex flex-1 flex-col overflow-hidden">
-      <header class="flex h-14 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-6">
+      <header class="flex h-14 shrink-0 items-center justify-between border-b border-border bg-card px-6">
         <button
           type="button"
           :title="expanded ? '收合側邊欄' : '展開側邊欄'"
-          class="-ml-2 inline-flex size-9 items-center justify-center rounded-lg text-slate-500 transition-all hover:bg-slate-100 hover:text-slate-900 active:scale-95"
+          class="-ml-2 inline-flex size-9 items-center justify-center rounded-lg text-muted-foreground transition-all hover:bg-muted hover:text-foreground active:scale-95"
           @click="toggle"
         >
           <ChevronsLeft v-if="expanded" class="size-5" />
@@ -208,8 +210,8 @@ onBeforeUnmount(() => {
             <button
               type="button"
               title="訪客（尚未登入）"
-              class="inline-flex size-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm transition-all hover:bg-slate-50 hover:text-slate-900 active:scale-95"
-              :class="userMenuOpen ? 'ring-2 ring-slate-300 ring-offset-2' : ''"
+              class="inline-flex size-9 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-sm transition-all hover:bg-muted hover:text-foreground active:scale-95"
+              :class="userMenuOpen ? 'ring-2 ring-ring ring-offset-2' : ''"
               @click="userMenuOpen = !userMenuOpen"
             >
               <User class="size-4" />
@@ -221,8 +223,8 @@ onBeforeUnmount(() => {
               leave-active-class="transition duration-75 ease-in"
               leave-to-class="-translate-y-1 scale-95 opacity-0"
             >
-              <div v-if="userMenuOpen" class="absolute top-full right-0 z-50 mt-2 min-w-44 origin-top-right rounded-md border border-slate-200 bg-white py-1 shadow-lg">
-                <div class="border-b border-slate-100 px-4 py-2 text-sm font-medium text-slate-800">訪客</div>
+              <div v-if="userMenuOpen" class="absolute top-full right-0 z-50 mt-2 min-w-44 origin-top-right rounded-md border border-border bg-card py-1 shadow-lg">
+                <div class="border-b border-border px-4 py-2 text-sm font-medium text-foreground">訪客</div>
                 <div class="px-4 py-2 text-xs text-muted-foreground">尚未登入 · auth 之後在這接使用者選單</div>
               </div>
             </transition>
@@ -230,7 +232,7 @@ onBeforeUnmount(() => {
         </div>
       </header>
 
-      <main class="main-content min-w-0 flex-1 overflow-auto p-6">
+      <main class="main-content min-w-0 flex-1 overflow-auto p-5">
         <slot />
       </main>
     </div>
@@ -238,22 +240,22 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
-/* 內容區底色（極淺灰，讓白卡片浮起來）+ 中性捲軸。 */
+/* 內容區底色（暖奶油紙，比卡片深一點讓卡片浮起來）+ 暖捲軸。 */
 .main-content {
-  background-color: #f5f7fa;
+  background-color: #fbfcfe;
 }
 .main-content::-webkit-scrollbar {
-  width: 11px;
-  height: 11px;
+  width: 4px;
+  height: 4px;
 }
 .main-content::-webkit-scrollbar-thumb {
-  background-color: rgb(120 144 196 / 0.45);
+  background-color: rgb(15 23 42 / 0.6);
   border-radius: 9999px;
-  border: 3px solid transparent;
+  border: 0.5px solid transparent;
   background-clip: padding-box;
 }
 .main-content::-webkit-scrollbar-thumb:hover {
-  background-color: rgb(120 144 196 / 0.75);
+  background-color: rgb(15 23 42 / 0.8);
 }
 nav::-webkit-scrollbar {
   width: 4px;

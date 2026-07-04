@@ -62,18 +62,18 @@ onUnmounted(() => {
 <template>
   <div class="flex h-full flex-col">
     <div class="flex shrink-0 items-center justify-between gap-2">
-      <h1 class="text-2xl font-semibold tracking-tight">背景任務</h1>
+      <h1 class="text-lg font-semibold leading-none tracking-tight">背景任務</h1>
       <div class="flex items-center gap-2">
         <Button variant="outline" :disabled="loading" @click="load"><RefreshCw class="size-4" /> 重新整理</Button>
         <Button :disabled="running" @click="runDemo"><Play class="size-4" /> 跑一個示範任務</Button>
       </div>
     </div>
 
-    <!-- 大卡片 -->
-    <div class="mt-4 flex min-h-0 flex-1 flex-col rounded-lg bg-white p-6 shadow-sm">
+    <!-- 平面內容區（表格頁不用大卡片，表格自己那圈細框就夠界定）-->
+    <div class="mt-5 flex min-h-0 flex-1 flex-col rounded-lg border bg-card p-5 shadow-sm">
       <!-- 表格：表頭固定（捲軸不碰它）＋ 表身內捲；同一組 colgroup 對齊 -->
       <div class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border">
-        <div class="scroll-thin bg-muted shrink-0 overflow-y-auto [scrollbar-gutter:stable]">
+        <div class="scroll-thin bg-card shrink-0 overflow-y-auto">
           <Table class="table-fixed">
             <colgroup>
               <col class="w-14" /><col class="w-40" /><col class="w-24" /><col class="w-48" /><col class="w-28" /><col class="w-24" /><col />
@@ -91,7 +91,7 @@ onUnmounted(() => {
             </TableHeader>
           </Table>
         </div>
-        <div class="scroll-thin min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable]">
+        <div class="scroll-thin min-h-0 flex-1 overflow-y-auto">
           <Table class="table-fixed">
             <colgroup>
               <col class="w-14" /><col class="w-40" /><col class="w-24" /><col class="w-48" /><col class="w-28" /><col class="w-24" /><col />

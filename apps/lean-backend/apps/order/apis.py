@@ -8,10 +8,9 @@ Stage A（無狀態 CRUD ＋ 關聯 ＋ 鐵則）：
 （會員從 apps/member、商品從 apps/product 各自的端點取——這裡不重複。）
 
 Stage B（有狀態：狀態機轉移端點，每個動作對應 INTENT 的一條合法轉移）：
-- 收款 → POST /order/{id}/pay
-- 出貨 → POST /order/{id}/ship
-- 完成 → POST /order/{id}/complete
-- 退款 → POST /order/{id}/refund
+- 收款 → POST /order/{id}/pay      （待付款 → 待出貨）
+- 出貨 → POST /order/{id}/ship     （待出貨 → 已出貨）
+- 取消 → POST /order/{id}/cancel   （待付款 / 待出貨 → 已取消）
 非法轉移（終態不可轉、跳步不可轉）由 model 的 apply_transition 擋 → 422。
 
 鐵則在門口與 model 兩層把關：
@@ -34,6 +33,7 @@ from apps.order.schemas import (
     MessageSchema,
     OrderIn,
     OrderListSchema,
+    OrderNoteIn,
     OrderSchema,
 )
 from apps.product.models import Product
@@ -112,6 +112,17 @@ def delete_order(request, order_id: int):
     return {'message': f'訂單 {order_no} 已刪除'}
 
 
+@router.post('/{order_id}/note', response=OrderSchema)
+def update_order_note(request, order_id: int, payload: OrderNoteIn):
+    """只改備註（自由文字，跟狀態無關；前端備註欄 inline dialog 用）。"""
+    order = get_object_or_404(
+        Order.objects.select_related('member').prefetch_related('items'), pk=order_id
+    )
+    order.note = payload.note
+    order.save(update_fields=['note', 'updated_at'])
+    return order
+
+
 # ── 訂單狀態機（Stage B）：一個動作一個端點，都走 model 的 apply_transition ──
 # 非法轉移由 model 擋（TransitionError）→ 這裡統一轉成 422 給前端顯示白話原因。
 def _transition(order_id, action):
@@ -127,23 +138,17 @@ def _transition(order_id, action):
 
 @router.post('/{order_id}/pay', response=OrderSchema)
 def pay_order(request, order_id: int):
-    """收款：待付款 → 已付款（[收款金額 = 總額]，鎖 paid_amount）。"""
+    """收款：待付款 → 待出貨（[收款金額 = 總額]，鎖 paid_amount）。"""
     return _transition(order_id, 'pay')
 
 
 @router.post('/{order_id}/ship', response=OrderSchema)
 def ship_order(request, order_id: int):
-    """出貨：已付款 → 已出貨（出貨後明細鎖定）。"""
+    """出貨：待出貨 → 已出貨（終態·成功；出貨後明細鎖定）。"""
     return _transition(order_id, 'ship')
 
 
-@router.post('/{order_id}/complete', response=OrderSchema)
-def complete_order(request, order_id: int):
-    """完成：已出貨 → 已完成（終態）。"""
-    return _transition(order_id, 'complete')
-
-
-@router.post('/{order_id}/refund', response=OrderSchema)
-def refund_order(request, order_id: int):
-    """退款：已付款 / 已出貨 → 已退款（終態；全額單次退，{退款 ≤ 已付}）。"""
-    return _transition(order_id, 'refund')
+@router.post('/{order_id}/cancel', response=OrderSchema)
+def cancel_order(request, order_id: int):
+    """取消：待付款 / 待出貨 → 已取消（終態；出貨後不可取消）。"""
+    return _transition(order_id, 'cancel')

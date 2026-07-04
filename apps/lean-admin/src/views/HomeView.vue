@@ -16,7 +16,7 @@ const features = [
 
 <template>
   <div>
-    <h1 class="text-2xl font-semibold tracking-tight">lean-stack 管理後台</h1>
+    <h1 class="text-lg font-semibold leading-none tracking-tight">lean-stack 管理後台</h1>
     <p class="text-muted-foreground mt-1 text-sm">從這裡進到各功能。之後加新功能，就在這裡多一張卡、左側多一條導覽。</p>
 
     <div class="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

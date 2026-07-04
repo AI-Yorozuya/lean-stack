@@ -17,6 +17,8 @@ const routes = [
   { path: '/orders', name: 'orders', component: () => import('@/views/OrderListView.vue') },
   // 訂單管理 Stage B（有狀態：生命週期狀態機）
   { path: '/orders/lifecycle', name: 'orders-lifecycle', component: () => import('@/views/OrderLifecycleView.vue') },
+  // 訂單編輯頁（換頁式，從清單的「編輯」進來）
+  { path: '/orders/:id/edit', name: 'order-edit', component: () => import('@/views/OrderEditView.vue') },
   // 背景任務頁（celery 範例：任務清單 + 進度輪詢，lazy load）
   { path: '/job', name: 'job', component: () => import('@/views/BackgroundTaskView.vue') },
   // 新頁面路由加在這
