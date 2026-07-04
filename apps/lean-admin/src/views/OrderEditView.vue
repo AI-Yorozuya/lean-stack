@@ -1,11 +1,13 @@
 <script setup>
-// 訂單編輯頁（換頁式，非 dialog）。從訂單清單的「編輯」進來，路由：/orders/:id/edit。
-// 表單跟建立/編輯同一套：選會員 ＋ 從商品目錄挑明細（後端抄快照）。
-// 只有出貨前（待付款/待出貨）能編輯——後端 update_order 會擋（非法回 422）。
+// 訂單新增／編輯頁（換頁式，非 dialog）。同一個 view 兩用：
+//   /orders/new       → 新增（沒有 :id）
+//   /orders/:id/edit  → 編輯（有 :id）
+// 表單同一套：選會員 ＋ 從商品目錄挑明細（後端抄快照）。
+// 編輯只有出貨前（待付款/待出貨）能改——後端 update_order 會擋（非法回 422）。
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Plus, X, ArrowLeft } from '@lucide/vue'
-import { getOrder, updateOrder } from '@/api/order'
+import { createOrder, getOrder, updateOrder } from '@/api/order'
 import { createMember, listMembers } from '@/api/member'
 import { listProducts } from '@/api/product'
 import { Button } from '@/components/ui/button'
@@ -15,7 +17,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 const route = useRoute()
 const router = useRouter()
-const orderId = Number(route.params.id)
+const isCreate = !route.params.id // 沒有 :id = 新增模式
+const orderId = isCreate ? null : Number(route.params.id)
 
 const order = ref(null)
 const members = ref([])
@@ -49,16 +52,21 @@ const formTotal = computed(() => form.items.reduce((sum, i) => sum + itemSubtota
 
 onMounted(async () => {
   try {
-    const [o, m, p] = await Promise.all([
-      getOrder(orderId),
+    // 會員/商品目錄兩種模式都要（下拉選單用）；編輯模式再多抓這張訂單來帶入表單。
+    const [m, p] = await Promise.all([
       listMembers({ pageSize: 100 }),
       listProducts({ pageSize: 100 }),
     ])
-    order.value = o
     members.value = m.items
     products.value = p.items
-    form.member_id = String(o.member.id)
-    form.items = o.items.map((i) => ({ product_id: String(i.product_id), quantity: i.quantity }))
+    if (isCreate) {
+      form.items = [blankItem()] // 新增：一張空明細起手
+    } else {
+      const o = await getOrder(orderId)
+      order.value = o
+      form.member_id = String(o.member.id)
+      form.items = o.items.map((i) => ({ product_id: String(i.product_id), quantity: i.quantity }))
+    }
   } catch (e) {
     errorMsg.value = '載入失敗,請稍後再試'
     console.error(e)
@@ -68,7 +76,7 @@ onMounted(async () => {
 })
 
 function goBack() {
-  router.push('/orders/lifecycle')
+  router.push('/orders')
 }
 
 async function submitForm() {
@@ -87,7 +95,8 @@ async function submitForm() {
     items: form.items.map((i) => ({ product_id: Number(i.product_id), quantity: Number(i.quantity) })),
   }
   try {
-    await updateOrder(orderId, payload)
+    if (isCreate) await createOrder(payload)
+    else await updateOrder(orderId, payload)
     goBack()
   } catch (e) {
     formError.value = e.response?.data?.detail || '儲存失敗,請稍後再試'
@@ -125,7 +134,7 @@ async function submitNewMember() {
   <div class="flex h-full flex-col">
     <div class="flex shrink-0 items-center gap-2">
       <Button variant="ghost" size="icon-sm" title="返回" @click="goBack"><ArrowLeft class="size-4" /></Button>
-      <h1 class="text-lg font-semibold leading-none tracking-tight">編輯訂單 {{ order?.order_no || '' }}</h1>
+      <h1 class="text-lg font-semibold leading-none tracking-tight">{{ isCreate ? '新增訂單' : `編輯訂單 ${order?.order_no || ''}` }}</h1>
     </div>
 
     <!-- 大卡片：表單（可捲）+ 底部按鈕 -->

@@ -13,11 +13,10 @@ const routes = [
   { path: '/members', name: 'members', component: () => import('@/views/MemberListView.vue') },
   // 商品管理（最單純 CRUD；訂單明細從這個目錄挑、抄快照）
   { path: '/products', name: 'products', component: () => import('@/views/ProductListView.vue') },
-  // 訂單管理 Stage A（無狀態 CRUD）——「加一頁」流程的第一個真實範例
-  { path: '/orders', name: 'orders', component: () => import('@/views/OrderListView.vue') },
-  // 訂單管理 Stage B（有狀態：生命週期狀態機）
-  { path: '/orders/lifecycle', name: 'orders-lifecycle', component: () => import('@/views/OrderLifecycleView.vue') },
-  // 訂單編輯頁（換頁式，從清單的「編輯」進來）
+  // 訂單管理（有狀態：生命週期狀態機——本 repo 講「狀態與流程」的主場）
+  { path: '/orders', name: 'orders', component: () => import('@/views/OrderLifecycleView.vue') },
+  // 訂單新增／編輯（換頁式，同一個 OrderEditView：沒 id = 新增、有 id = 編輯）
+  { path: '/orders/new', name: 'order-new', component: () => import('@/views/OrderEditView.vue') },
   { path: '/orders/:id/edit', name: 'order-edit', component: () => import('@/views/OrderEditView.vue') },
   // 背景任務頁（celery 範例：任務清單 + 進度輪詢，lazy load）
   { path: '/job', name: 'job', component: () => import('@/views/BackgroundTaskView.vue') },

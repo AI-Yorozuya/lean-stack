@@ -4,7 +4,7 @@
 // 備註 → inline 彈 dialog 快速改（只改備註、跟狀態無關，見後端 /order/{id}/note）。
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { Pencil, Trash2 } from '@lucide/vue'
+import { Plus, Pencil, Trash2 } from '@lucide/vue'
 import { listOrders, deleteOrder, updateOrderNote } from '@/api/order'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -126,7 +126,10 @@ async function confirmDelete() {
 
 <template>
   <div class="flex h-full flex-col">
-    <h1 class="shrink-0 text-lg font-semibold leading-none tracking-tight">訂單列表</h1>
+    <div class="flex shrink-0 items-center justify-between">
+      <h1 class="text-lg font-semibold leading-none tracking-tight">訂單列表</h1>
+      <Button @click="router.push('/orders/new')"><Plus class="size-4" /> 新增訂單</Button>
+    </div>
 
     <!-- 大卡片：頂部狀態 tab（全寬）+ 內容（含表格）-->
     <div class="mt-5 flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border bg-card shadow-sm">
@@ -189,7 +192,7 @@ async function confirmDelete() {
             </Button>
           </template>
           <template #empty>
-            {{ activeStatus === 'all' ? '還沒有訂單——先到「訂單(無狀態)」開一張' : '此狀態目前沒有訂單' }}
+            {{ activeStatus === 'all' ? '還沒有訂單——按右上「＋ 新增訂單」開第一張' : '此狀態目前沒有訂單' }}
           </template>
         </DataTable>
 

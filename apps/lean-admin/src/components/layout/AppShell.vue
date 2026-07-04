@@ -23,14 +23,7 @@ const nav = [
   { to: '/', label: '首頁', icon: LayoutGrid },
   { to: '/members', label: '會員', icon: Users },
   { to: '/products', label: '商品', icon: Package },
-  {
-    label: '訂單管理',
-    icon: ShoppingCart,
-    children: [
-      { to: '/orders', label: '訂單(無狀態)' },
-      { to: '/orders/lifecycle', label: '訂單(有狀態)' },
-    ],
-  },
+  { to: '/orders', label: '訂單', icon: ShoppingCart },
   { to: '/job', label: '背景任務', icon: Server },
 ]
 
