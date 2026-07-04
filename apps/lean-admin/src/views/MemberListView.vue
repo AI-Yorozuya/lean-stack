@@ -4,7 +4,7 @@
 //   {一 email 一會員} → 建立撞 email 後端回 422，前端顯示白話。
 //   {停用不刪}        → 沒有「刪除」，只有「停用 / 重新啟用」（狀態關閉、資料保留）。
 // email 建立後不給改（是會員的識別）——編輯只讓改姓名/電話。
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { Plus, Search, Pencil } from '@lucide/vue'
 import {
   createMember,
@@ -18,6 +18,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import DataTable from '@/components/DataTable.vue'
+import Pagination from '@/components/Pagination.vue'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { TableCell } from '@/components/ui/table'
 import {
@@ -44,6 +45,18 @@ const columns = [
   { label: '啟用狀態', width: 'w-24', align: 'center' },
 ]
 
+// 分頁（客戶端；整包載入後切頁）。
+const page = ref(1)
+const pageSize = 10
+const totalPages = computed(() => Math.max(1, Math.ceil(members.value.length / pageSize)))
+const pagedMembers = computed(() => {
+  const start = (page.value - 1) * pageSize
+  return members.value.slice(start, start + pageSize)
+})
+function goPage(p) {
+  page.value = Math.min(Math.max(1, p), totalPages.value)
+}
+
 async function load() {
   loading.value = true
   errorMsg.value = ''
@@ -54,6 +67,7 @@ async function load() {
       status: filterStatus.value === 'all' ? '' : filterStatus.value,
     })
     members.value = data.items
+    page.value = 1 // 每次搜尋/篩選後回第一頁
   } catch (e) {
     errorMsg.value = '載入失敗,請稍後再試'
     console.error(e)
@@ -134,7 +148,7 @@ async function toggleStatus(m) {
         <div class="flex flex-wrap items-center gap-2">
           <!-- 搜尋框：input + 搜尋 icon 鈕相連（跟訂單頁一致）-->
           <div class="flex w-56">
-            <Input v-model="q" placeholder="搜姓名…" class="relative rounded-r-none focus-visible:z-10" @keyup.enter="load" />
+            <Input v-model="q" placeholder="搜尋會員姓名…" class="relative rounded-r-none focus-visible:z-10" @keyup.enter="load" />
             <Button variant="outline" size="icon" class="shrink-0 rounded-l-none border-l-0" title="搜尋" @click="load"><Search class="size-4" /></Button>
           </div>
           <Select v-model="filterStatus" @update:model-value="load">
@@ -150,7 +164,7 @@ async function toggleStatus(m) {
       </div>
 
       <!-- 表格：水電全包在 DataTable；狀態欄放可直接切的 Switch（停用不刪），操作只留編輯 -->
-      <DataTable :items="members" :columns="columns" :loading="loading">
+      <DataTable :items="pagedMembers" :columns="columns" :loading="loading">
         <template #row="{ item: m }">
           <TableCell class="font-medium">{{ m.name }}</TableCell>
           <TableCell>{{ m.email }}</TableCell>
@@ -172,6 +186,11 @@ async function toggleStatus(m) {
         </template>
         <template #empty>沒有會員——按上方「＋ 新增會員」建第一位</template>
       </DataTable>
+
+      <!-- 分頁（釘在卡底）-->
+      <div class="mt-4 shrink-0">
+        <Pagination :page="page" :total-pages="totalPages" @update:page="goPage" />
+      </div>
     </div>
 
     <!-- 新增/編輯 dialog -->

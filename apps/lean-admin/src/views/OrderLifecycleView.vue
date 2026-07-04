@@ -174,7 +174,7 @@ async function confirmDelete() {
           <div class="flex w-64">
             <Input
               v-model="q"
-              placeholder="搜會員名 / 單號…"
+              placeholder="搜尋會員姓名或單號…"
               class="relative rounded-r-none focus-visible:z-10"
               @keyup.enter="search"
             />

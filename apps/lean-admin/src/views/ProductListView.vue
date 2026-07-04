@@ -5,7 +5,7 @@
 //   {下架不刪}      → 沒有「刪除」,只有「下架 / 重新上架」。
 // sku 建立後不給改（是商品的識別）——編輯只讓改品名/牌價。
 // 提醒：改牌價只影響「之後的新訂單」,已成立訂單的明細是快照、不受影響（見訂單頁）。
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { Plus, Search, Pencil } from '@lucide/vue'
 import {
   createProduct,
@@ -19,6 +19,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import DataTable from '@/components/DataTable.vue'
+import Pagination from '@/components/Pagination.vue'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { TableCell } from '@/components/ui/table'
 import {
@@ -51,12 +52,26 @@ const filteredProducts = computed(() => {
   return products.value.filter((p) => p.is_active === (filterActive.value === 'active'))
 })
 
+// 分頁（客戶端；濾完再切頁）。
+const page = ref(1)
+const pageSize = 10
+const totalPages = computed(() => Math.max(1, Math.ceil(filteredProducts.value.length / pageSize)))
+const pagedProducts = computed(() => {
+  const start = (page.value - 1) * pageSize
+  return filteredProducts.value.slice(start, start + pageSize)
+})
+function goPage(p) {
+  page.value = Math.min(Math.max(1, p), totalPages.value)
+}
+watch(filterActive, () => { page.value = 1 }) // 切上架狀態 → 回第一頁
+
 async function load() {
   loading.value = true
   errorMsg.value = ''
   try {
     // 這頁看全部（含下架,才能重新上架）；訂單頁的商品 select 才用 activeOnly。
     products.value = (await listProducts({ pageSize: 100, q: q.value })).items
+    page.value = 1 // 每次搜尋後回第一頁
   } catch (e) {
     errorMsg.value = '載入失敗,請稍後再試'
     console.error(e)
@@ -138,7 +153,7 @@ async function toggleActive(p) {
         <div class="flex flex-wrap items-center gap-2">
           <!-- 搜尋框：input + 搜尋 icon 鈕相連（跟訂單頁一致）-->
           <div class="flex w-56">
-            <Input v-model="q" placeholder="搜品名…" class="relative rounded-r-none focus-visible:z-10" @keyup.enter="load" />
+            <Input v-model="q" placeholder="搜尋商品名稱…" class="relative rounded-r-none focus-visible:z-10" @keyup.enter="load" />
             <Button variant="outline" size="icon" class="shrink-0 rounded-l-none border-l-0" title="搜尋" @click="load"><Search class="size-4" /></Button>
           </div>
           <Select v-model="filterActive">
@@ -154,7 +169,7 @@ async function toggleActive(p) {
       </div>
 
       <!-- 表格：水電全包在 DataTable；狀態欄放可直接切的 Switch（下架不刪），操作只留編輯 -->
-      <DataTable :items="filteredProducts" :columns="columns" :loading="loading">
+      <DataTable :items="pagedProducts" :columns="columns" :loading="loading">
         <template #row="{ item: p }">
           <TableCell class="tabular-nums">{{ p.sku }}</TableCell>
           <TableCell class="font-medium">{{ p.name }}</TableCell>
@@ -176,6 +191,11 @@ async function toggleActive(p) {
         </template>
         <template #empty>沒有商品——按上方「＋ 新增商品」建第一個</template>
       </DataTable>
+
+      <!-- 分頁（釘在卡底）-->
+      <div class="mt-4 shrink-0">
+        <Pagination :page="page" :total-pages="totalPages" @update:page="goPage" />
+      </div>
     </div>
 
     <!-- 新增/編輯 dialog -->
