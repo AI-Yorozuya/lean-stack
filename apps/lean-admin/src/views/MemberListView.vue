@@ -4,8 +4,8 @@
 //   {一 email 一會員} → 建立撞 email 後端回 422，前端顯示白話。
 //   {停用不刪}        → 沒有「刪除」，只有「停用 / 重新啟用」（狀態關閉、資料保留）。
 // email 建立後不給改（是會員的識別）——編輯只讓改姓名/電話。
-import { computed, onMounted, reactive, ref } from 'vue'
-import { Plus } from '@lucide/vue'
+import { onMounted, reactive, ref } from 'vue'
+import { Plus, Pencil } from '@lucide/vue'
 import {
   createMember,
   deactivateMember,
@@ -16,9 +16,10 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Badge } from '@/components/ui/badge'
+import { Switch } from '@/components/ui/switch'
+import DataTable from '@/components/DataTable.vue'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
+import { TableCell } from '@/components/ui/table'
 import {
   Dialog,
   DialogContent,
@@ -33,6 +34,14 @@ const q = ref('')
 const filterStatus = ref('all') // all | ACTIVE | INACTIVE
 const loading = ref(false)
 const errorMsg = ref('')
+
+// 欄位定義（餵給 DataTable）。email 吃剩餘寬度；狀態欄放可直接切的 Switch。
+const columns = [
+  { label: '姓名', width: 'w-40' },
+  { label: 'email' },
+  { label: '電話', width: 'w-36' },
+  { label: '狀態', width: 'w-24', align: 'center' },
+]
 
 async function load() {
   loading.value = true
@@ -136,49 +145,28 @@ async function toggleStatus(m) {
         <Button @click="openCreate"><Plus class="size-4" /> 新增會員</Button>
       </div>
 
-      <!-- 表格 -->
-      <div class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border">
-        <div class="scroll-thin bg-card shrink-0 overflow-y-auto">
-          <Table class="table-fixed">
-            <colgroup><col /><col class="w-64" /><col class="w-32" /><col class="w-20" /><col class="w-36" /></colgroup>
-            <TableHeader>
-              <TableRow>
-                <TableHead>姓名</TableHead>
-                <TableHead>email</TableHead>
-                <TableHead>電話</TableHead>
-                <TableHead>狀態</TableHead>
-                <TableHead></TableHead>
-              </TableRow>
-            </TableHeader>
-          </Table>
-        </div>
-        <div class="scroll-thin min-h-0 flex-1 overflow-y-auto">
-          <Table class="table-fixed">
-            <colgroup><col /><col class="w-64" /><col class="w-32" /><col class="w-20" /><col class="w-36" /></colgroup>
-            <TableBody>
-              <TableRow v-for="m in members" :key="m.id">
-                <TableCell class="font-medium">{{ m.name }}</TableCell>
-                <TableCell class="text-muted-foreground">{{ m.email }}</TableCell>
-                <TableCell class="text-muted-foreground">{{ m.phone || '—' }}</TableCell>
-                <TableCell>
-                  <Badge :variant="m.status === 'ACTIVE' ? 'secondary' : 'outline'">{{ m.status_display }}</Badge>
-                </TableCell>
-                <TableCell class="text-right whitespace-nowrap">
-                  <Button variant="ghost" size="sm" @click="openEdit(m)">編輯</Button>
-                  <Button variant="ghost" size="sm" :disabled="busyId === m.id" @click="toggleStatus(m)">
-                    {{ m.status === 'ACTIVE' ? '停用' : '重新啟用' }}
-                  </Button>
-                </TableCell>
-              </TableRow>
-              <TableRow v-if="!loading && members.length === 0">
-                <TableCell colspan="5" class="text-muted-foreground py-16 text-center">
-                  沒有會員——按右上「＋ 新增會員」建第一位
-                </TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
-        </div>
-      </div>
+      <!-- 表格：水電全包在 DataTable；狀態欄放可直接切的 Switch（停用不刪），操作只留編輯 -->
+      <DataTable :items="members" :columns="columns" :loading="loading">
+        <template #row="{ item: m }">
+          <TableCell class="font-medium">{{ m.name }}</TableCell>
+          <TableCell>{{ m.email }}</TableCell>
+          <TableCell>{{ m.phone || '—' }}</TableCell>
+          <TableCell class="text-center">
+            <Switch
+              :model-value="m.status === 'ACTIVE'"
+              :disabled="busyId === m.id"
+              title="啟用 / 停用（停用不刪）"
+              @update:model-value="() => toggleStatus(m)"
+            />
+          </TableCell>
+        </template>
+        <template #actions="{ item: m }">
+          <Button variant="ghost" size="icon-sm" class="text-muted-foreground hover:text-foreground" title="編輯" @click="openEdit(m)">
+            <Pencil class="size-4" />
+          </Button>
+        </template>
+        <template #empty>沒有會員——按上方「＋ 新增會員」建第一位</template>
+      </DataTable>
     </div>
 
     <!-- 新增/編輯 dialog -->

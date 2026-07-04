@@ -6,7 +6,7 @@
 // sku 建立後不給改（是商品的識別）——編輯只讓改品名/牌價。
 // 提醒：改牌價只影響「之後的新訂單」,已成立訂單的明細是快照、不受影響（見訂單頁）。
 import { onMounted, reactive, ref } from 'vue'
-import { Plus } from '@lucide/vue'
+import { Plus, Pencil } from '@lucide/vue'
 import {
   createProduct,
   deactivateProduct,
@@ -17,8 +17,9 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Badge } from '@/components/ui/badge'
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
+import { Switch } from '@/components/ui/switch'
+import DataTable from '@/components/DataTable.vue'
+import { TableCell } from '@/components/ui/table'
 import {
   Dialog,
   DialogContent,
@@ -32,6 +33,14 @@ const products = ref([])
 const q = ref('')
 const loading = ref(false)
 const errorMsg = ref('')
+
+// 欄位定義（餵給 DataTable）。品名吃剩餘寬度；狀態欄放可直接切的 Switch。
+const columns = [
+  { label: '品號', width: 'w-36' },
+  { label: '品名' },
+  { label: '牌價', width: 'w-28', align: 'right' },
+  { label: '狀態', width: 'w-24', align: 'center' },
+]
 
 async function load() {
   loading.value = true
@@ -124,49 +133,28 @@ async function toggleActive(p) {
         <Button @click="openCreate"><Plus class="size-4" /> 新增商品</Button>
       </div>
 
-      <!-- 表格 -->
-      <div class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border">
-        <div class="scroll-thin bg-card shrink-0 overflow-y-auto">
-          <Table class="table-fixed">
-            <colgroup><col class="w-36" /><col /><col class="w-28" /><col class="w-20" /><col class="w-36" /></colgroup>
-            <TableHeader>
-              <TableRow>
-                <TableHead>品號</TableHead>
-                <TableHead>品名</TableHead>
-                <TableHead class="text-right">牌價</TableHead>
-                <TableHead>狀態</TableHead>
-                <TableHead></TableHead>
-              </TableRow>
-            </TableHeader>
-          </Table>
-        </div>
-        <div class="scroll-thin min-h-0 flex-1 overflow-y-auto">
-          <Table class="table-fixed">
-            <colgroup><col class="w-36" /><col /><col class="w-28" /><col class="w-20" /><col class="w-36" /></colgroup>
-            <TableBody>
-              <TableRow v-for="p in products" :key="p.id">
-                <TableCell class="text-muted-foreground tabular-nums">{{ p.sku }}</TableCell>
-                <TableCell class="font-medium">{{ p.name }}</TableCell>
-                <TableCell class="text-right tabular-nums">{{ p.unit_price.toLocaleString() }}</TableCell>
-                <TableCell>
-                  <Badge :variant="p.is_active ? 'secondary' : 'outline'">{{ p.is_active ? '上架' : '下架' }}</Badge>
-                </TableCell>
-                <TableCell class="text-right whitespace-nowrap">
-                  <Button variant="ghost" size="sm" @click="openEdit(p)">編輯</Button>
-                  <Button variant="ghost" size="sm" :disabled="busyId === p.id" @click="toggleActive(p)">
-                    {{ p.is_active ? '下架' : '重新上架' }}
-                  </Button>
-                </TableCell>
-              </TableRow>
-              <TableRow v-if="!loading && products.length === 0">
-                <TableCell colspan="5" class="text-muted-foreground py-16 text-center">
-                  沒有商品——按右上「＋ 新增商品」建第一個
-                </TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
-        </div>
-      </div>
+      <!-- 表格：水電全包在 DataTable；狀態欄放可直接切的 Switch（下架不刪），操作只留編輯 -->
+      <DataTable :items="products" :columns="columns" :loading="loading">
+        <template #row="{ item: p }">
+          <TableCell class="tabular-nums">{{ p.sku }}</TableCell>
+          <TableCell class="font-medium">{{ p.name }}</TableCell>
+          <TableCell class="text-right tabular-nums">{{ p.unit_price.toLocaleString() }}</TableCell>
+          <TableCell class="text-center">
+            <Switch
+              :model-value="p.is_active"
+              :disabled="busyId === p.id"
+              title="上架 / 下架（下架不刪）"
+              @update:model-value="() => toggleActive(p)"
+            />
+          </TableCell>
+        </template>
+        <template #actions="{ item: p }">
+          <Button variant="ghost" size="icon-sm" class="text-muted-foreground hover:text-foreground" title="編輯" @click="openEdit(p)">
+            <Pencil class="size-4" />
+          </Button>
+        </template>
+        <template #empty>沒有商品——按上方「＋ 新增商品」建第一個</template>
+      </DataTable>
     </div>
 
     <!-- 新增/編輯 dialog -->
