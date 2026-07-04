@@ -188,7 +188,9 @@ async function confirmDelete() {
         <!-- 表格：水電（捲軸分家/對齊/底線/空狀態）全包在 DataTable；這裡只宣告欄位＋一列怎麼畫 -->
         <DataTable :items="pagedOrders" :columns="columns" :loading="loading">
           <template #row="{ item: o }">
-            <TableCell class="tabular-nums">{{ o.order_no }}</TableCell>
+            <TableCell class="tabular-nums">
+              <button type="button" class="hover:text-primary hover:underline" @click="router.push(`/orders/${o.id}`)">{{ o.order_no }}</button>
+            </TableCell>
             <TableCell class="font-medium">{{ o.member.name }}</TableCell>
             <TableCell class="text-center">
               <span :class="statusClass(o.status)">{{ o.status_display }}</span>

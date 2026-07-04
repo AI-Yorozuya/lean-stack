@@ -41,7 +41,7 @@ const columns = [
   { label: 'email' },
   { label: '電話', width: 'w-36' },
   { label: '註冊日期', width: 'w-32' },
-  { label: '狀態', width: 'w-24', align: 'center' },
+  { label: '啟用狀態', width: 'w-24', align: 'center' },
 ]
 
 async function load() {

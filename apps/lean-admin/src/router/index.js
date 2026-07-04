@@ -15,8 +15,11 @@ const routes = [
   { path: '/products', name: 'products', component: () => import('@/views/ProductListView.vue') },
   // 訂單管理（有狀態：生命週期狀態機——本 repo 講「狀態與流程」的主場）
   { path: '/orders', name: 'orders', component: () => import('@/views/OrderLifecycleView.vue') },
-  // 訂單新增／編輯（換頁式，同一個 OrderEditView：沒 id = 新增、有 id = 編輯）
+  // 訂單新增（換頁式；沒 id = 新增）——要放在 /orders/:id 前面，不然 new 會被當成 id
   { path: '/orders/new', name: 'order-new', component: () => import('@/views/OrderEditView.vue') },
+  // 訂單詳細頁（唯讀檢視 + 狀態機動作；點清單的單號進來）
+  { path: '/orders/:id', name: 'order-detail', component: () => import('@/views/OrderDetailView.vue') },
+  // 訂單編輯（同一個 OrderEditView：有 id = 編輯）
   { path: '/orders/:id/edit', name: 'order-edit', component: () => import('@/views/OrderEditView.vue') },
   // 背景任務頁（celery 範例：任務清單 + 進度輪詢，lazy load）
   { path: '/job', name: 'job', component: () => import('@/views/BackgroundTaskView.vue') },

@@ -5,7 +5,7 @@
 //   {下架不刪}      → 沒有「刪除」,只有「下架 / 重新上架」。
 // sku 建立後不給改（是商品的識別）——編輯只讓改品名/牌價。
 // 提醒：改牌價只影響「之後的新訂單」,已成立訂單的明細是快照、不受影響（見訂單頁）。
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { Plus, Search, Pencil } from '@lucide/vue'
 import {
   createProduct,
@@ -19,6 +19,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import DataTable from '@/components/DataTable.vue'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { TableCell } from '@/components/ui/table'
 import {
   Dialog,
@@ -40,8 +41,15 @@ const columns = [
   { label: '品名' },
   { label: '牌價', width: 'w-28', align: 'right' },
   { label: '上架日期', width: 'w-32' },
-  { label: '狀態', width: 'w-24', align: 'center' },
+  { label: '上架狀態', width: 'w-24', align: 'center' },
 ]
+
+// 上架狀態篩選（client-side；商品整包載入，直接濾即可）。
+const filterActive = ref('all') // all | active | inactive
+const filteredProducts = computed(() => {
+  if (filterActive.value === 'all') return products.value
+  return products.value.filter((p) => p.is_active === (filterActive.value === 'active'))
+})
 
 async function load() {
   loading.value = true
@@ -133,12 +141,20 @@ async function toggleActive(p) {
             <Input v-model="q" placeholder="搜品名…" class="relative rounded-r-none focus-visible:z-10" @keyup.enter="load" />
             <Button variant="outline" size="icon" class="shrink-0 rounded-l-none border-l-0" title="搜尋" @click="load"><Search class="size-4" /></Button>
           </div>
+          <Select v-model="filterActive">
+            <SelectTrigger class="w-32"><SelectValue placeholder="全部狀態" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">全部狀態</SelectItem>
+              <SelectItem value="active">上架</SelectItem>
+              <SelectItem value="inactive">下架</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         <Button @click="openCreate"><Plus class="size-4" /> 新增商品</Button>
       </div>
 
       <!-- 表格：水電全包在 DataTable；狀態欄放可直接切的 Switch（下架不刪），操作只留編輯 -->
-      <DataTable :items="products" :columns="columns" :loading="loading">
+      <DataTable :items="filteredProducts" :columns="columns" :loading="loading">
         <template #row="{ item: p }">
           <TableCell class="tabular-nums">{{ p.sku }}</TableCell>
           <TableCell class="font-medium">{{ p.name }}</TableCell>
