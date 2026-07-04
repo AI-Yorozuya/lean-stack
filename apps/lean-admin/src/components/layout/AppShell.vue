@@ -12,15 +12,15 @@ import { ref, onBeforeMount, onMounted, onBeforeUnmount } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 // 選單 icon 一律取「同一套 lucide、視覺重量相近的實心輪廓物件」——參 top-admin 的
 // constants/icons.js（避免混入 Activity 那種稀疏脈衝線，破壞整體一致性）。
-import { LayoutGrid, Users, Package, ShoppingCart, Server, ChevronDown, ChevronsLeft, ChevronsRight, User } from '@lucide/vue'
+import { Users, Package, ShoppingCart, Server, ChevronDown, ChevronsLeft, ChevronsRight, User } from '@lucide/vue'
 import { getHealth } from '@/api'
 import HealthBadge from '@/components/HealthBadge.vue'
 // 品牌標：AI萬事屋忍者熊頭（奶油圓底徽章）。import 進來讓 vite 打包＋hash。
 import bearBadge from '@/assets/bearhead_badge.png'
 
 // 導覽：單一項 { to, label, icon }；群組 { label, icon, children:[{ to, label }] }。
+// 標籤設計上限：中文 6 字（側欄寬度就是抓這個預算 + logo 一起定的）。
 const nav = [
-  { to: '/', label: '首頁', icon: LayoutGrid },
   { to: '/members', label: '會員', icon: Users },
   { to: '/products', label: '商品', icon: Package },
   { to: '/orders', label: '訂單', icon: ShoppingCart },
@@ -103,20 +103,20 @@ onBeforeUnmount(() => {
     <!-- ── 左側 sidebar（白底極簡，可收合）───────────────── -->
     <aside
       class="flex h-full flex-col overflow-hidden border-r border-border bg-card transition-[width] duration-200"
-      :class="expanded ? 'w-52' : 'w-16'"
+      :class="expanded ? 'w-48' : 'w-16'"
     >
-      <!-- Logo（學 top-admin 的三件事：①整塊是「回首頁」的連結 ②h-14 對齊頂 bar、
-           展開/收合都靠同一顆標記垂直對齊下方選單 icon ③標題收斂質感 text-base +
-           tracking-wide）。沒有品牌圖檔，用 monogram 方塊當標記。 -->
+      <!-- 品牌列（h-14 對齊頂 bar；整塊是連結，點了回站台入口 = 會員頁）。
+           px-5 讓熊頭 logo 的左緣＝下方選單 icon 的左緣（nav 的 p-2 + px-3 = 20px），
+           整條側欄共用同一條「icon 軌」。寬度 w-48 是抓「6 字標籤 + 品牌字」一起定的。 -->
       <button
         type="button"
-        title="回首頁"
-        class="flex h-14 shrink-0 cursor-pointer items-center gap-3.5 overflow-hidden border-b border-border text-left transition-opacity hover:opacity-70"
-        :class="expanded ? 'justify-start px-4' : 'justify-center'"
+        title="AI萬事屋後台"
+        class="flex h-14 shrink-0 cursor-pointer items-center gap-3 overflow-hidden border-b border-border text-left transition-opacity hover:opacity-70"
+        :class="expanded ? 'justify-start px-5' : 'justify-center'"
         @click="$router.push('/')"
       >
-        <img :src="bearBadge" alt="AI萬事屋" class="size-9 shrink-0" />
-        <span v-show="expanded" class="whitespace-nowrap text-base font-semibold tracking-wide text-foreground">AI萬事屋後台</span>
+        <img :src="bearBadge" alt="AI萬事屋" class="size-8 shrink-0" />
+        <span v-show="expanded" class="whitespace-nowrap text-[15px] font-semibold text-foreground">AI萬事屋後台</span>
       </button>
 
       <!-- Menu -->

@@ -5,10 +5,10 @@
 //   2) 在下面 routes 陣列加一筆 { path: '/users', component: () => import('@/views/UsersView.vue') }。
 //      用 () => import(...) 是 lazy load：進到該頁才下載，首頁更快。
 import { createRouter, createWebHistory } from 'vue-router'
-import HomeView from '@/views/HomeView.vue'
 
 const routes = [
-  { path: '/', name: 'home', component: HomeView },
+  // 進站預設導到會員（最單純的 CRUD 入門頁；沒有獨立首頁）
+  { path: '/', redirect: '/members' },
   // 會員管理（最單純 CRUD；訂單的「下單的人」就是它）
   { path: '/members', name: 'members', component: () => import('@/views/MemberListView.vue') },
   // 商品管理（最單純 CRUD；訂單明細從這個目錄挑、抄快照）
