@@ -2,9 +2,9 @@
 // 訂單管理頁：訂單清單（tab 依狀態篩、狀態欄顯示生命週期）。
 // 操作：編輯 → 換頁（/orders/:id/edit）；刪除 → 確認 dialog。
 // 備註 → inline 彈 dialog 快速改（只改備註、跟狀態無關，見後端 /order/{id}/note）。
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { Plus, Pencil, Trash2 } from '@lucide/vue'
+import { Plus, Search, Pencil, Trash2 } from '@lucide/vue'
 import { listOrders, deleteOrder, updateOrderNote } from '@/api/order'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -51,11 +51,12 @@ const statusTabs = [
   { key: 'CANCELLED', label: '已取消' },
 ]
 const activeStatus = ref('all')
-const q = ref('') // 關鍵字搜尋：會員名 / 單號（客戶端過濾，資料已整包載入）
+const q = ref('')       // 搜尋輸入框
+const keyword = ref('') // 已按下搜尋、實際生效的關鍵字（會員名 / 單號；客戶端過濾）
 const filteredOrders = computed(() => {
   let list = orders.value
   if (activeStatus.value !== 'all') list = list.filter((o) => o.status === activeStatus.value)
-  const kw = q.value.trim().toLowerCase()
+  const kw = keyword.value.toLowerCase()
   if (kw) list = list.filter((o) => o.member.name.toLowerCase().includes(kw) || o.order_no.toLowerCase().includes(kw))
   return list
 })
@@ -78,8 +79,11 @@ function selectStatus(key) {
 function goPage(p) {
   page.value = Math.min(Math.max(1, p), totalPages.value)
 }
-// 搜尋改變 → 回第一頁（跟切 tab 一樣）
-watch(q, () => { page.value = 1 })
+// 按搜尋鈕 / Enter：套用關鍵字並回第一頁
+function search() {
+  keyword.value = q.value.trim()
+  page.value = 1
+}
 
 async function load() {
   loading.value = true
@@ -166,7 +170,18 @@ async function confirmDelete() {
 
         <!-- 工具列：搜尋（左）＋ 新增訂單（右）。狀態篩選交給上方 tab，這裡只做關鍵字搜尋。 -->
         <div class="mb-4 flex shrink-0 items-center justify-between gap-2">
-          <Input v-model="q" placeholder="搜會員名 / 單號…" class="w-56" />
+          <!-- 搜尋框：input + 搜尋 icon 鈕接在一起（input 右角磨平、鈕左角磨平且去左框，共用一條分隔線）-->
+          <div class="flex w-64">
+            <Input
+              v-model="q"
+              placeholder="搜會員名 / 單號…"
+              class="relative rounded-r-none focus-visible:z-10"
+              @keyup.enter="search"
+            />
+            <Button variant="outline" size="icon" class="shrink-0 rounded-l-none border-l-0" title="搜尋" @click="search">
+              <Search class="size-4" />
+            </Button>
+          </div>
           <Button @click="router.push('/orders/new')"><Plus class="size-4" /> 新增訂單</Button>
         </div>
 
@@ -202,7 +217,7 @@ async function confirmDelete() {
             </Button>
           </template>
           <template #empty>
-            {{ q ? '找不到符合的訂單' : (activeStatus === 'all' ? '還沒有訂單——按上方「＋ 新增訂單」開第一張' : '此狀態目前沒有訂單') }}
+            {{ keyword ? '找不到符合的訂單' : (activeStatus === 'all' ? '還沒有訂單——按上方「＋ 新增訂單」開第一張' : '此狀態目前沒有訂單') }}
           </template>
         </DataTable>
 
