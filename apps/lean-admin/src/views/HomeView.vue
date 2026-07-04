@@ -2,13 +2,15 @@
 // 後台首頁：儀表板入口。連線狀態已移到頂部 bar（每頁都看得到），
 // 這頁就當「功能入口卡片」——之後加新功能就多一張卡。
 import { RouterLink } from 'vue-router'
-import { ShoppingCart, Workflow, ListChecks, ArrowRight } from '@lucide/vue'
+import { Users, Package, ShoppingCart, Workflow, Server, ArrowRight } from '@lucide/vue'
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 
 const features = [
-  { to: '/orders', icon: ShoppingCart, title: '訂單（無狀態）', desc: 'Stage A：客戶 + 訂單 + 明細的 CRUD，錢的真相在後端。' },
+  { to: '/members', icon: Users, title: '會員', desc: '最單純 CRUD：一 email 一會員、停用不刪。訂單的「下單的人」就是它。' },
+  { to: '/products', icon: Package, title: '商品', desc: '商品目錄：一 sku 一商品、下架不刪。訂單明細從這裡挑、抄快照。' },
+  { to: '/orders', icon: ShoppingCart, title: '訂單（無狀態）', desc: 'Stage A：會員 + 商品目錄 + 明細快照的 CRUD，錢的真相在後端。' },
   { to: '/orders/lifecycle', icon: Workflow, title: '訂單（有狀態）', desc: 'Stage B：訂單生命週期狀態機，非法轉移後端擋。' },
-  { to: '/job', icon: ListChecks, title: '背景任務', desc: '派工給 celery worker、清單輪詢進度——async 整條路的活範例。' },
+  { to: '/job', icon: Server, title: '背景任務', desc: '派工給 celery worker、清單輪詢進度——async 整條路的活範例。' },
 ]
 </script>
 

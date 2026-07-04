@@ -117,12 +117,12 @@ onMounted(load)
         <div class="scroll-thin bg-muted shrink-0 overflow-y-auto [scrollbar-gutter:stable]">
           <Table class="table-fixed">
             <colgroup>
-              <col class="w-14" /><col /><col class="w-28" /><col class="w-28" /><col class="w-28" /><col class="w-52" />
+              <col class="w-28" /><col /><col class="w-28" /><col class="w-28" /><col class="w-28" /><col class="w-52" />
             </colgroup>
             <TableHeader>
               <TableRow>
-                <TableHead>#</TableHead>
-                <TableHead>客戶</TableHead>
+                <TableHead>單號</TableHead>
+                <TableHead>會員</TableHead>
                 <TableHead class="text-right">總額</TableHead>
                 <TableHead class="text-right">已收</TableHead>
                 <TableHead>狀態</TableHead>
@@ -135,12 +135,12 @@ onMounted(load)
         <div class="scroll-thin min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable]">
           <Table class="table-fixed">
             <colgroup>
-              <col class="w-14" /><col /><col class="w-28" /><col class="w-28" /><col class="w-28" /><col class="w-52" />
+              <col class="w-28" /><col /><col class="w-28" /><col class="w-28" /><col class="w-28" /><col class="w-52" />
             </colgroup>
             <TableBody>
               <TableRow v-for="o in filteredOrders" :key="o.id">
-                <TableCell class="text-muted-foreground">{{ o.id }}</TableCell>
-                <TableCell class="font-medium">{{ o.customer.name }}</TableCell>
+                <TableCell class="text-muted-foreground tabular-nums">{{ o.order_no }}</TableCell>
+                <TableCell class="font-medium">{{ o.member.name }}</TableCell>
                 <TableCell class="text-right tabular-nums">{{ o.total.toLocaleString() }}</TableCell>
                 <TableCell class="text-muted-foreground text-right tabular-nums">{{ o.paid_amount.toLocaleString() }}</TableCell>
                 <TableCell>

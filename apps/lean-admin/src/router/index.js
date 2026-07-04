@@ -9,6 +9,10 @@ import HomeView from '@/views/HomeView.vue'
 
 const routes = [
   { path: '/', name: 'home', component: HomeView },
+  // 會員管理（最單純 CRUD；訂單的「下單的人」就是它）
+  { path: '/members', name: 'members', component: () => import('@/views/MemberListView.vue') },
+  // 商品管理（最單純 CRUD；訂單明細從這個目錄挑、抄快照）
+  { path: '/products', name: 'products', component: () => import('@/views/ProductListView.vue') },
   // 訂單管理 Stage A（無狀態 CRUD）——「加一頁」流程的第一個真實範例
   { path: '/orders', name: 'orders', component: () => import('@/views/OrderListView.vue') },
   // 訂單管理 Stage B（有狀態：生命週期狀態機）

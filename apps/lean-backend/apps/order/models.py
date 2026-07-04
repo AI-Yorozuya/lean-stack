@@ -1,21 +1,27 @@
 """訂單管理的資料模型。規則來源：intents/訂單管理.md（Stage A + Stage B）。
 
 教學重點（資料模型＝三問的第一問「有什麼？跟誰有關？」）：
-- 三個「東西」：客戶 Customer、訂單 Order、訂單明細 OrderItem。
-- 兩條關聯：訂單 → 客戶（多對一）；明細 → 訂單（多對一，也就是訂單:明細 = 1:N）。
-- Stage A（無狀態）：訂單就是一筆有明細、有客戶的資料，只有 CRUD。
+- 三個「東西」＋兩個外部主檔：
+    · 訂單 Order、訂單明細 OrderItem（本 app）
+    · 會員 Member（apps/member）＝下單的人；商品 Product（apps/product）＝目錄。
+- 關聯：訂單 → 會員（多對一）；明細 → 訂單（1:N）；明細 → 商品（多對一）。
+- Stage A（無狀態）：訂單就是一筆有明細、有會員的資料，只有 CRUD。
 - Stage B（有狀態）：**同一個 Order 加上生命週期**——status 狀態機 + 更多鐵則。
 
-鐵則（intents 裡的 {…}）落在哪：
-- {明細小計 = 數量 × 單價}   → OrderItem.save() 裡「算出來存」，不接受手填。
-- {訂單總額 = 明細加總}      → Order.recalc_total()，任何明細變動後由 API 層呼叫。
-- {一張訂單至少一筆明細}     → 建立/修改的入口（apis.py）擋，見該檔。
-- {已出貨後明細/總額不可改} → Order.is_editable（EDITABLE_STATUSES），update 入口擋。
+四條設計原則（見 intents/資料模型設計原則.md）落在哪：
+- 快照：OrderItem 下單當下把 Product 的品名＋單價「抄一份」（snapshot_from）——
+        之後目錄改價/改名/下架，歷史訂單不動。
+- 衍生：{明細小計 = 數量 × 單價} → OrderItem.save()；{總額 = 明細加總} → recalc_total()。
+- 業務識別碼：order_no（OR-000123）給人對帳，跟 DB 主鍵 pk 分開。
+- 停用不刪：會員/商品都用狀態關閉（各自 app），訂單對會員/商品用 PROTECT 保住歷史。
+
+其餘鐵則（intents 裡的 {…}）：
+- {一張訂單至少一筆明細}     → 建立/修改入口（apis.py）擋。
+- {已出貨後明細/總額不可改}  → Order.is_editable（EDITABLE_STATUSES），update 入口擋。
 - {終態不可再轉}/{跳步不可轉} → Order.apply_transition() 用 TRANSITIONS 表守。
 
 為什麼鐵則寫在 model / 入口，而不是「相信前端」？
-前端畫面可以算給人看（體驗），但**真相必須由後端算/擋**——狀態機的「哪條路
-不能走」若只靠前端藏按鈕，改個 request 就破功。承重牆砌在後端才擋得住。
+前端可以算給人看（體驗），但**真相必須由後端算/擋**——承重牆砌在後端才擋得住改 request。
 """
 from decimal import Decimal
 
@@ -26,16 +32,6 @@ from apps._common.models import TimeStampedModel
 
 class TransitionError(Exception):
     """狀態機擋下來的「非法轉移」（終態不可轉、跳步不可轉）。API 層轉成 422。"""
-
-
-class Customer(TimeStampedModel):
-    """下單的人。Stage A 用最簡客戶表（之後可換成接會員 app）。"""
-
-    name = models.CharField(max_length=100)
-    phone = models.CharField(max_length=30, blank=True)
-
-    def __str__(self):
-        return self.name
 
 
 class Order(TimeStampedModel):
@@ -60,9 +56,12 @@ class Order(TimeStampedModel):
     # 鐵則 {已出貨後明細/總額不可改}：只有這兩個狀態能動明細。
     EDITABLE_STATUSES = (Status.PENDING, Status.PAID)
 
-    customer = models.ForeignKey(
-        Customer,
-        on_delete=models.PROTECT,  # 有訂單的客戶不准刪——歷史要留（呼應「停用不刪」的精神）
+    # 業務識別碼（單號）≠ DB 主鍵：對外對帳看 order_no，pk 是內部的事。
+    # 建立時自動從 pk 衍生（見 save()）；unique 保證不撞。
+    order_no = models.CharField(max_length=20, unique=True, blank=True)
+    member = models.ForeignKey(
+        'member.Member',
+        on_delete=models.PROTECT,  # 有訂單的會員不准刪——歷史要留（呼應「停用不刪」）
         related_name='orders',
     )
     order_date = models.DateField(auto_now_add=True)
@@ -73,7 +72,18 @@ class Order(TimeStampedModel):
     paid_amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0'))
 
     def __str__(self):
-        return f'Order#{self.pk} {self.customer} ${self.total} [{self.get_status_display()}]'
+        return f'{self.order_no} {self.member} ${self.total} [{self.get_status_display()}]'
+
+    def save(self, *args, **kwargs):
+        """建立後補上單號 order_no（需先存拿到 pk，再從 pk 衍生）。
+
+        用 queryset.update() 直接寫欄位，避免遞迴呼叫 save()。
+        單號穩定不變——之後任何 save（改總額/狀態）都不會重算它。
+        """
+        super().save(*args, **kwargs)
+        if not self.order_no:
+            self.order_no = f'OR-{self.pk:06d}'
+            Order.objects.filter(pk=self.pk).update(order_no=self.order_no)
 
     def recalc_total(self):
         """鐵則：{訂單總額 = 所有明細小計加總}。明細有任何增刪改後呼叫。"""
@@ -110,14 +120,35 @@ class Order(TimeStampedModel):
 
 
 class OrderItem(TimeStampedModel):
-    """訂單裡的一個品項。訂單:明細 = 1:N。"""
+    """訂單裡的一個品項。訂單:明細 = 1:N。
+
+    明細的 name / unit_price 是**下單當下的快照**（從 Product 抄一份，見 snapshot_from）——
+    不是即時讀目錄。這樣目錄事後改價/改名/下架，這筆歷史明細都不動。
+    """
 
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
-    name = models.CharField(max_length=100)                          # 品項名
+    # 指回目錄（報表/追溯用）。PROTECT：被明細引用的商品不准硬刪（呼應「下架不刪」）。
+    product = models.ForeignKey('product.Product', on_delete=models.PROTECT, related_name='order_items')
+    name = models.CharField(max_length=100)                          # 品名（下單當下快照）
     quantity = models.PositiveIntegerField()                         # 數量（>0 由 schema 驗）
-    unit_price = models.DecimalField(max_digits=10, decimal_places=2)  # 單價
+    unit_price = models.DecimalField(max_digits=10, decimal_places=2)  # 單價（下單當下快照）
     # 小計不接受手填——save() 算出來存（鐵則入 code 的樣子）。
     subtotal = models.DecimalField(max_digits=12, decimal_places=2, editable=False)
+
+    @classmethod
+    def snapshot_from(cls, order, product, quantity):
+        """下單當下：把目錄的品名＋單價「抄一份」存進明細（快照）。
+
+        這是「目錄 vs 明細」那一課的落點：訂單是歷史事實，目錄是當前真相。
+        建立後改 product 的價格/名稱，這筆明細不受影響。
+        """
+        return cls.objects.create(
+            order=order,
+            product=product,
+            name=product.name,            # 快照
+            unit_price=product.unit_price,  # 快照
+            quantity=quantity,
+        )
 
     def save(self, *args, **kwargs):
         """鐵則：{明細小計 = 數量 × 單價}。不管誰存、怎麼存，這條永遠成立。

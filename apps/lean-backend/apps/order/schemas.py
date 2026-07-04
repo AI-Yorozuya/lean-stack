@@ -2,54 +2,47 @@
 
 教學重點：
 - 「In」結尾＝進來的（建立/修改用），其他＝出去的（回給前端用）。
-- 進來的資料在這一層就先驗（數量 > 0、至少一筆明細）——擋在門口，
-  不讓髒資料走到 model。
-- 出去的 subtotal / total 是後端算好的，前端只負責顯示。
+- 建單時明細只給 product_id + quantity——品名與單價**不由前端傳**，
+  由後端從目錄抄快照（見 apps/order/models.py 的 OrderItem.snapshot_from）。
+  這防止前端亂塞價格，也是「目錄=單一真相」的落點。
+- 出去的 name / unit_price / subtotal / total 都是後端算/抄好的，前端只顯示。
 """
-from decimal import Decimal
-
 from ninja import Field, Schema
 
 
-# ── 客戶 ──────────────────────────────────────────────
-class CustomerIn(Schema):
-    name: str = Field(..., min_length=1, max_length=100)
-    phone: str = ''
+# ── 明細 ──────────────────────────────────────────────
+class OrderItemIn(Schema):
+    product_id: int                               # 從商品目錄挑
+    quantity: int = Field(..., gt=0)              # 數量必須 > 0
 
 
-class CustomerSchema(Schema):
+class OrderItemSchema(Schema):
+    id: int
+    product_id: int
+    name: str                                  # 下單當下的快照
+    quantity: int
+    unit_price: float                          # 下單當下的快照
+    subtotal: float                            # 後端算的（鐵則），非手填
+
+
+# ── 訂單 ──────────────────────────────────────────────
+class OrderMemberSchema(Schema):
+    """訂單裡帶的會員摘要（不必回整包會員，夠顯示即可）。"""
     id: int
     name: str
     phone: str
 
 
-# ── 明細 ──────────────────────────────────────────────
-class OrderItemIn(Schema):
-    name: str = Field(..., min_length=1, max_length=100)
-    quantity: int = Field(..., gt=0)              # 數量必須 > 0
-    # 錢一律用 Decimal，不用 float——float 有二進位誤差（0.1+0.2≠0.3），
-    # 算錢會慢慢飄掉。pydantic 會把 JSON 數字安全轉成 Decimal。
-    unit_price: Decimal = Field(..., ge=0)        # 單價不可為負
-
-
-class OrderItemSchema(Schema):
-    id: int
-    name: str
-    quantity: int
-    unit_price: float
-    subtotal: float                            # 後端算的（鐵則），非手填
-
-
-# ── 訂單 ──────────────────────────────────────────────
 class OrderIn(Schema):
-    customer_id: int
+    member_id: int
     # 鐵則 {一張訂單至少一筆明細}：min_length=1 在門口就擋掉空單。
     items: list[OrderItemIn] = Field(..., min_length=1)
 
 
 class OrderSchema(Schema):
     id: int
-    customer: CustomerSchema
+    order_no: str                              # 業務單號（≠ 主鍵）
+    member: OrderMemberSchema
     order_date: str = Field(..., alias='order_date')
     total: float                               # 後端算的（鐵則），非手填
     items: list[OrderItemSchema]

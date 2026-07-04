@@ -8,18 +8,16 @@
 // 七個元件、四個 API,每個都因為一個動作而存在。
 // UI 積木一律用 @/components/ui 的 shadcn-vue 元件（樣式一致、無障礙內建）。
 //
+// 這一頁把三個 app 串起來：會員（下單的人）＋商品目錄（明細從這裡挑、抄快照）→ 訂單。
+// 明細只送 product_id + 數量——品名/單價由後端從目錄抄，前端不傳價格（防亂塞、單一真相）。
+//
 // 鐵則的分工（重要）：表單裡的「小計/總計」是前端算給人看的即時回饋；
 // 送出後一律以後端回傳為準——錢的真相在後端（見後端 models.py）。
 import { computed, onMounted, reactive, ref } from 'vue'
 import { Plus, X } from '@lucide/vue'
-import {
-  createCustomer,
-  createOrder,
-  deleteOrder,
-  listCustomers,
-  listOrders,
-  updateOrder,
-} from '@/api/order'
+import { createOrder, deleteOrder, listOrders, updateOrder } from '@/api/order'
+import { createMember, listMembers } from '@/api/member'
+import { listProducts } from '@/api/product'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -41,13 +39,18 @@ const orders = ref([])
 const count = ref(0)
 const page = ref(1)
 const pageSize = 30 // 每頁筆數（固定；資料量小，不放使用者可調的下拉）
-const q = ref('')                 // input：模糊搜客戶名
-const filterCustomerId = ref('all')  // Select：精準篩客戶（'all' = 全部客戶）
-const customers = ref([])
+const q = ref('')                  // input：模糊搜會員名
+const filterMemberId = ref('all')  // Select：精準篩會員（'all' = 全部）
+const members = ref([])
+const products = ref([])           // 全部商品（含下架；價格 map 用）
 const loading = ref(false)
 const errorMsg = ref('')
 
 const totalPages = computed(() => Math.max(1, Math.ceil(count.value / pageSize)))
+// 只有上架商品能被挑進新明細（下架＝停售）。
+const activeProducts = computed(() => products.value.filter((p) => p.is_active))
+// product_id → 商品，算即時小計時查現價（顯示用）。
+const productMap = computed(() => Object.fromEntries(products.value.map((p) => [String(p.id), p])))
 
 async function load() {
   loading.value = true
@@ -57,7 +60,7 @@ async function load() {
       page: page.value,
       pageSize,
       q: q.value,
-      customerId: filterCustomerId.value === 'all' ? null : Number(filterCustomerId.value),
+      memberId: filterMemberId.value === 'all' ? null : Number(filterMemberId.value),
     })
     orders.value = data.items
     count.value = data.count
@@ -69,8 +72,12 @@ async function load() {
   }
 }
 
-async function loadCustomers() {
-  customers.value = await listCustomers()
+async function loadMembers() {
+  members.value = (await listMembers({ pageSize: 100 })).items
+}
+
+async function loadProducts() {
+  products.value = (await listProducts({ pageSize: 100 })).items
 }
 
 function search() {
@@ -85,22 +92,23 @@ function goPage(p) {
 
 onMounted(() => {
   load()
-  loadCustomers()
+  loadMembers()
+  loadProducts()
 })
 
 // ── 新增 / 編輯 dialog ──────────────────────────────────
 const showForm = ref(false)
 const editingId = ref(null) // null = 新增；有值 = 編輯
-const form = reactive({ customer_id: '', items: [] })
+const form = reactive({ member_id: '', items: [] })
 const formError = ref('')
 
 function blankItem() {
-  return { name: '', quantity: 1, unit_price: 0 }
+  return { product_id: '', quantity: 1 }
 }
 
 function openCreate() {
   editingId.value = null
-  form.customer_id = ''
+  form.member_id = ''
   form.items = [blankItem()]
   formError.value = ''
   showForm.value = true
@@ -108,12 +116,11 @@ function openCreate() {
 
 function openEdit(order) {
   editingId.value = order.id
-  form.customer_id = String(order.customer.id)
-  // 只取表單需要的欄位（id/subtotal 是後端的事）
+  form.member_id = String(order.member.id)
+  // 只取表單需要的欄位（品名/單價/小計是後端從目錄抄的，改單時重新挑）
   form.items = order.items.map((i) => ({
-    name: i.name,
+    product_id: String(i.product_id),
     quantity: i.quantity,
-    unit_price: i.unit_price,
   }))
   formError.value = ''
   showForm.value = true
@@ -132,22 +139,26 @@ function removeItem(idx) {
   form.items.splice(idx, 1)
 }
 
-// 即時小計/總計——只是顯示給人看；送出後以後端回傳為準。
-const itemSubtotal = (i) => (Number(i.quantity) || 0) * (Number(i.unit_price) || 0)
+// 即時小計/總計——單價查目錄現價,只是顯示給人看；送出後以後端回傳為準。
+const itemUnitPrice = (i) => Number(productMap.value[String(i.product_id)]?.unit_price ?? 0)
+const itemSubtotal = (i) => (Number(i.quantity) || 0) * itemUnitPrice(i)
 const formTotal = computed(() => form.items.reduce((sum, i) => sum + itemSubtotal(i), 0))
 
 async function submitForm() {
   formError.value = ''
-  if (!form.customer_id) {
-    formError.value = '請選擇客戶'
+  if (!form.member_id) {
+    formError.value = '請選擇會員'
+    return
+  }
+  if (form.items.some((i) => !i.product_id)) {
+    formError.value = '每一筆明細都要選一個商品'
     return
   }
   const payload = {
-    customer_id: Number(form.customer_id),
+    member_id: Number(form.member_id),
     items: form.items.map((i) => ({
-      name: i.name,
+      product_id: Number(i.product_id),
       quantity: Number(i.quantity),
-      unit_price: Number(i.unit_price),
     })),
   }
   try {
@@ -157,23 +168,33 @@ async function submitForm() {
     load()
   } catch (e) {
     // 後端擋下的（422 = 鐵則/驗證不過）給人看得懂的訊息
-    formError.value = e.response?.status === 422 ? '資料不合規則：請檢查明細（數量要 > 0、至少一筆）' : '儲存失敗,請稍後再試'
+    formError.value = e.response?.data?.detail || '儲存失敗,請稍後再試'
     console.error(e)
   }
 }
 
-// ── 快速新增客戶（下單時客戶還不存在的小門）─────────────
-const showNewCustomer = ref(false)
-const newCustomer = reactive({ name: '', phone: '' })
+// ── 快速新增會員（下單時會員還不存在的小門）─────────────
+const showNewMember = ref(false)
+const newMember = reactive({ name: '', email: '', phone: '' })
+const newMemberError = ref('')
 
-async function submitNewCustomer() {
-  if (!newCustomer.name) return
-  const c = await createCustomer({ ...newCustomer })
-  await loadCustomers()
-  form.customer_id = String(c.id) // 建完直接選上
-  newCustomer.name = ''
-  newCustomer.phone = ''
-  showNewCustomer.value = false
+async function submitNewMember() {
+  newMemberError.value = ''
+  if (!newMember.name || !newMember.email) {
+    newMemberError.value = '姓名與 email 必填'
+    return
+  }
+  try {
+    const m = await createMember({ ...newMember })
+    await loadMembers()
+    form.member_id = String(m.id) // 建完直接選上
+    newMember.name = ''
+    newMember.email = ''
+    newMember.phone = ''
+    showNewMember.value = false
+  } catch (e) {
+    newMemberError.value = e.response?.data?.detail || '建立失敗'
+  }
 }
 
 // ── 刪除確認 dialog ─────────────────────────────────────
@@ -200,12 +221,12 @@ async function confirmDelete() {
       <!-- 工具列 -->
       <div class="mb-4 flex shrink-0 items-center justify-between gap-2">
         <div class="flex flex-wrap items-center gap-2">
-          <Input v-model="q" placeholder="搜客戶名…" class="w-40" @keyup.enter="search" />
-          <Select v-model="filterCustomerId" @update:model-value="search">
-            <SelectTrigger class="w-40"><SelectValue placeholder="全部客戶" /></SelectTrigger>
+          <Input v-model="q" placeholder="搜會員名…" class="w-40" @keyup.enter="search" />
+          <Select v-model="filterMemberId" @update:model-value="search">
+            <SelectTrigger class="w-40"><SelectValue placeholder="全部會員" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">全部客戶</SelectItem>
-              <SelectItem v-for="c in customers" :key="c.id" :value="String(c.id)">{{ c.name }}</SelectItem>
+              <SelectItem value="all">全部會員</SelectItem>
+              <SelectItem v-for="m in members" :key="m.id" :value="String(m.id)">{{ m.name }}</SelectItem>
             </SelectContent>
           </Select>
           <Button variant="outline" @click="search">搜尋</Button>
@@ -220,12 +241,12 @@ async function confirmDelete() {
         <div class="scroll-thin bg-muted shrink-0 overflow-y-auto [scrollbar-gutter:stable]">
           <Table class="table-fixed">
             <colgroup>
-              <col class="w-14" /><col /><col class="w-32" /><col class="w-20" /><col class="w-28" /><col class="w-[8.5rem]" />
+              <col class="w-28" /><col /><col class="w-32" /><col class="w-20" /><col class="w-28" /><col class="w-[8.5rem]" />
             </colgroup>
             <TableHeader>
               <TableRow>
-                <TableHead>#</TableHead>
-                <TableHead>客戶</TableHead>
+                <TableHead>單號</TableHead>
+                <TableHead>會員</TableHead>
                 <TableHead>日期</TableHead>
                 <TableHead>明細</TableHead>
                 <TableHead class="text-right">總額</TableHead>
@@ -238,12 +259,12 @@ async function confirmDelete() {
         <div class="scroll-thin min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable]">
           <Table class="table-fixed">
             <colgroup>
-              <col class="w-14" /><col /><col class="w-32" /><col class="w-20" /><col class="w-28" /><col class="w-[8.5rem]" />
+              <col class="w-28" /><col /><col class="w-32" /><col class="w-20" /><col class="w-28" /><col class="w-[8.5rem]" />
             </colgroup>
             <TableBody>
               <TableRow v-for="o in orders" :key="o.id">
-                <TableCell class="text-muted-foreground">{{ o.id }}</TableCell>
-                <TableCell class="font-medium">{{ o.customer.name }}</TableCell>
+                <TableCell class="text-muted-foreground tabular-nums">{{ o.order_no }}</TableCell>
+                <TableCell class="font-medium">{{ o.member.name }}</TableCell>
                 <TableCell class="text-muted-foreground">{{ o.order_date }}</TableCell>
                 <TableCell class="text-muted-foreground">{{ o.items.length }} 筆</TableCell>
                 <TableCell class="text-right tabular-nums">{{ o.total.toLocaleString() }}</TableCell>
@@ -272,37 +293,46 @@ async function confirmDelete() {
     <Dialog v-model:open="showForm">
       <DialogScrollContent class="sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>{{ editingId ? `編輯訂單 #${editingId}` : '新增訂單' }}</DialogTitle>
-          <DialogDescription>選客戶、填明細；小計/總計是顯示用,存檔後以後端計算為準。</DialogDescription>
+          <DialogTitle>{{ editingId ? '編輯訂單' : '新增訂單' }}</DialogTitle>
+          <DialogDescription>選會員、從商品目錄挑明細；小計/總計是顯示用,存檔後以後端計算為準。</DialogDescription>
         </DialogHeader>
 
         <div class="flex flex-col gap-4 py-2">
           <div class="flex flex-col gap-1.5">
-            <Label>客戶</Label>
+            <Label>會員</Label>
             <div class="flex gap-2">
-              <Select v-model="form.customer_id">
-                <SelectTrigger class="flex-1"><SelectValue placeholder="選擇客戶" /></SelectTrigger>
+              <Select v-model="form.member_id">
+                <SelectTrigger class="flex-1"><SelectValue placeholder="選擇會員" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem v-for="c in customers" :key="c.id" :value="String(c.id)">{{ c.name }}</SelectItem>
+                  <SelectItem v-for="m in members" :key="m.id" :value="String(m.id)">{{ m.name }}</SelectItem>
                 </SelectContent>
               </Select>
-              <Button variant="outline" @click="showNewCustomer = !showNewCustomer">＋ 新客戶</Button>
+              <Button variant="outline" @click="showNewMember = !showNewMember">＋ 新會員</Button>
             </div>
-            <div v-if="showNewCustomer" class="bg-muted flex gap-2 rounded-md p-2">
-              <Input v-model="newCustomer.name" placeholder="客戶姓名" />
-              <Input v-model="newCustomer.phone" placeholder="電話（選填）" />
-              <Button @click="submitNewCustomer">建立</Button>
+            <div v-if="showNewMember" class="bg-muted flex flex-col gap-2 rounded-md p-2">
+              <div class="flex gap-2">
+                <Input v-model="newMember.name" placeholder="姓名" />
+                <Input v-model="newMember.email" placeholder="email" />
+                <Input v-model="newMember.phone" placeholder="電話（選填）" />
+                <Button @click="submitNewMember">建立</Button>
+              </div>
+              <p v-if="newMemberError" class="text-destructive text-sm">{{ newMemberError }}</p>
             </div>
           </div>
 
           <div class="flex flex-col gap-2">
-            <Label>明細（小計 = 數量 × 單價,自動算）</Label>
+            <Label>明細（從商品目錄挑；小計 = 數量 × 牌價,自動算）</Label>
             <div v-for="(item, idx) in form.items" :key="idx" class="flex items-center gap-2">
-              <Input v-model="item.name" placeholder="品項名" class="flex-1" />
+              <Select v-model="item.product_id">
+                <SelectTrigger class="flex-1"><SelectValue placeholder="選擇商品" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem v-for="p in activeProducts" :key="p.id" :value="String(p.id)">
+                    {{ p.name }}（{{ p.unit_price.toLocaleString() }}）
+                  </SelectItem>
+                </SelectContent>
+              </Select>
               <Input v-model.number="item.quantity" type="number" min="1" class="w-20" />
-              <span class="text-muted-foreground">×</span>
-              <Input v-model.number="item.unit_price" type="number" min="0" class="w-28" />
-              <span class="text-muted-foreground w-24 text-right text-sm tabular-nums">= {{ itemSubtotal(item).toLocaleString() }}</span>
+              <span class="text-muted-foreground w-28 text-right text-sm tabular-nums">= {{ itemSubtotal(item).toLocaleString() }}</span>
               <Button variant="ghost" size="icon-sm" class="text-destructive" @click="removeItem(idx)"><X class="size-4" /></Button>
             </div>
             <Button variant="outline" size="sm" class="w-fit" @click="addItem"><Plus class="size-4" /> 加一筆明細</Button>
@@ -326,9 +356,9 @@ async function confirmDelete() {
     <Dialog :open="!!deleting" @update:open="(v) => { if (!v) deleting = null }">
       <DialogContent class="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>刪除訂單 #{{ deleting?.id }}？</DialogTitle>
+          <DialogTitle>刪除訂單 {{ deleting?.order_no }}？</DialogTitle>
           <DialogDescription>
-            客戶 {{ deleting?.customer.name }}、總額 {{ deleting?.total.toLocaleString() }}。刪了就沒了（明細一起刪）。
+            會員 {{ deleting?.member.name }}、總額 {{ deleting?.total.toLocaleString() }}。刪了就沒了（明細一起刪）。
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>

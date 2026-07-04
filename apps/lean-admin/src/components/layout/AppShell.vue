@@ -12,13 +12,15 @@ import { ref, onBeforeMount, onMounted, onBeforeUnmount } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 // 選單 icon 一律取「同一套 lucide、視覺重量相近的實心輪廓物件」——參 top-admin 的
 // constants/icons.js（避免混入 Activity 那種稀疏脈衝線，破壞整體一致性）。
-import { LayoutGrid, ShoppingCart, Server, ChevronDown, ChevronsLeft, ChevronsRight, User } from '@lucide/vue'
+import { LayoutGrid, Users, Package, ShoppingCart, Server, ChevronDown, ChevronsLeft, ChevronsRight, User } from '@lucide/vue'
 import { getHealth } from '@/api'
 import HealthBadge from '@/components/HealthBadge.vue'
 
 // 導覽：單一項 { to, label, icon }；群組 { label, icon, children:[{ to, label }] }。
 const nav = [
   { to: '/', label: '首頁', icon: LayoutGrid },
+  { to: '/members', label: '會員', icon: Users },
+  { to: '/products', label: '商品', icon: Package },
   {
     label: '訂單管理',
     icon: ShoppingCart,
