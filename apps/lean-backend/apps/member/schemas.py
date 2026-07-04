@@ -24,8 +24,13 @@ class MemberSchema(Schema):
     name: str
     email: str
     phone: str
+    registered_at: str       # 註冊日期（= created_at 的日期，TimeStampedModel 自動記）
     status: str              # 狀態 code（ACTIVE / INACTIVE）
     status_display: str      # 中文（啟用 / 停用）
+
+    @staticmethod
+    def resolve_registered_at(obj):
+        return str(obj.created_at.date())
 
     @staticmethod
     def resolve_status_display(obj):

@@ -6,7 +6,7 @@
 // sku 建立後不給改（是商品的識別）——編輯只讓改品名/牌價。
 // 提醒：改牌價只影響「之後的新訂單」,已成立訂單的明細是快照、不受影響（見訂單頁）。
 import { onMounted, reactive, ref } from 'vue'
-import { Plus, Pencil } from '@lucide/vue'
+import { Plus, Search, Pencil } from '@lucide/vue'
 import {
   createProduct,
   deactivateProduct,
@@ -39,6 +39,7 @@ const columns = [
   { label: '品號', width: 'w-36' },
   { label: '品名' },
   { label: '牌價', width: 'w-28', align: 'right' },
+  { label: '上架日期', width: 'w-32' },
   { label: '狀態', width: 'w-24', align: 'center' },
 ]
 
@@ -127,8 +128,11 @@ async function toggleActive(p) {
       <!-- 工具列 -->
       <div class="mb-4 flex shrink-0 items-center justify-between gap-2">
         <div class="flex flex-wrap items-center gap-2">
-          <Input v-model="q" placeholder="搜品名…" class="w-40" @keyup.enter="load" />
-          <Button variant="outline" @click="load">搜尋</Button>
+          <!-- 搜尋框：input + 搜尋 icon 鈕相連（跟訂單頁一致）-->
+          <div class="flex w-56">
+            <Input v-model="q" placeholder="搜品名…" class="relative rounded-r-none focus-visible:z-10" @keyup.enter="load" />
+            <Button variant="outline" size="icon" class="shrink-0 rounded-l-none border-l-0" title="搜尋" @click="load"><Search class="size-4" /></Button>
+          </div>
         </div>
         <Button @click="openCreate"><Plus class="size-4" /> 新增商品</Button>
       </div>
@@ -139,6 +143,7 @@ async function toggleActive(p) {
           <TableCell class="tabular-nums">{{ p.sku }}</TableCell>
           <TableCell class="font-medium">{{ p.name }}</TableCell>
           <TableCell class="text-right tabular-nums">{{ p.unit_price.toLocaleString() }}</TableCell>
+          <TableCell class="tabular-nums">{{ p.listed_at }}</TableCell>
           <TableCell class="text-center">
             <Switch
               :model-value="p.is_active"

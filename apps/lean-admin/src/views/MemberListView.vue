@@ -5,7 +5,7 @@
 //   {停用不刪}        → 沒有「刪除」，只有「停用 / 重新啟用」（狀態關閉、資料保留）。
 // email 建立後不給改（是會員的識別）——編輯只讓改姓名/電話。
 import { onMounted, reactive, ref } from 'vue'
-import { Plus, Pencil } from '@lucide/vue'
+import { Plus, Search, Pencil } from '@lucide/vue'
 import {
   createMember,
   deactivateMember,
@@ -40,6 +40,7 @@ const columns = [
   { label: '姓名', width: 'w-40' },
   { label: 'email' },
   { label: '電話', width: 'w-36' },
+  { label: '註冊日期', width: 'w-32' },
   { label: '狀態', width: 'w-24', align: 'center' },
 ]
 
@@ -131,7 +132,11 @@ async function toggleStatus(m) {
       <!-- 工具列 -->
       <div class="mb-4 flex shrink-0 items-center justify-between gap-2">
         <div class="flex flex-wrap items-center gap-2">
-          <Input v-model="q" placeholder="搜姓名…" class="w-40" @keyup.enter="load" />
+          <!-- 搜尋框：input + 搜尋 icon 鈕相連（跟訂單頁一致）-->
+          <div class="flex w-56">
+            <Input v-model="q" placeholder="搜姓名…" class="relative rounded-r-none focus-visible:z-10" @keyup.enter="load" />
+            <Button variant="outline" size="icon" class="shrink-0 rounded-l-none border-l-0" title="搜尋" @click="load"><Search class="size-4" /></Button>
+          </div>
           <Select v-model="filterStatus" @update:model-value="load">
             <SelectTrigger class="w-32"><SelectValue placeholder="全部狀態" /></SelectTrigger>
             <SelectContent>
@@ -140,7 +145,6 @@ async function toggleStatus(m) {
               <SelectItem value="INACTIVE">停用</SelectItem>
             </SelectContent>
           </Select>
-          <Button variant="outline" @click="load">搜尋</Button>
         </div>
         <Button @click="openCreate"><Plus class="size-4" /> 新增會員</Button>
       </div>
@@ -151,6 +155,7 @@ async function toggleStatus(m) {
           <TableCell class="font-medium">{{ m.name }}</TableCell>
           <TableCell>{{ m.email }}</TableCell>
           <TableCell>{{ m.phone || '—' }}</TableCell>
+          <TableCell class="tabular-nums">{{ m.registered_at }}</TableCell>
           <TableCell class="text-center">
             <Switch
               :model-value="m.status === 'ACTIVE'"

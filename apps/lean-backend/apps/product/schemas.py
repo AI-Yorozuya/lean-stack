@@ -25,7 +25,12 @@ class ProductSchema(Schema):
     sku: str
     name: str
     unit_price: float
+    listed_at: str           # 上架日期（= created_at 的日期，建檔即上架）
     is_active: bool
+
+    @staticmethod
+    def resolve_listed_at(obj):
+        return str(obj.created_at.date())
 
 
 class ProductListSchema(Schema):
