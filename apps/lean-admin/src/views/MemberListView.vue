@@ -114,7 +114,7 @@ async function toggleStatus(m) {
 
 <template>
   <div class="flex h-full flex-col">
-    <h1 class="shrink-0 text-lg font-semibold leading-none tracking-tight">會員管理</h1>
+    <h1 class="shrink-0 text-lg font-semibold leading-none tracking-tight">會員列表</h1>
 
     <div class="mt-5 flex min-h-0 flex-1 flex-col rounded-lg border bg-card p-5 shadow-sm">
       <p v-if="errorMsg" class="text-destructive mb-3 shrink-0 text-sm">{{ errorMsg }}</p>
