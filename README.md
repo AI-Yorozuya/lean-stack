@@ -6,7 +6,7 @@
 Vue 3 (Vite)  →  /api/v1/health  →  django-ninja  →  Django 6  →  PostgreSQL
 ```
 
-範例 app：`health`（router 範例）、`progress`（celery 非同步示範）、`order`（**訂單管理 Stage A 無狀態 CRUD ＋ Stage B 有狀態狀態機**，INTENT-first dogfood 的成品）。`intents/` 另有 `會員管理` 待生。
+範例 app：`health`（router 範例）、`progress`（celery 非同步示範）、`member`＋`product`（**列表＋CRUD 主檔**）、`order`（**串主檔＋下單抄快照＋生命週期狀態機**，INTENT-first dogfood 的成品）。
 兩個 app：後端（lean-backend）＋管理後台（lean-admin）。
 
 > **先看哪裡？**
@@ -55,7 +55,7 @@ lean-stack/
 ## AI-native 層
 
 - `CLAUDE.md` — 在這 repo 工作的 AI agent 慣例與鐵則（2-app 佈局、ninja router 單一註冊點、TimeStampedModel、INTENT-first 流程、media 切換、infra plan-first、絕不 commit 機密）。
-- `intents/` — 業務規則「寫在 code 之前」。語法 `From --(Who: Action)--> To [Guard] {鐵則}` + 權限 5W；見 `intents/README.md`、`intents/_TEMPLATE.md`。已有 `訂單管理`（Stage A/B）與 `會員管理` 兩份。
+- `intents/` — 業務規則「寫在 code 之前」。語法 `From --(Who: Action)--> To [Guard] {鐵則}` + 權限 5W；見 `intents/README.md`、`intents/_TEMPLATE.md`。已有 `會員管理`、`商品管理`、`訂單管理` 三份（外加 `資料模型設計原則`）。
 - `.claude/skills/` — `add-feature`（INTENT→後端→前端→註冊 router）與 `deploy`（本機→plan/review/apply→部署）的 v0 stub。
 
 ## 快速啟動（工程師 / dogfood）

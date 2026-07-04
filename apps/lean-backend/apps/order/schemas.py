@@ -48,7 +48,7 @@ class OrderSchema(Schema):
     note: str                                  # 備註（自由文字）
     total: float                               # 後端算的（鐵則），非手填
     items: list[OrderItemSchema]
-    # Stage B：狀態機相關（Stage A 頁面收到但不理它）。
+    # 狀態機相關。
     status: str                                # 狀態 code（PENDING / AWAITING / SHIPPED / CANCELLED）
     status_display: str                        # 中文（待付款 / 待出貨 / 已出貨 / 已取消）
     paid_amount: float                         # 已收金額（收款後 = 總額）

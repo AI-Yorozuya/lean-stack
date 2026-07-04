@@ -3,7 +3,7 @@ name: add-feature
 description: INTENT-first 加一個功能到 lean-stack（INTENT → 後端 app/apis/schemas/models → Vue view + api 呼叫 → 在 core/api.py 註冊 router）。當使用者要在 lean-stack 新增一塊業務功能時用。
 ---
 
-# add-feature（v1 — 已用「訂單 Stage A」dogfood 過）
+# add-feature（v1 — 已用「會員／商品／訂單」dogfood 過）
 
 照 lean-stack 的「先規則、後 code」做法加功能。完整慣例見 repo 根目錄 `CLAUDE.md`。
 
@@ -39,10 +39,10 @@ description: INTENT-first 加一個功能到 lean-stack（INTENT → 後端 app/
 
 ## 範例（第一次 dogfood 的成品，照抄結構就對）
 
-- INTENT：`intents/訂單管理.md`（Stage A/B、鐵則、5W）
-- 後端：`apps/lean-backend/apps/order/`（models/schemas/apis 都有教學註解）
-  - Stage A（無狀態 CRUD）＋ Stage B（有狀態）：狀態機在 `models.py` 的 `TRANSITIONS` 表 + `apply_transition()`（非法轉移 raise `TransitionError` → apis 轉 422），是「狀態機/被禁止的轉移」的參考範本。
-- 前端：Stage A `OrderListView.vue`、Stage B `OrderLifecycleView.vue`（狀態 badge + 只長合法動作按鈕）＋ `src/api/order.js`
+- INTENT：`intents/會員管理.md`、`intents/商品管理.md`（**列表＋CRUD** 主檔）、`intents/訂單管理.md`（**狀態與流程**：串關聯＋快照＋狀態機、鐵則、5W）
+- 後端：`apps/lean-backend/apps/{member,product,order}/`（models/schemas/apis 都有教學註解）
+  - 訂單有狀態：狀態機在 `models.py` 的 `TRANSITIONS` 表 + `apply_transition()`（非法轉移 raise `TransitionError` → apis 轉 422），是「狀態機/被禁止的轉移」的參考範本。
+- 前端：`OrderLifecycleView.vue`（狀態文字 + 只長合法動作按鈕）、`OrderEditView.vue`（新增/編輯換頁）＋ `src/api/order.js`；清單表格一律用 `@/components/DataTable.vue`
 
 ## 常見坑（dogfood 踩過的，動手前先讀）
 

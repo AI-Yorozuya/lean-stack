@@ -1,5 +1,5 @@
 <script setup>
-// 訂單管理 Stage B 頁：訂單清單（tab 依狀態篩、狀態欄顯示生命週期）。
+// 訂單管理頁：訂單清單（tab 依狀態篩、狀態欄顯示生命週期）。
 // 操作：編輯 → 換頁（/orders/:id/edit）；刪除 → 確認 dialog。
 // 備註 → inline 彈 dialog 快速改（只改備註、跟狀態無關，見後端 /order/{id}/note）。
 import { computed, onMounted, ref } from 'vue'

@@ -1,13 +1,13 @@
 """訂單管理的 API。規則來源：intents/訂單管理.md。
 
-Stage A（無狀態 CRUD ＋ 關聯 ＋ 鐵則）：
+CRUD ＋ 關聯 ＋ 鐵則（把訂單建起來的部分）：
 - 讀清單（帶條件、分頁）→ GET  /order
 - 建立                  → POST /order
 - 修改                  → PUT  /order/{id}
 - 刪除                  → DELETE /order/{id}
 （會員從 apps/member、商品從 apps/product 各自的端點取——這裡不重複。）
 
-Stage B（有狀態：狀態機轉移端點，每個動作對應 INTENT 的一條合法轉移）：
+狀態機轉移端點（主戲：每個動作對應 INTENT 的一條合法轉移）：
 - 收款 → POST /order/{id}/pay      （待付款 → 待出貨）
 - 出貨 → POST /order/{id}/ship     （待出貨 → 已出貨）
 - 取消 → POST /order/{id}/cancel   （待付款 / 待出貨 → 已取消）
@@ -91,9 +91,9 @@ def create_order(request, payload: OrderIn):
 @router.put('/{order_id}', response=OrderSchema)
 @transaction.atomic
 def update_order(request, order_id: int, payload: OrderIn):
-    """改單（Stage A：會員與明細整組替換——最好懂的更新語意）。"""
+    """改單（會員與明細整組替換——最好懂的更新語意）。"""
     order = get_object_or_404(Order, pk=order_id)
-    # 鐵則 {已出貨後明細/總額不可改}：Stage B 的承重牆，砌在 update 入口。
+    # 鐵則 {已出貨後明細/總額不可改}：生命週期的承重牆，砌在 update 入口。
     if not order.is_editable:
         raise HttpError(422, f'「{order.get_status_display()}」的訂單不可改明細（已出貨後鎖定）')
     order.member = get_object_or_404(Member, pk=payload.member_id)
@@ -123,7 +123,7 @@ def update_order_note(request, order_id: int, payload: OrderNoteIn):
     return order
 
 
-# ── 訂單狀態機（Stage B）：一個動作一個端點，都走 model 的 apply_transition ──
+# ── 訂單狀態機：一個動作一個端點，都走 model 的 apply_transition ──
 # 非法轉移由 model 擋（TransitionError）→ 這裡統一轉成 422 給前端顯示白話原因。
 def _transition(order_id, action):
     order = get_object_or_404(

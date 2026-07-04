@@ -1,12 +1,14 @@
-"""訂單管理的資料模型。規則來源：intents/訂單管理.md（Stage A + Stage B）。
+"""訂單管理的資料模型。規則來源：intents/訂單管理.md。
+
+訂單是本 repo 講「狀態與流程」的主場，三拍疊起來：
+- 串關聯：訂單 → 會員（多對一）；明細 → 訂單（1:N）；明細 → 商品（多對一）。
+- 抄快照：下單當下把品名＋單價存進明細（見下 snapshot_from）。
+- 跑狀態：Order.status 生命週期狀態機（待付款→待出貨→已出貨／已取消）＋鐵則。
 
 教學重點（資料模型＝三問的第一問「有什麼？跟誰有關？」）：
 - 三個「東西」＋兩個外部主檔：
     · 訂單 Order、訂單明細 OrderItem（本 app）
     · 會員 Member（apps/member）＝下單的人；商品 Product（apps/product）＝目錄。
-- 關聯：訂單 → 會員（多對一）；明細 → 訂單（1:N）；明細 → 商品（多對一）。
-- Stage A（無狀態）：訂單就是一筆有明細、有會員的資料，只有 CRUD。
-- Stage B（有狀態）：**同一個 Order 加上生命週期**——status 狀態機 + 更多鐵則。
 
 四條設計原則（見 intents/資料模型設計原則.md）落在哪：
 - 快照：OrderItem 下單當下把 Product 的品名＋單價「抄一份」（snapshot_from）——
@@ -35,7 +37,7 @@ class TransitionError(Exception):
 
 
 class Order(TimeStampedModel):
-    """一次銷售。Stage A 用 CRUD；Stage B 加上 status 生命週期（狀態機）。"""
+    """一次銷售：串會員＋明細（含快照），再由 status 生命週期狀態機管流程。"""
 
     class Status(models.TextChoices):
         # value（存 DB / 走 API）  , label（給人看的中文）
@@ -65,7 +67,7 @@ class Order(TimeStampedModel):
     order_date = models.DateField(auto_now_add=True)
     # 總額永遠是「算出來的」（recalc_total），欄位只是快取查詢方便。
     total = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0'))
-    # Stage B：生命週期狀態（預設待付款）＋ 已收金額（收款時鎖成總額）。
+    # 生命週期狀態（預設待付款）＋ 已收金額（收款時鎖成總額）。
     status = models.CharField(max_length=12, choices=Status.choices, default=Status.PENDING)
     paid_amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0'))
     note = models.CharField(max_length=200, blank=True)  # 備註（自由文字，選填）
@@ -89,7 +91,7 @@ class Order(TimeStampedModel):
         self.total = sum((item.subtotal for item in self.items.all()), Decimal('0'))
         self.save(update_fields=['total', 'updated_at'])
 
-    # ── Stage B：狀態機 ─────────────────────────────────────────
+    # ── 狀態機 ─────────────────────────────────────────
     @property
     def is_editable(self):
         """能不能改明細（鐵則：已出貨/終態鎖定）。"""
