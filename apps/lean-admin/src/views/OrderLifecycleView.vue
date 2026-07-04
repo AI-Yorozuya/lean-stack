@@ -9,7 +9,8 @@ import { listOrders, deleteOrder, updateOrderNote } from '@/api/order'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import Pagination from '@/components/Pagination.vue'
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
+import DataTable from '@/components/DataTable.vue'
+import { TableCell } from '@/components/ui/table'
 import {
   Dialog,
   DialogContent,
@@ -21,6 +22,17 @@ import {
 
 const router = useRouter()
 
+// 欄位定義（餵給 DataTable：產生兩張表共用的 colgroup + 表頭）。備註省略 width = 吃剩餘寬度。
+const columns = [
+  { label: '單號', width: 'w-28' },
+  { label: '會員', width: 'w-32' },
+  { label: '狀態', width: 'w-36', align: 'center' },
+  { label: '總額', width: 'w-28', align: 'right' },
+  { label: '備註' },
+  { label: '下訂日期', width: 'w-32' },
+  { label: '修改日期', width: 'w-32' },
+]
+
 // 狀態不用 tag，改文字樣式：進行中（待付款/待出貨）粗體黑字，終態（已出貨/已取消）灰字。
 const statusClass = (s) => (s === 'PENDING' || s === 'AWAITING' ? 'font-medium text-foreground' : 'text-muted-foreground')
 // 出貨前（待付款/待出貨）才可編輯。
@@ -29,14 +41,6 @@ const isEditable = (o) => o.status === 'PENDING' || o.status === 'AWAITING'
 const orders = ref([])
 const loading = ref(false)
 const errorMsg = ref('')
-
-// 表頭／表身是兩張表：垂直捲軸只長在表身（碰不到表頭）。
-// 欄多到要橫捲時，讓表頭跟著表身左右捲，兩張表才對得齊。
-const headScroll = ref(null)
-const bodyScroll = ref(null)
-function syncHead() {
-  if (headScroll.value && bodyScroll.value) headScroll.value.scrollLeft = bodyScroll.value.scrollLeft
-}
 
 // ── 狀態篩選 tab（計數只在「待付款/待出貨」顯示，因為那才是要行動的）──
 const statusTabs = [
@@ -153,80 +157,41 @@ async function confirmDelete() {
       <div class="flex min-h-0 flex-1 flex-col p-5">
         <p v-if="errorMsg" class="text-destructive mb-3 shrink-0 text-sm">{{ errorMsg }}</p>
 
-        <!-- 表格：表頭／表身「兩張表、共用 colgroup」。
-             垂直捲軸只長在表身 → 碰不到表頭；表頭右側也 overflow-y-scroll、掛「同一個 .scroll-thin」，
-             預留跟表身捲軸一模一樣寬的空位 → 兩邊右緣停在同一條線、欄位與隔線完全對齊（不用硬寫 px）。
-             水平方向表頭不自己捲，由 syncHead() 跟著表身左右捲（欄多到要橫捲時才用得到）。 -->
-        <div class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border">
-          <!-- 表頭（不參與垂直捲；右側 overflow-y-scroll 預留捲軸槽，空槽透明看不見）-->
-          <div ref="headScroll" class="scroll-thin shrink-0 overflow-x-hidden overflow-y-scroll border-b bg-card">
-            <!-- 底線整條只由外層 wrapper 的 border-b 畫（full-width、含右邊捲軸槽）；
-                 th 自己不再畫線，免得兩條略微錯開、最右段看起來變細。 -->
-            <Table class="table-fixed [&_th]:border-b-0">
-              <colgroup>
-                <col class="w-28" /><col class="w-32" /><col class="w-36" /><col class="w-28" /><col /><col class="w-32" /><col class="w-32" /><col class="w-28" />
-              </colgroup>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>單號</TableHead>
-                  <TableHead>會員</TableHead>
-                  <TableHead class="text-center">狀態</TableHead>
-                  <TableHead class="text-right">總額</TableHead>
-                  <TableHead>備註</TableHead>
-                  <TableHead>下訂日期</TableHead>
-                  <TableHead>修改日期</TableHead>
-                  <TableHead class="bg-card sticky right-0 z-20 border-l text-center">操作</TableHead>
-                </TableRow>
-              </TableHeader>
-            </Table>
-          </div>
-          <!-- 表身（垂直捲軸只在這裡；橫捲時同步表頭）-->
-          <div ref="bodyScroll" class="scroll-thin min-h-0 flex-1 overflow-x-auto overflow-y-scroll" @scroll="syncHead">
-            <Table class="table-fixed">
-              <colgroup>
-                <col class="w-28" /><col class="w-32" /><col class="w-36" /><col class="w-28" /><col /><col class="w-32" /><col class="w-32" /><col class="w-28" />
-              </colgroup>
-              <TableBody>
-              <TableRow v-for="o in pagedOrders" :key="o.id" class="group">
-                <TableCell class="text-muted-foreground tabular-nums">{{ o.order_no }}</TableCell>
-                <TableCell class="font-medium">{{ o.member.name }}</TableCell>
-                <TableCell class="text-center">
-                  <span :class="statusClass(o.status)">{{ o.status_display }}</span>
-                </TableCell>
-                <TableCell class="text-right tabular-nums">{{ o.total.toLocaleString() }}</TableCell>
-                <TableCell>
-                  <div class="flex items-center gap-1.5">
-                    <span class="min-w-0 truncate">{{ o.note }}</span>
-                    <button
-                      type="button"
-                      class="text-muted-foreground/60 hover:text-foreground shrink-0"
-                      title="改備註"
-                      @click="openNote(o)"
-                    ><Pencil class="size-3.5" /></button>
-                  </div>
-                </TableCell>
-                <TableCell class="tabular-nums">{{ o.order_date }}</TableCell>
-                <TableCell class="tabular-nums">{{ o.updated_at }}</TableCell>
-                <TableCell class="bg-card group-hover:bg-muted/50 sticky right-0 z-10 border-l">
-                  <div class="flex items-center justify-center gap-1">
-                    <Button variant="ghost" size="icon-sm" class="text-muted-foreground hover:text-foreground" :disabled="!isEditable(o)" :title="isEditable(o) ? '編輯' : '已出貨/已取消不可編輯'" @click="goEdit(o)">
-                      <Pencil class="size-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon-sm" class="text-destructive hover:text-destructive" title="刪除" @click="deleting = o">
-                      <Trash2 class="size-4" />
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-              <TableRow v-if="!loading && filteredOrders.length === 0">
-                <TableCell colspan="8" class="text-muted-foreground py-10 text-center">
-                  {{ activeStatus === 'all' ? '還沒有訂單——先到「訂單(無狀態)」開一張' : '此狀態目前沒有訂單' }}
-                </TableCell>
-              </TableRow>
-            </TableBody>
-            </Table>
-          </div>
-        </div>
+        <!-- 表格：水電（捲軸分家/對齊/底線/空狀態）全包在 DataTable；這裡只宣告欄位＋一列怎麼畫 -->
+        <DataTable :items="pagedOrders" :columns="columns" :loading="loading">
+          <template #row="{ item: o }">
+            <TableCell class="text-muted-foreground tabular-nums">{{ o.order_no }}</TableCell>
+            <TableCell class="font-medium">{{ o.member.name }}</TableCell>
+            <TableCell class="text-center">
+              <span :class="statusClass(o.status)">{{ o.status_display }}</span>
+            </TableCell>
+            <TableCell class="text-right tabular-nums">{{ o.total.toLocaleString() }}</TableCell>
+            <TableCell>
+              <div class="flex items-center gap-1.5">
+                <span class="min-w-0 truncate">{{ o.note }}</span>
+                <button
+                  type="button"
+                  class="text-muted-foreground/60 hover:text-foreground shrink-0"
+                  title="改備註"
+                  @click="openNote(o)"
+                ><Pencil class="size-3.5" /></button>
+              </div>
+            </TableCell>
+            <TableCell class="tabular-nums">{{ o.order_date }}</TableCell>
+            <TableCell class="tabular-nums">{{ o.updated_at }}</TableCell>
+          </template>
+          <template #actions="{ item: o }">
+            <Button variant="ghost" size="icon-sm" class="text-muted-foreground hover:text-foreground" :disabled="!isEditable(o)" :title="isEditable(o) ? '編輯' : '已出貨/已取消不可編輯'" @click="goEdit(o)">
+              <Pencil class="size-4" />
+            </Button>
+            <Button variant="ghost" size="icon-sm" class="text-destructive hover:text-destructive" title="刪除" @click="deleting = o">
+              <Trash2 class="size-4" />
+            </Button>
+          </template>
+          <template #empty>
+            {{ activeStatus === 'all' ? '還沒有訂單——先到「訂單(無狀態)」開一張' : '此狀態目前沒有訂單' }}
+          </template>
+        </DataTable>
 
         <!-- 分頁 -->
         <div class="mt-4 shrink-0">

@@ -22,8 +22,9 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import Pagination from '@/components/Pagination.vue'
+import DataTable from '@/components/DataTable.vue'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
+import { TableCell } from '@/components/ui/table'
 import {
   Dialog,
   DialogContent,
@@ -46,12 +47,15 @@ const products = ref([])           // 全部商品（含下架；價格 map 用�
 const loading = ref(false)
 const errorMsg = ref('')
 
-// 表頭／表身是兩張表：垂直捲軸只長在表身（碰不到表頭）。橫捲時讓表頭跟著表身捲。
-const headScroll = ref(null)
-const bodyScroll = ref(null)
-function syncHead() {
-  if (headScroll.value && bodyScroll.value) headScroll.value.scrollLeft = bodyScroll.value.scrollLeft
-}
+// 欄位定義（餵給 DataTable：產生兩張表共用的 colgroup + 表頭）。備註省略 width = 吃剩餘寬度。
+const columns = [
+  { label: '單號', width: 'w-28' },
+  { label: '會員', width: 'w-32' },
+  { label: '總額', width: 'w-28', align: 'right' },
+  { label: '備註' },
+  { label: '下訂日期', width: 'w-32' },
+  { label: '修改日期', width: 'w-32' },
+]
 
 const totalPages = computed(() => Math.max(1, Math.ceil(count.value / pageSize)))
 // 只有上架商品能被挑進新明細（下架＝停售）。
@@ -263,74 +267,35 @@ async function saveNote() {
         <Button @click="openCreate"><Plus class="size-4" /> 新增訂單</Button>
       </div>
 
-      <!-- 表格：表頭／表身「兩張表、共用 colgroup」。垂直捲軸只長在表身 → 碰不到表頭；
-           表頭右側也 overflow-y-scroll、掛同一個 .scroll-thin，預留跟表身捲軸同寬的空位 → 右緣對齊。
-           水平方向表頭由 syncHead() 跟著表身左右捲。 -->
-      <div class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border">
-        <!-- 表頭（不參與垂直捲；右側預留捲軸槽）-->
-        <div ref="headScroll" class="scroll-thin shrink-0 overflow-x-hidden overflow-y-scroll border-b bg-card">
-          <!-- 底線整條只由外層 wrapper 的 border-b 畫（full-width、含右邊捲軸槽）；th 自己不畫，免得最右段變細。 -->
-          <Table class="table-fixed [&_th]:border-b-0">
-            <colgroup>
-              <col class="w-28" /><col class="w-32" /><col class="w-28" /><col /><col class="w-32" /><col class="w-32" /><col class="w-28" />
-            </colgroup>
-            <TableHeader>
-              <TableRow>
-                <TableHead>單號</TableHead>
-                <TableHead>會員</TableHead>
-                <TableHead class="text-right">總額</TableHead>
-                <TableHead>備註</TableHead>
-                <TableHead>下訂日期</TableHead>
-                <TableHead>修改日期</TableHead>
-                <TableHead class="bg-card sticky right-0 z-20 border-l text-center">操作</TableHead>
-              </TableRow>
-            </TableHeader>
-          </Table>
-        </div>
-        <!-- 表身（垂直捲軸只在這裡；橫捲時同步表頭）-->
-        <div ref="bodyScroll" class="scroll-thin min-h-0 flex-1 overflow-x-auto overflow-y-scroll" @scroll="syncHead">
-          <Table class="table-fixed">
-            <colgroup>
-              <col class="w-28" /><col class="w-32" /><col class="w-28" /><col /><col class="w-32" /><col class="w-32" /><col class="w-28" />
-            </colgroup>
-            <TableBody>
-            <TableRow v-for="o in orders" :key="o.id" class="group">
-              <TableCell class="text-muted-foreground tabular-nums">{{ o.order_no }}</TableCell>
-              <TableCell class="font-medium">{{ o.member.name }}</TableCell>
-              <TableCell class="text-right tabular-nums">{{ o.total.toLocaleString() }}</TableCell>
-              <TableCell>
-                <div class="flex items-center gap-1.5">
-                  <span class="min-w-0 truncate">{{ o.note }}</span>
-                  <button
-                    type="button"
-                    class="text-muted-foreground/60 hover:text-foreground shrink-0"
-                    title="改備註"
-                    @click="openNote(o)"
-                  ><Pencil class="size-3.5" /></button>
-                </div>
-              </TableCell>
-              <TableCell class="tabular-nums">{{ o.order_date }}</TableCell>
-              <TableCell class="tabular-nums">{{ o.updated_at }}</TableCell>
-              <TableCell class="bg-card group-hover:bg-muted/50 sticky right-0 z-10 border-l">
-                <div class="flex items-center justify-center gap-1">
-                  <Button variant="ghost" size="icon-sm" class="text-muted-foreground hover:text-foreground" title="編輯" @click="openEdit(o)">
-                    <Pencil class="size-4" />
-                  </Button>
-                  <Button variant="ghost" size="icon-sm" class="text-destructive hover:text-destructive" title="刪除" @click="deleting = o">
-                    <Trash2 class="size-4" />
-                  </Button>
-                </div>
-              </TableCell>
-            </TableRow>
-            <TableRow v-if="!loading && orders.length === 0">
-              <TableCell colspan="7" class="text-muted-foreground py-16 text-center">
-                沒有訂單——按右上「＋ 新增訂單」開第一張
-              </TableCell>
-            </TableRow>
-          </TableBody>
-          </Table>
-        </div>
-      </div>
+      <!-- 表格：水電（捲軸分家/對齊/底線/空狀態）全包在 DataTable；這裡只宣告欄位＋一列怎麼畫 -->
+      <DataTable :items="orders" :columns="columns" :loading="loading" empty-text="沒有訂單——按右上「＋ 新增訂單」開第一張">
+        <template #row="{ item: o }">
+          <TableCell class="text-muted-foreground tabular-nums">{{ o.order_no }}</TableCell>
+          <TableCell class="font-medium">{{ o.member.name }}</TableCell>
+          <TableCell class="text-right tabular-nums">{{ o.total.toLocaleString() }}</TableCell>
+          <TableCell>
+            <div class="flex items-center gap-1.5">
+              <span class="min-w-0 truncate">{{ o.note }}</span>
+              <button
+                type="button"
+                class="text-muted-foreground/60 hover:text-foreground shrink-0"
+                title="改備註"
+                @click="openNote(o)"
+              ><Pencil class="size-3.5" /></button>
+            </div>
+          </TableCell>
+          <TableCell class="tabular-nums">{{ o.order_date }}</TableCell>
+          <TableCell class="tabular-nums">{{ o.updated_at }}</TableCell>
+        </template>
+        <template #actions="{ item: o }">
+          <Button variant="ghost" size="icon-sm" class="text-muted-foreground hover:text-foreground" title="編輯" @click="openEdit(o)">
+            <Pencil class="size-4" />
+          </Button>
+          <Button variant="ghost" size="icon-sm" class="text-destructive hover:text-destructive" title="刪除" @click="deleting = o">
+            <Trash2 class="size-4" />
+          </Button>
+        </template>
+      </DataTable>
 
       <!-- 分頁（極簡：置中數字頁碼；釘在卡底）-->
       <div class="mt-4 shrink-0">

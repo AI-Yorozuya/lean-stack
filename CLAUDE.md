@@ -36,6 +36,7 @@
 - **UI 積木一律用 `@/components/ui/*`（shadcn-vue，Tailwind v4）**，別再手刻內聯樣式。已有：`button`、`input`、`label`、`card`、`table`、`dialog`、`badge`。缺的用 `npx shadcn-vue@latest add <name>` 補（元件是複製進 repo 的 .vue 檔，你擁有、可改）。
 - **顏色只用語意 token**（`bg-background`/`text-muted-foreground`/`bg-primary`/`border`…），定義在 `src/assets/index.css` 的 `:root`（換主題只改這裡）。圖示用 `@lucide/vue`。
 - **版面外殼在 `src/components/layout/AppShell.vue`**（常駐 sidebar + 頂部 bar + 內容區）。頁面只寫自己的內容，殼由 `App.vue` 套上。
+- **清單頁的表格一律用 `@/components/DataTable.vue`**（自家 base table，不是 shadcn 的 TanStack 版）。它把「表頭/表身兩張表、共用 colgroup、捲軸只在表身且與表頭右緣對齊、底線畫滿、水平同步、空狀態」這套水電包好；頁面只要給 `columns`（`{ label, width?, align? }`）＋ `#row` slot（一列的儲存格）＋選配 `#actions` slot（釘右操作欄）。範例見 `OrderListView.vue` / `OrderLifecycleView.vue`。**別再自己手刻 `<table>` + sticky 表頭**。
 
 ## 前端加一頁
 
