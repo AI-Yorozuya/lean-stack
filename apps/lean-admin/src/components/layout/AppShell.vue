@@ -8,7 +8,7 @@
 //   - nav 支援兩種：單一項（有 to）與群組（有 children）。加頁往這個陣列加一筆。
 //   - active 用 derive（讀 route，不用 watch）；含 active 子項的群組自動展開。
 //   - 可收合（w-56 完整 ⇄ w-16 icon-only），狀態存 localStorage、小螢幕自動收。
-import { ref, onBeforeMount, onMounted, onBeforeUnmount } from 'vue'
+import { ref, watch, onBeforeMount, onMounted, onBeforeUnmount } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 // 選單 icon 一律取「同一套 lucide、視覺重量相近的實心輪廓物件」——參 top-admin 的
 // constants/icons.js（避免混入 Activity 那種稀疏脈衝線，破壞整體一致性）。
@@ -39,9 +39,10 @@ const route = useRoute()
 const isItemActive = (to) => route.path === to
 const isGroupActive = (item) => item.children.some((c) => route.path === c.to)
 
-// ── 群組展開狀態（手動開的 ∪ 含 active 子項的都算開）──
+// ── 群組展開狀態 ──
+// 開合只認 openGroups 這一個真相（不再用「active 子項」臨時算開，那會讓群組一離開就自動收、忽開忽關）。
 const openGroups = ref(new Set())
-const isGroupOpen = (item) => openGroups.value.has(item.label) || isGroupActive(item)
+const isGroupOpen = (item) => openGroups.value.has(item.label)
 function toggleGroup(item) {
   // 收合狀態下點群組 → 先把側欄展開，再打開該群組。
   if (!expanded.value) {
@@ -53,6 +54,18 @@ function toggleGroup(item) {
   if (openGroups.value.has(item.label)) openGroups.value.delete(item.label)
   else openGroups.value.add(item.label)
 }
+
+// 導到某群組的子項時，自動把該群組打開並「記住」——之後離開（例如點背景任務）不會自動關，
+// 要收起就自己點群組標題。這樣開合才一致（immediate：初次載入落在子項也會展開）。
+watch(
+  () => route.path,
+  () => {
+    for (const item of nav) {
+      if (item.children && isGroupActive(item)) openGroups.value.add(item.label)
+    }
+  },
+  { immediate: true },
+)
 
 // ── 收合狀態（localStorage 持久化 + 小螢幕自動收）──
 const expanded = ref(true)
