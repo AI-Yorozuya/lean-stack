@@ -33,7 +33,7 @@
 ```mermaid
 flowchart TD
     P0["Part 0 · 環境起手<br/>docker compose 五綠燈"] --> P1
-    P1["Part 1 · 認識積木<br/>一個畫面 = 幾塊 shadcn 拼起來"] --> P2
+    P1["Part 1 · 認識積木<br/>元件統一介紹 + 篩選怎麼跟後端要資料"] --> P2
     P2["Part 2 · 列表 + CRUD<br/>會員 / 商品（含獨立狀態＝開關）"] --> P3
     P3["Part 3 · INTENT-first<br/>先寫規則 → 再生 code"] --> P4
     P4["Part 4 · 狀態與流程<br/>訂單：串關聯 → 抄快照 → 狀態機"] --> P5
