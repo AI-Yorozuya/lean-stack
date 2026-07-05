@@ -2,22 +2,15 @@
 // 商品管理頁（最單純 CRUD）。規則見 intents/商品管理.md。
 // 教學重點——跟會員同型的「加一頁」，兩條鐵則長在 UI 上：
 //   {一 sku 一商品} → 建立撞 sku 後端回 422,前端顯示白話。
-//   {下架不刪}      → 沒有「刪除」,只有「下架 / 重新上架」。
+//   {下架不刪}      → 沒有「刪除」；下架/上架走後端 deactivate/reactivate（UI 目前只顯示狀態文字）。
 // sku 建立後不給改（是商品的識別）——編輯只讓改品名/牌價。
 // 提醒：改牌價只影響「之後的新訂單」,已成立訂單的明細是快照、不受影響（見訂單頁）。
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { Plus, Search, Pencil } from '@lucide/vue'
-import {
-  createProduct,
-  deactivateProduct,
-  listProducts,
-  reactivateProduct,
-  updateProduct,
-} from '@/api/product'
+import { createProduct, listProducts, updateProduct } from '@/api/product'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Switch } from '@/components/ui/switch'
 import DataTable from '@/components/DataTable.vue'
 import Pagination from '@/components/Pagination.vue'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -36,7 +29,7 @@ const q = ref('')
 const loading = ref(false)
 const errorMsg = ref('')
 
-// 欄位定義（餵給 DataTable）。品名吃剩餘寬度；狀態欄放可直接切的 Switch。
+// 欄位定義（餵給 DataTable）。品名吃剩餘寬度；狀態欄目前純文字（inline 直接改＝學員練習）。
 const columns = [
   { label: '品號', width: 'w-36' },
   { label: '品名' },
@@ -124,21 +117,8 @@ async function submitForm() {
   }
 }
 
-// ── 下架 / 重新上架（沒有刪除）─────────────────────────
-const busyId = ref(null)
-async function toggleActive(p) {
-  busyId.value = p.id
-  try {
-    const updated = p.is_active ? await deactivateProduct(p.id) : await reactivateProduct(p.id)
-    const i = products.value.findIndex((x) => x.id === p.id)
-    if (i > -1) products.value[i] = updated
-  } catch (e) {
-    errorMsg.value = '操作失敗,請稍後再試'
-    console.error(e)
-  } finally {
-    busyId.value = null
-  }
-}
+// 註：下架/上架走後端 deactivate/reactivate（見 api/product.js）。這頁的狀態欄目前只「顯示」，
+// 「直接在列表切換（inline 修改）」刻意留白 → 認識積木的指名練習：你怎麼講給 AI 加上去？
 </script>
 
 <template>
@@ -168,7 +148,7 @@ async function toggleActive(p) {
         <Button @click="openCreate"><Plus class="size-4" /> 新增商品</Button>
       </div>
 
-      <!-- 表格：水電全包在 DataTable；狀態欄放可直接切的 Switch（下架不刪），操作只留編輯 -->
+      <!-- 表格：水電全包在 DataTable；狀態欄先做純文字（inline 直接改＝留給學員的指名練習），操作只留編輯 -->
       <DataTable :items="pagedProducts" :columns="columns" :loading="loading">
         <template #row="{ item: p }">
           <TableCell class="tabular-nums">{{ p.sku }}</TableCell>
@@ -176,12 +156,7 @@ async function toggleActive(p) {
           <TableCell class="text-right tabular-nums">{{ p.unit_price.toLocaleString() }}</TableCell>
           <TableCell class="tabular-nums">{{ p.listed_at }}</TableCell>
           <TableCell class="text-center">
-            <Switch
-              :model-value="p.is_active"
-              :disabled="busyId === p.id"
-              title="上架 / 下架（下架不刪）"
-              @update:model-value="() => toggleActive(p)"
-            />
+            <span :class="p.is_active ? '' : 'text-muted-foreground'">{{ p.is_active ? '上架' : '下架' }}</span>
           </TableCell>
         </template>
         <template #actions="{ item: p }">

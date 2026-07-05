@@ -2,21 +2,14 @@
 // 會員管理頁（最單純 CRUD）。規則見 intents/會員管理.md。
 // 教學重點——這是「加一頁」的乾淨範例，也示範兩條鐵則長在 UI 上的樣子：
 //   {一 email 一會員} → 建立撞 email 後端回 422，前端顯示白話。
-//   {停用不刪}        → 沒有「刪除」，只有「停用 / 重新啟用」（狀態關閉、資料保留）。
+//   {停用不刪}        → 沒有「刪除」；停用/啟用走後端 deactivate/reactivate（UI 目前只顯示狀態文字）。
 // email 建立後不給改（是會員的識別）——編輯只讓改姓名/電話。
 import { computed, onMounted, reactive, ref } from 'vue'
 import { Plus, Search, Pencil } from '@lucide/vue'
-import {
-  createMember,
-  deactivateMember,
-  listMembers,
-  reactivateMember,
-  updateMember,
-} from '@/api/member'
+import { createMember, listMembers, updateMember } from '@/api/member'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Switch } from '@/components/ui/switch'
 import DataTable from '@/components/DataTable.vue'
 import Pagination from '@/components/Pagination.vue'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -36,7 +29,7 @@ const filterStatus = ref('all') // all | ACTIVE | INACTIVE
 const loading = ref(false)
 const errorMsg = ref('')
 
-// 欄位定義（餵給 DataTable）。email 吃剩餘寬度；狀態欄放可直接切的 Switch。
+// 欄位定義（餵給 DataTable）。email 吃剩餘寬度；狀態欄目前純文字（inline 直接改＝學員練習）。
 const columns = [
   { label: '姓名', width: 'w-40' },
   { label: 'email' },
@@ -119,21 +112,8 @@ async function submitForm() {
   }
 }
 
-// ── 停用 / 重新啟用（沒有刪除）─────────────────────────
-const busyId = ref(null)
-async function toggleStatus(m) {
-  busyId.value = m.id
-  try {
-    const updated = m.status === 'ACTIVE' ? await deactivateMember(m.id) : await reactivateMember(m.id)
-    const i = members.value.findIndex((x) => x.id === m.id)
-    if (i > -1) members.value[i] = updated
-  } catch (e) {
-    errorMsg.value = '操作失敗,請稍後再試'
-    console.error(e)
-  } finally {
-    busyId.value = null
-  }
-}
+// 註：停用/啟用走後端 deactivate/reactivate（見 api/member.js）。這頁的狀態欄目前只「顯示」，
+// 「直接在列表切換（inline 修改）」刻意留白 → 認識積木的指名練習：你怎麼講給 AI 加上去？
 </script>
 
 <template>
@@ -163,7 +143,7 @@ async function toggleStatus(m) {
         <Button @click="openCreate"><Plus class="size-4" /> 新增會員</Button>
       </div>
 
-      <!-- 表格：水電全包在 DataTable；狀態欄放可直接切的 Switch（停用不刪），操作只留編輯 -->
+      <!-- 表格：水電全包在 DataTable；狀態欄先做純文字（inline 直接改＝留給學員的指名練習），操作只留編輯 -->
       <DataTable :items="pagedMembers" :columns="columns" :loading="loading">
         <template #row="{ item: m }">
           <TableCell class="font-medium">{{ m.name }}</TableCell>
@@ -171,12 +151,7 @@ async function toggleStatus(m) {
           <TableCell>{{ m.phone || '—' }}</TableCell>
           <TableCell class="tabular-nums">{{ m.registered_at }}</TableCell>
           <TableCell class="text-center">
-            <Switch
-              :model-value="m.status === 'ACTIVE'"
-              :disabled="busyId === m.id"
-              title="啟用 / 停用（停用不刪）"
-              @update:model-value="() => toggleStatus(m)"
-            />
+            <span :class="m.status === 'ACTIVE' ? '' : 'text-muted-foreground'">{{ m.status_display }}</span>
           </TableCell>
         </template>
         <template #actions="{ item: m }">
