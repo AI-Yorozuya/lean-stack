@@ -1,18 +1,16 @@
 <script setup>
-// 會員管理頁（最單純 CRUD）。規則見 intents/會員管理.md。
-// 教學重點——這是「加一頁」的乾淨範例，也示範兩條鐵則長在 UI 上的樣子：
-//   {一 email 一會員} → 建立撞 email 後端回 422，前端顯示白話。
-//   {停用不刪}        → 沒有「刪除」；停用/啟用走後端 deactivate/reactivate（UI 目前只顯示狀態文字）。
-// email 建立後不給改（是會員的識別）——編輯只讓改姓名/電話。
+// 會員列表（認識積木「表層」最單純的一頁）。規則見 intents/會員管理.md。
+// 刻意做到最小：讀清單 ＋ 搜尋 ＋ 分頁 ＋ 新增。狀態、編輯、刪除、篩選都「留白」——
+// 那些正是「你試」：學員看著缺口，指名讓 AI 補上（見 teaching/認識積木.md）。
+// 鐵則 {一 email 一會員}：建立撞 email 後端回 422，前端顯示白話。
 import { computed, onMounted, reactive, ref } from 'vue'
-import { Plus, Search, Pencil } from '@lucide/vue'
-import { createMember, listMembers, updateMember } from '@/api/member'
+import { Plus, Search } from '@lucide/vue'
+import { createMember, listMembers } from '@/api/member'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import DataTable from '@/components/DataTable.vue'
 import Pagination from '@/components/Pagination.vue'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { TableCell } from '@/components/ui/table'
 import {
   Dialog,
@@ -25,17 +23,15 @@ import {
 
 const members = ref([])
 const q = ref('')
-const filterStatus = ref('all') // all | ACTIVE | INACTIVE
 const loading = ref(false)
 const errorMsg = ref('')
 
-// 欄位定義（餵給 DataTable）。email 吃剩餘寬度；狀態欄目前純文字（inline 直接改＝學員練習）。
+// 欄位定義（餵給 DataTable）。email 吃剩餘寬度。刻意沒有狀態欄、沒有操作欄——留給學員指名補。
 const columns = [
   { label: '姓名', width: 'w-40' },
   { label: 'email' },
   { label: '電話', width: 'w-36' },
   { label: '註冊日期', width: 'w-32', align: 'center' },
-  { label: '啟用狀態', width: 'w-24', align: 'center' },
 ]
 
 // 分頁（客戶端；整包載入後切頁）。
@@ -54,13 +50,8 @@ async function load() {
   loading.value = true
   errorMsg.value = ''
   try {
-    const data = await listMembers({
-      pageSize: 100,
-      q: q.value,
-      status: filterStatus.value === 'all' ? '' : filterStatus.value,
-    })
-    members.value = data.items
-    page.value = 1 // 每次搜尋/篩選後回第一頁
+    members.value = (await listMembers({ pageSize: 100, q: q.value })).items
+    page.value = 1 // 每次搜尋後回第一頁
   } catch (e) {
     errorMsg.value = '載入失敗,請稍後再試'
     console.error(e)
@@ -71,14 +62,12 @@ async function load() {
 
 onMounted(load)
 
-// ── 新增 / 編輯 dialog ──────────────────────────────────
+// ── 新增 dialog（只做新增；編輯留白＝你試）──────────────
 const showForm = ref(false)
-const editingId = ref(null) // null = 新增；有值 = 編輯（email 不可改）
 const form = reactive({ name: '', email: '', phone: '' })
 const formError = ref('')
 
 function openCreate() {
-  editingId.value = null
   form.name = ''
   form.email = ''
   form.phone = ''
@@ -86,24 +75,14 @@ function openCreate() {
   showForm.value = true
 }
 
-function openEdit(m) {
-  editingId.value = m.id
-  form.name = m.name
-  form.email = m.email
-  form.phone = m.phone
-  formError.value = ''
-  showForm.value = true
-}
-
 async function submitForm() {
   formError.value = ''
-  if (!form.name || (!editingId.value && !form.email)) {
+  if (!form.name || !form.email) {
     formError.value = '姓名與 email 必填'
     return
   }
   try {
-    if (editingId.value) await updateMember(editingId.value, { name: form.name, phone: form.phone })
-    else await createMember({ name: form.name, email: form.email, phone: form.phone })
+    await createMember({ name: form.name, email: form.email, phone: form.phone })
     showForm.value = false
     load()
   } catch (e) {
@@ -111,9 +90,6 @@ async function submitForm() {
     console.error(e)
   }
 }
-
-// 註：停用/啟用走後端 deactivate/reactivate（見 api/member.js）。這頁的狀態欄目前只「顯示」，
-// 「直接在列表切換（inline 修改）」刻意留白 → 認識積木的指名練習：你怎麼講給 AI 加上去？
 </script>
 
 <template>
@@ -123,41 +99,22 @@ async function submitForm() {
     <div class="mt-5 flex min-h-0 flex-1 flex-col rounded-lg border bg-card p-5 shadow-sm">
       <p v-if="errorMsg" class="text-destructive mb-3 shrink-0 text-sm">{{ errorMsg }}</p>
 
-      <!-- 工具列 -->
+      <!-- 工具列：搜尋（左）＋ 新增（右）。刻意沒有狀態下拉——留給學員指名補。 -->
       <div class="mb-4 flex shrink-0 items-center justify-between gap-2">
-        <div class="flex flex-wrap items-center gap-2">
-          <!-- 搜尋框：input + 搜尋 icon 鈕相連（跟訂單頁一致）-->
-          <div class="flex w-56">
-            <Input v-model="q" placeholder="搜尋會員姓名…" class="relative rounded-r-none focus-visible:z-10" @keyup.enter="load" />
-            <Button variant="outline" size="icon" class="shrink-0 rounded-l-none border-l-0" title="搜尋" @click="load"><Search class="size-4" /></Button>
-          </div>
-          <Select v-model="filterStatus" @update:model-value="load">
-            <SelectTrigger class="w-32"><SelectValue placeholder="全部狀態" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">全部狀態</SelectItem>
-              <SelectItem value="ACTIVE">啟用</SelectItem>
-              <SelectItem value="INACTIVE">停用</SelectItem>
-            </SelectContent>
-          </Select>
+        <div class="flex w-56">
+          <Input v-model="q" placeholder="搜尋會員姓名…" class="relative rounded-r-none focus-visible:z-10" @keyup.enter="load" />
+          <Button variant="outline" size="icon" class="shrink-0 rounded-l-none border-l-0" title="搜尋" @click="load"><Search class="size-4" /></Button>
         </div>
         <Button @click="openCreate"><Plus class="size-4" /> 新增會員</Button>
       </div>
 
-      <!-- 表格：水電全包在 DataTable；狀態欄先做純文字（inline 直接改＝留給學員的指名練習），操作只留編輯 -->
+      <!-- 表格：最單純的讀清單（沒有狀態欄、沒有操作欄；那些是「你試」的缺口）。 -->
       <DataTable :items="pagedMembers" :columns="columns" :loading="loading">
         <template #row="{ item: m }">
           <TableCell class="font-medium">{{ m.name }}</TableCell>
           <TableCell>{{ m.email }}</TableCell>
           <TableCell>{{ m.phone || '—' }}</TableCell>
           <TableCell class="tabular-nums">{{ m.registered_at }}</TableCell>
-          <TableCell class="text-center">
-            <span :class="m.status === 'ACTIVE' ? '' : 'text-muted-foreground'">{{ m.status_display }}</span>
-          </TableCell>
-        </template>
-        <template #actions="{ item: m }">
-          <Button variant="ghost" size="icon-sm" class="text-muted-foreground hover:text-foreground" title="編輯" @click="openEdit(m)">
-            <Pencil class="size-4" />
-          </Button>
         </template>
         <template #empty>沒有會員——按上方「＋ 新增會員」建第一位</template>
       </DataTable>
@@ -168,12 +125,12 @@ async function submitForm() {
       </div>
     </div>
 
-    <!-- 新增/編輯 dialog -->
+    <!-- 新增 dialog -->
     <Dialog v-model:open="showForm">
       <DialogContent class="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{{ editingId ? '編輯會員' : '新增會員' }}</DialogTitle>
-          <DialogDescription>{{ editingId ? 'email 是會員識別,建立後不可改。' : '一個 email 只能對到一位會員。' }}</DialogDescription>
+          <DialogTitle>新增會員</DialogTitle>
+          <DialogDescription>一個 email 只能對到一位會員。</DialogDescription>
         </DialogHeader>
         <div class="flex flex-col gap-3 py-2">
           <div class="flex flex-col gap-1.5">
@@ -182,7 +139,7 @@ async function submitForm() {
           </div>
           <div class="flex flex-col gap-1.5">
             <Label>email</Label>
-            <Input v-model="form.email" placeholder="name@example.com" :disabled="!!editingId" />
+            <Input v-model="form.email" placeholder="name@example.com" />
           </div>
           <div class="flex flex-col gap-1.5">
             <Label>電話</Label>
