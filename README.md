@@ -1,142 +1,119 @@
+<div align="center">
+
+<img src="docs/bear.png" width="170" alt="AI 萬事屋" />
+
 # lean-stack
 
-全端教學 sandbox。一條最小的端到端骨架：
+**講一句話，一套全端系統就在你電腦上跑起來。**
 
-```
-Vue 3 (Vite)  →  /api/v1/health  →  django-ninja  →  Django 6  →  PostgreSQL
-```
+全端教學 sandbox · 一個 repo、三個 app、一條端到端
 
-範例 app：`health`（router 範例）、`progress`（celery 非同步示範）、`member`＋`product`（**列表＋CRUD 主檔**）、`order`（**串主檔＋下單抄快照＋生命週期狀態機**，INTENT-first dogfood 的成品）。
-兩個 app：後端（lean-backend）＋管理後台（lean-admin）。
+![Vue 3](https://img.shields.io/badge/Vue-3-42b883)
+![Django 6](https://img.shields.io/badge/Django-6-092E20)
+![django--ninja](https://img.shields.io/badge/django--ninja-API-0b7285)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1)
+![Docker](https://img.shields.io/badge/Docker-Compose-2496ED)
+![INTENT-first](https://img.shields.io/badge/INTENT--first-規則先於code-b53920)
 
-> **先看哪裡？**
-> - 👶 **第一次用、不會寫程式** → 往下看「**給新手：零終端機上手**」。不用終端機、不用背指令，用講的就好。
-> - 🛠 **工程師 / dogfood** → 看「**快速啟動**」與 `CLAUDE.md`。
-
-## 👶 給新手：零終端機上手
-
-**看 [START.md](./START.md) 就好**——這套適合誰、首次準備（裝 Claude App＋Docker Desktop）、每次開工、你會用到的話、東西去哪看，全在那一份。
-你唯一要記的一句話：把 START.md 拉進 Claude Code，說「**照 START.md 把系統跑起來**」。
+</div>
 
 ---
 
-## 兩個 app
+這不是又一個「三分鐘做個 app」的範例。它是一套**真的會擋、會算、會跑狀態機**的全端後台——給**懂領域、不一定會寫程式**的人，也給想看「乾淨骨架長怎樣」的工程師。
 
-| app | 是什麼 | 技術 | dev port |
-|-----|--------|------|----------|
-| **lean-backend** | 後端 API + DB | Django 6 + django-ninja + Postgres（uv） | 8000 |
-| **lean-admin** | 管理後台 / 後台 console | Vue 3 + Vite + shadcn-vue（Tailwind v4） | 5174 |
+> **先看哪裡？**
+> - 👶 **第一次用、不會寫程式** → 看 **[START.md](./START.md)**。不用終端機、不用背指令，把它拉進 Claude Code，說一句「照 START.md 把系統跑起來」就好。
+> - 🛠 **工程師 / AI agent** → 往下看「[60 秒跑起來](#60-秒跑起來)」與 **[CLAUDE.md](./CLAUDE.md)**。
 
-`lean-admin` 把 `/api` proxy 到 `lean-backend`（:8000）；admin 是之後 **登入/權限** 真正重要的地方。
-
-```
-lean-stack/
-├── apps/
-│   ├── lean-backend/   Django 6 + django-ninja + Postgres（uv 管理）
-│   │   ├── core/        settings / urls / api（root NinjaAPI）/ asgi / wsgi
-│   │   └── apps/
-│   │       ├── _common/ 共用抽象 model（TimeStampedModel）
-│   │       └── health/  health 端點（router 範例）
-│   └── lean-admin/     Vue 3 + Vite + shadcn-vue（管理後台，:5174）
-│       └── src/         api/ router/（路由＋auth 接縫）views/ components/ui（shadcn）components/layout（外殼）
-├── infra/              部署層：terraform（一台 EC2 + SG + media S3）、prod compose、nginx、deploy 腳本
-│   ├── terraform/      flat 單環境 HCL（plan-first 紀律）
-│   ├── docker-compose.prod.yml   整套 prod 編排（postgres + backend + nginx）
-│   ├── nginx/nginx.conf          服務 admin 前端 + 反代 /api
-│   ├── scripts/deploy.sh
-│   └── DEPLOY.md       部署 runbook（單一真相來源）
-├── intents/            先寫規則再寫 code：INTENT 語法 + 範本
-├── .claude/skills/     AI 工作流 skill（add-feature / deploy，v0 stub）
-├── CLAUDE.md           AI agent 指引（慣例 + 鐵則）
-├── README.md
-└── DEPLOY.md           → 指向 infra/DEPLOY.md
-```
-
-## AI-native 層
-
-- `CLAUDE.md` — 在這 repo 工作的 AI agent 慣例與鐵則（2-app 佈局、ninja router 單一註冊點、TimeStampedModel、INTENT-first 流程、media 切換、infra plan-first、絕不 commit 機密）。
-- `intents/` — 業務規則「寫在 code 之前」。語法 `From --(Who: Action)--> To [Guard] {鐵則}` + 權限 5W；見 `intents/README.md`、`intents/_TEMPLATE.md`。已有 `會員管理`、`商品管理`、`訂單管理` 三份（外加 `資料模型設計原則`）。
-- `.claude/skills/` — `add-feature`（INTENT→後端→前端→註冊 router）與 `deploy`（本機→plan/review/apply→部署）的 v0 stub。
-
-## 快速啟動（工程師 / dogfood）
-
-> 新手請走 [START.md](./START.md)；這段是手動版——也就是 Claude 在幕後跑的東西。
-
-**一句話起整套**（postgres + redis + backend + celery worker + admin 前端，全在 Docker 裡）：
+## 60 秒跑起來
 
 ```bash
-docker compose -f infra/docker-compose.local.yml up --build -d
+# repo 根目錄，一句話帶起整套（Docker Desktop 五綠燈 = 活著）
+docker compose -f infra/docker-compose.local.yml up -d
 ```
 
-驗證：
+| 開這個 | 網址 | 是什麼 |
+|---|---|---|
+| 🗂 **管理後台** | http://localhost:5174 | 管會員 / 商品 / 訂單 |
+| 🛍 **對外門市** | http://localhost:5175 | 客人看的櫥窗（假結帳，讀同一後端） |
+| ⚙️ API | http://localhost:8000/api/v1/health | `{"status":"ok"}` = 整條通 |
 
-```bash
-curl -s localhost:8000/api/v1/health        # {"status": "ok"}
-open http://localhost:5174                  # 管理後台（看到「後端連線正常 ✓」= 整條通）
+**魔法在這**：到後台把某個商品下架 / 改名 / 改價 → 回門市重整，它就跟著變。你只改了後台，客人的頁面真的變了——這就是「全端」。
+
+## 一張圖秒懂
+
+```mermaid
+flowchart TD
+    admin["🗂 lean-admin · 管理後台<br/>Vue 3 · :5174"]
+    web["🛍 lean-web · 對外門市<br/>Vue 3 · :5175"]
+    api["⚙️ lean-backend · Django 6 + django-ninja<br/>唯一真相：資料模型 · 鐵則 · 狀態機 · :8000"]
+    db[("PostgreSQL")]
+    redis[("Redis")]
+    worker["celery-worker<br/>非同步任務"]
+    admin -->|HTTP /api/v1| api
+    web -->|HTTP /api/v1| api
+    api --> db
+    api -. 派工 .-> redis
+    worker -. 取工 .-> redis
 ```
 
-- 撞 port？用 env 覆寫：`LEAN_BACKEND_PORT=8001 LEAN_ADMIN_PORT=5176 docker compose ... up -d`
-- backend 掛 source volume＋`uvicorn --reload`、前端跑 vite dev（HMR 事件穿透 bind mount 已驗證）——**改 code 即時反映，不用 rebuild**。
-- 改 celery task 的 code：`docker compose -f infra/docker-compose.local.yml restart celery-worker`（worker 無自動 reload）。
-- 加/改後端依賴：改 `pyproject.toml` → `up --build`。前端依賴：改 `package.json` → 重啟該 service（容器內會重跑 npm install）。
-- Django 管理指令進容器跑：
+兩個前端都打同一個後端；**後端是唯一真相**（資料、鐵則、狀態機都在它身上），前端只負責畫。
 
-```bash
-docker compose -f infra/docker-compose.local.yml exec backend uv run python manage.py <cmd>
+## 裡面有什麼
+
+| app | 是什麼 | 技術 |
+|-----|--------|------|
+| `apps/lean-backend` | 後端 API + DB（唯一真相） | Django 6 · django-ninja · PostgreSQL · Celery/Redis · uv |
+| `apps/lean-admin` | 管理後台 | Vue 3 · Vite · shadcn-vue · Tailwind v4 |
+| `apps/lean-web` | 對外門市（極簡櫥窗） | Vue 3 · Vite |
+
+**三個教學範例**，一套積木、換個名詞、由淺入深：
+
+- **會員 · 商品** → 學「列表 + CRUD」（看清單、搜尋、篩選、新增/編輯）。
+- **訂單** → 學「狀態與流程」：串主檔 → 下單抄快照 → 跑生命週期狀態機。
+
+```mermaid
+stateDiagram-v2
+    [*] --> 待付款: 建單
+    待付款 --> 待出貨: 收款
+    待出貨 --> 已出貨: 出貨
+    待付款 --> 已取消: 取消
+    待出貨 --> 已取消: 取消
 ```
 
-- 關閉：`docker compose -f infra/docker-compose.local.yml down`
+> 亂來會被擋：已出貨不能改、不能取消、不能跳步——這些**鐵則砌在後端**，非法轉移回 422。
 
-> 前端也收進 compose 的理由：Docker Desktop 變成**整個 app 的單一狀態視窗**（五個綠燈=活著），
-> AI 對所有 service 的 log 有直讀權（`docker compose logs <service>`）——新手不用開任何終端機、不用貼 log。
-> `uv` 與 `npm` 都是**容器內**的事；你本機不必裝 Python/uv/Node 就能開發。
+## 招牌做法：INTENT-first（先寫規則、再生 code）
 
-## 怎麼擴充
+先在 [`intents/`](./intents/) 用白話寫下**狀態機 + 權限 + 鐵則**（附 Mermaid 資料模型圖），再照著生後端、生前端、接線。規則長在 code 之前——這是本 repo 的核心，也是「[認識積木](https://github.com/AI-Yorozuya)」課程教的判斷力。
 
-### 加一個後端 API
+## 這是免費體驗場
 
-1. 建 app：`apps/lean-backend/apps/<feature>/`，裡面放 `apps.py`、`apis.py`、`schemas.py`、`models.py`。
-2. 在 `apis.py` 建一個 ninja `Router`（參考 `apps/health/apis.py`），用 `@router.get/post` 定義端點。
-3. 領域 model 繼承 `apps._common.models.TimeStampedModel`，自動有 created_at / updated_at。
-4. 到 **`core/api.py`** 找「`# 新功能 router 註冊在這`」，加一行 `api.add_router('/<feature>/', <feature>_router)`。
-5. 把新 app 加進 `core/settings.py` 的 `INSTALLED_APPS`，然後在容器內 makemigrations／migrate：
-   `docker compose -f infra/docker-compose.local.yml exec backend uv run python manage.py makemigrations`（再跑一次 `migrate`）。
+lean-stack 是「**認識積木**」的免費體驗：跑起來、改改看、放手玩——改壞了退得回來。
+玩順了、開始想「怎麼把它變成真的能上線、能長大的系統」，往上還有 **打造城堡**（意圖驅動開發）、**築起高牆**（資安 / 部署 / 維運），以及 **AI 萬事屋** 幫你接手。先在這裡把手感玩出來就好。 🐻
 
-> 整個專案只有 **一個** NinjaAPI（`core/api.py`），掛在 `/api/v1/`。
-> `core/urls.py` 不用再改。
+---
 
-### 加一個前端頁面（lean-admin）
+<details>
+<summary>🛠 <b>給工程師 / AI agent</b>（慣例、擴充、部署）</summary>
 
-1. 在 `src/views/` 新增一個 `.vue`——UI 積木用 `@/components/ui/*`（shadcn-vue + Tailwind：button/input/card/table/dialog…），圖示用 `@lucide/vue`，缺的元件 `npx shadcn-vue@latest add <name>` 補。
-2. 在 `src/router/index.js` 的 `routes` 加一筆（建議用 `() => import(...)` lazy load）。
-3. 要進側邊欄就在 `src/components/layout/AppShell.vue` 的 `nav` 陣列加一筆（`{ to, label, icon }`）。
-4. 呼叫後端的函式集中放 `src/api/`。
+完整慣例與鐵則見 **[CLAUDE.md](./CLAUDE.md)**。重點：
 
-> 設計系統：常駐外殼（sidebar + 頂部 bar）在 `src/components/layout/AppShell.vue`；顏色 token 在 `src/assets/index.css`（換主題只改這）。
+- **每個 feature app 一個 ninja `Router`**，全在 `core/api.py` 用 `add_router` 單一註冊（只有一個 `NinjaAPI`，掛 `/api/v1/`；不改 `urls.py`）。
+- 領域 model 一律繼承 `_common.TimeStampedModel`（自動 created_at / updated_at）。
+- **整套走 docker**（`infra/docker-compose.local.yml`）：backend `uvicorn --reload` + 前端 vite dev，改 code 即時反映不用 rebuild。撞 port 用 `LEAN_BACKEND_PORT` / `LEAN_ADMIN_PORT` / `LEAN_WEB_PORT` 覆寫。
+- Django 管理指令：`docker compose -f infra/docker-compose.local.yml exec backend uv run python manage.py <cmd>`。
 
-### 上傳檔 / media（env 切換，零摩擦）
+**加一個後端 API**：建 `apps/lean-backend/apps/<feature>/`（`apis.py` 建 Router、model 繼承 TimeStampedModel）→ 到 `core/api.py` 加一行 `add_router` → 進 `INSTALLED_APPS` → 容器內 `makemigrations` / `migrate`。
 
-用 `USE_S3` 開關決定檔案存哪（見 `apps/lean-backend/core/settings.py` 的 `STORAGES`）：
+**加一個前端頁**：`src/views/` 加 `.vue`（UI 用 `@/components/ui/*`；清單表格用 `@/components/DataTable.vue`）→ `src/router/index.js` 加路由 → 要進側欄就改 `AppShell.vue` 的 `nav` → API 呼叫放 `src/api/`。
 
-- 本機開發 `USE_S3=False` → 檔案系統 `/media`，零設定。
-- 正式環境 `USE_S3=True` → S3 私有 bucket（由 `infra/terraform` 建）。
+**media**：`USE_S3` env 切換（本機檔案系統 ⇄ prod S3），`ImageField`/`FileField` 兩種模式都直接可用、不改 code。
 
-model 寫 `models.ImageField(upload_to='...')` / `FileField` **兩種模式都直接可用**，切換只改 env、不改 code。（`ImageField` 需要 Pillow，用時再加進 pyproject。）
+**部署**：見 **[infra/DEPLOY.md](./infra/DEPLOY.md)**——本機 docker 跑通 → terraform `plan → review → apply` → `bash infra/scripts/deploy.sh`。鐵則：**AI 不自動對真雲 apply；state / 機密永不進版控。**
 
-### 之後要加登入驗證（auth）
+**視覺簡介**：本地打開 [`docs/intro.html`](./docs/intro.html)（架構 / 資料模型 / 狀態機 / 技術棧一頁看完）。
 
-骨架階段刻意 **不含 auth**，但前後端都留好接縫：
-- 後端：在 `apps/lean-backend/core/api.py` 建 `NinjaAPI` 時帶 `auth=...`，或在個別 router / endpoint 上指定（詳見該檔註解）。
-- 後台前端：`apps/lean-admin/src/router/index.js` 已標好 `router.beforeEach` 登入守衛的位置（admin 是 auth 最重要的地方）。
+</details>
 
-> 非同步任務（celery）已內建：redis broker＋真 worker，示範見 `apps/progress`（Job 進度表＋輪詢頁）。
-
-## 部署
-
-見 **[`infra/DEPLOY.md`](./infra/DEPLOY.md)**（單一真相來源）：本機 docker 跑通 → terraform `plan→review→apply` 開一台伺服器 → `bash infra/scripts/deploy.sh` 部署。
-鐵則：**AI 不自動對真雲 apply；state / 機密永不進版控；憑證走環境變數。**
-
-## 之後的步驟
-
-下一步（不在本骨架範圍）：以 INTENT-first 的方式設計第一批領域模型，
-依「怎麼擴充」的流程加到 `apps/lean-backend/apps/<新 app>/`。
+<div align="center"><sub>lean-stack · 全端教學 sandbox　·　規則優先於預設行為 🐻</sub></div>
