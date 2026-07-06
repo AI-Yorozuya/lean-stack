@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>lean-stack 系統總覽</title>
+<style>
+  :root { color-scheme: light; }
+  body {
+    margin: 0; background: #f6f7f9; color: #0f172a;
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+    line-height: 1.7;
+  }
+  .wrap { max-width: 820px; margin: 0 auto; padding: 40px 20px 64px; }
+  .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 28px 28px 20px; }
+  h1 { font-size: 22px; font-weight: 500; margin: 0 0 4px; }
+  .sub { color: #64748b; font-size: 14px; margin: 0 0 20px; }
+  svg { width: 100%; height: auto; display: block; font-family: inherit; }
+  .note { color: #64748b; font-size: 13px; margin: 18px 2px 0; }
+  .note code { background: #f1f5f9; border-radius: 4px; padding: 1px 5px; font-size: 12px; }
+  /* SVG 樣式（自帶，不靠外部）*/
+  .box { fill: #fff; stroke: #cbd5e1; stroke-width: 1.5; }
+  .th { font-size: 14px; font-weight: 500; fill: #0f172a; }
+  .ts { font-size: 12px; fill: #64748b; }
+  .lbl { font-size: 12px; fill: #475569; }
+  .c-teal rect { fill: #ccfbf1; stroke: #0d9488; stroke-width: 1.5; }
+  .c-teal .th, .c-teal .ts { fill: #115e59; }
+  .c-amber rect { fill: #fef3c7; stroke: #d97706; stroke-width: 1.5; }
+  .c-amber .th, .c-amber .ts { fill: #92400e; }
+  .er { stroke: #94a3b8; stroke-width: 1.5; fill: none; }
+  .er-d { stroke: #94a3b8; stroke-width: 1.5; stroke-dasharray: 4 4; fill: none; }
+  .a-teal { stroke: #0d9488; stroke-width: 1.75; fill: none; }
+  .a-amber { stroke: #d97706; stroke-width: 1.75; fill: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <h1>lean-stack 系統總覽</h1>
+    <p class="sub">兩種人　×　四個 model　×　各自的動作</p>
+
+    <svg viewBox="0 0 680 480" role="img" xmlns="http://www.w3.org/2000/svg">
+      <title>lean-stack 系統總覽：人、model、動作</title>
+      <desc>客人（門市）與老闆（後台）兩種角色，對 Member、Product、Order、OrderItem 四個 model 做的動作，以及 model 之間的關係。</desc>
+      <defs><marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+
+      <rect x="44" y="26" width="12" height="12" rx="3" fill="#ccfbf1" stroke="#0d9488" stroke-width="1.5"/>
+      <text x="62" y="36" class="ts">客人（門市）動作</text>
+      <rect x="228" y="26" width="12" height="12" rx="3" fill="#fef3c7" stroke="#d97706" stroke-width="1.5"/>
+      <text x="246" y="36" class="ts">老闆（後台）動作</text>
+      <text x="430" y="36" class="ts">──　1 對多　┈　下單抄快照</text>
+
+      <g class="c-teal"><rect x="40" y="200" width="104" height="98" rx="8"/>
+        <text x="92" y="230" text-anchor="middle" class="th">客人</text>
+        <text x="92" y="252" text-anchor="middle" class="ts">＝ 會員</text>
+        <text x="92" y="272" text-anchor="middle" class="ts">門市</text>
+        <text x="92" y="290" text-anchor="middle" class="ts">lean-web</text></g>
+
+      <g class="c-amber"><rect x="536" y="200" width="104" height="98" rx="8"/>
+        <text x="588" y="230" text-anchor="middle" class="th">老闆</text>
+        <text x="588" y="252" text-anchor="middle" class="ts">／ 店員</text>
+        <text x="588" y="272" text-anchor="middle" class="ts">後台</text>
+        <text x="588" y="290" text-anchor="middle" class="ts">lean-admin</text></g>
+
+      <rect x="172" y="150" width="168" height="92" rx="8" class="box"/>
+      <text x="184" y="176" class="th">Member 會員</text>
+      <text x="184" y="200" class="ts">email · 密碼（雜湊）</text>
+      <text x="184" y="222" class="ts">status 啟用／停用</text>
+
+      <rect x="368" y="150" width="168" height="92" rx="8" class="box"/>
+      <text x="380" y="176" class="th">Product 商品</text>
+      <text x="380" y="200" class="ts">sku · 單價 · 圖</text>
+      <text x="380" y="222" class="ts">is_active 上／下架</text>
+
+      <rect x="172" y="318" width="168" height="112" rx="8" class="box"/>
+      <text x="184" y="344" class="th">Order 訂單</text>
+      <text x="184" y="366" class="ts">order_no · member→</text>
+      <text x="184" y="388" class="ts">狀態機 · total 加總</text>
+      <text x="184" y="410" class="ts">待付款→出貨→完成</text>
+
+      <rect x="368" y="318" width="168" height="92" rx="8" class="box"/>
+      <text x="380" y="344" class="th">OrderItem 明細</text>
+      <text x="380" y="366" class="ts">品名·單價·數量</text>
+      <text x="380" y="388" class="ts">小計 · 下單抄快照</text>
+
+      <line x1="256" y1="242" x2="256" y2="318" class="er"/>
+      <text x="262" y="284" class="lbl">下單 1─&lt;∞</text>
+      <line x1="452" y1="242" x2="452" y2="318" class="er-d"/>
+      <text x="458" y="284" class="lbl">快照</text>
+      <line x1="340" y1="372" x2="368" y2="372" class="er"/>
+      <text x="330" y="360" class="lbl">含明細</text>
+
+      <line x1="104" y1="198" x2="176" y2="156" class="a-teal" marker-end="url(#arrow)"/>
+      <text x="112" y="146" class="lbl">登入</text>
+      <line x1="98" y1="298" x2="176" y2="362" class="a-teal" marker-end="url(#arrow)"/>
+      <text x="70" y="316" class="lbl">下單＊</text>
+
+      <line x1="560" y1="198" x2="522" y2="156" class="a-amber" marker-end="url(#arrow)"/>
+      <text x="498" y="146" class="lbl">管商品</text>
+      <polyline points="588,298 588,452 256,452 256,430" class="a-amber" marker-end="url(#arrow)"/>
+      <text x="330" y="446" class="lbl">建單 · 收款／出貨／取消</text>
+
+      <text x="44" y="472" class="ts">＊下單需登入：門市 POST /web/order（憑證＝本人）；逛商品免登入；老闆也管會員。</text>
+    </svg>
+
+    <p class="note">
+      實線＝一對多（<code>1─&lt;∞</code>）；虛線＝下單當下把商品「抄一份快照」，日後改商品不動歷史訂單。
+      同一張 <code>Order</code>，客人從門市（<code>/web/order</code>，需登入）、老闆從後台（<code>/order</code>）各自建立與推進狀態。
+    </p>
+  </div>
+</div>
+</body>
+</html>
