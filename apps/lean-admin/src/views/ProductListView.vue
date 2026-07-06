@@ -132,10 +132,6 @@ async function submitForm() {
       <div class="mb-4 flex shrink-0 items-center justify-between gap-2">
         <div class="flex flex-wrap items-center gap-2">
           <!-- 搜尋框：input + 搜尋 icon 鈕相連（跟訂單頁一致）-->
-          <div class="flex w-56">
-            <Input v-model="q" placeholder="搜尋商品名稱…" class="relative rounded-r-none focus-visible:z-10" @keyup.enter="load" />
-            <Button variant="outline" size="icon" class="shrink-0 rounded-l-none border-l-0" title="搜尋" @click="load"><Search class="size-4" /></Button>
-          </div>
           <Select v-model="filterActive">
             <SelectTrigger class="w-32"><SelectValue placeholder="全部狀態" /></SelectTrigger>
             <SelectContent>
@@ -144,6 +140,10 @@ async function submitForm() {
               <SelectItem value="inactive">下架</SelectItem>
             </SelectContent>
           </Select>
+          <div class="flex w-56">
+            <Input v-model="q" placeholder="搜尋商品名稱…" class="relative rounded-r-none focus-visible:z-10" @keyup.enter="load" />
+            <Button variant="outline" size="icon" class="shrink-0 rounded-l-none border-l-0" title="搜尋" @click="load"><Search class="size-4" /></Button>
+          </div>
         </div>
         <Button @click="openCreate"><Plus class="size-4" /> 新增商品</Button>
       </div>
