@@ -14,6 +14,7 @@ from apps.member.apis import router as member_router
 from apps.order.apis import router as order_router
 from apps.product.apis import router as product_router
 from apps.progress.apis import router as progress_router
+from apps.web.apis import router as web_router
 
 # title / version 會顯示在自動產生的 API 文件（/api/v1/docs）。
 api = NinjaAPI(title='lean-stack API', version='1.0.0')
@@ -21,15 +22,15 @@ api = NinjaAPI(title='lean-stack API', version='1.0.0')
 # ──────────────────────────────────────────────────────────────
 # 新功能 router 註冊在這
 #   範例：api.add_router('/ledger/', ledger_router)
-#   （之後加 auth 時，也可在這裡或各 router 上設 auth=...，見下方註解）
 # ──────────────────────────────────────────────────────────────
 api.add_router('/health', health_router)
 api.add_router('/progress', progress_router)
 api.add_router('/member', member_router)
 api.add_router('/product', product_router)
 api.add_router('/order', order_router)
+api.add_router('/web', web_router)  # 門市前台 BFF：整個 router 掛 member_auth（登入才能用）
 
-# 之後要加登入驗證時：
-#   1) 寫一個 ninja 的 auth class（例如 JWT / session）
-#   2) 建 api 時帶 auth=YourAuth()，或在個別 router/endpoint 上指定 auth=
-#   目前骨架階段刻意全部不設 auth。
+# auth 的接法（本 repo 現況）：
+#   - 不在 NinjaAPI 設全域 auth——大多數端點（後台 CRUD、商品瀏覽）刻意公開。
+#   - 要「登入才能用」的端點，在該 router / endpoint 上設 auth=member_auth
+#     （見 apps/web/apis.py、apps/member 的 /me）。憑證怎麼發/驗見 apps/member/auth.py。

@@ -55,6 +55,7 @@ INSTALLED_APPS = [
     'apps.member',  # 會員管理（最單純 CRUD；規則見 intents/會員管理.md）
     'apps.product',  # 商品目錄（最單純 CRUD；規則見 intents/商品管理.md）
     'apps.order',  # 訂單管理（狀態機＋快照＋承重牆；規則見 intents/訂單管理.md）
+    'apps.web',  # 門市前台 BFF（登入才能用的端點，如下單；規則見 intents/會員登入.md）
 ]
 
 MIDDLEWARE = [

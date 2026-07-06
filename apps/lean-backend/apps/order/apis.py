@@ -54,6 +54,21 @@ def _add_items(order, items):
         OrderItem.snapshot_from(order, product, item.quantity)
 
 
+@transaction.atomic  # 訂單＋明細要嘛全存、要嘛全不存——不留「有單無明細」的半成品
+def place_order(member, items):
+    """把「一位會員 + 一批明細」做成一張訂單。**共用**：
+
+    - 後台建單（create_order）：member 由前端傳的 member_id 撈；
+    - 門市下單（apps/web）：member = 憑證裡的本人。
+
+    差別只在「下單的人從哪來」；建單的鐵則（快照 / 小計 / 總額）全在這裡發火，一處真相。
+    """
+    order = Order.objects.create(member=member)
+    _add_items(order, items)      # 各明細從目錄抄快照 + save() 算小計（鐵則）
+    order.recalc_total()          # 鐵則：總額 = 明細加總
+    return order
+
+
 # ── 訂單 CRUD ────────────────────────────────────────────────
 @router.get('', response=OrderListSchema)
 def list_orders(request, page: int = 1, page_size: int = 10, q: str = '', member_id: int = None):
@@ -79,13 +94,10 @@ def get_order(request, order_id: int):
 
 
 @router.post('', response=OrderSchema)
-@transaction.atomic  # 訂單＋明細要嘛全存、要嘛全不存——不留「有單無明細」的半成品
 def create_order(request, payload: OrderIn):
+    """後台建單：下單的人由前端指定（member_id）——店員替客人建單。"""
     member = get_object_or_404(Member, pk=payload.member_id)
-    order = Order.objects.create(member=member)
-    _add_items(order, payload.items)  # 各明細從目錄抄快照 + save() 算小計（鐵則）
-    order.recalc_total()  # 鐵則：總額 = 明細加總
-    return order
+    return place_order(member, payload.items)
 
 
 @router.put('/{order_id}', response=OrderSchema)

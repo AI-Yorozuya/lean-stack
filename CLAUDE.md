@@ -67,7 +67,7 @@
 
 ## 進階層（未內建，未來在此接入）
 
-- **會員登入**：**已做最小骨架**（見 [intents/會員登入.md](intents/會員登入.md)）——`POST /member/login` 驗雜湊密碼發憑證（Django `signing`，非 JWT）、`member_auth` 守衛（`apps/member/auth.py`）、門市 lean-web 真登入。**下一步**：把 `POST /order` 鎖成登入才能下（需 optional-auth，因後台也建單）。**仍 park**：自助註冊 / 忘記密碼 / OTP、後台（員工）登入——後台守衛接縫仍在 `apps/lean-admin/src/router/index.js`。
+- **會員登入**：**已做**（見 [intents/會員登入.md](intents/會員登入.md)）——`POST /member/login` 驗雜湊密碼發憑證（Django `signing`，非 JWT）、`member_auth` 守衛（`apps/member/auth.py`）、門市 lean-web 真登入。**下單強制登入也做了**：門市走 `POST /web/order`（`apps/web` = 門市 BFF，整個 router 掛 `member_auth`、不收 member_id、下單的人 = 憑證本人）；後台照舊用 `POST /order`（收 member_id 替客人建單）。**仍 park**：自助註冊 / 忘記密碼 / OTP、後台（員工）登入——後台守衛接縫仍在 `apps/lean-admin/src/router/index.js`。
 
 ## 版本控制（對新手：用生活語言演出來，別教 git 詞）
 

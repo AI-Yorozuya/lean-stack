@@ -87,11 +87,19 @@ async function checkout() {
   const items = Object.entries(grouped).map(([product_id, quantity]) => ({ product_id: Number(product_id), quantity }))
   placing.value = true
   try {
-    const res = await fetch('/api/v1/order', {
+    // 打門市 BFF 的下單端點：只送明細，下單的人由後端從憑證認定（不送 member_id）。
+    const res = await fetch('/api/v1/web/order', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...authHeaders() },
-      body: JSON.stringify({ member_id: me.value.id, items }),
+      body: JSON.stringify({ items }),
     })
+    if (res.status === 401) {
+      // 憑證過期/失效：清掉登入狀態、叫她重新登入。
+      logout()
+      loginOpen.value = true
+      flash('登入已過期，請重新登入', 2600)
+      return
+    }
     if (!res.ok) {
       const err = await res.json().catch(() => ({}))
       throw new Error(err.detail || '下單失敗')
