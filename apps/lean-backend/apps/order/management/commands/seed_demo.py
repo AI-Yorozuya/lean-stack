@@ -32,14 +32,22 @@ MEMBERS = [
     ('楊佳穎', 'jiaying.yang@example.com', '0966-778-990'),
 ]
 
-# 服飾電商目錄：(sku, 品名, 牌價)。圖 = /products/<sku>.png（lean-web public/ 供）——
-# 用 Medusa 官方 demo 的棚拍圖（乾淨白灰底、風格統一），所以目錄收斂成它涵蓋的這幾樣。
+# 服飾電商目錄：(sku, 品名, 牌價)。圖 = /products/<sku>.png（lean-web public/ 供）。
+# 底圖用 Medusa 官方 demo 棚拍照，再用「保留光影、換飽和色 + 遮罩留白」生出各色——
+# 所以 12 樣同一套棚拍風格、顏色卻真的各異（不是同張照片重貼）。
 PRODUCTS = [
-    ('TEE-WHITE', '經典素面 T 恤（白）', 590),
-    ('TEE-BLACK', '經典素面 T 恤（黑）', 590),
-    ('SWEAT', '復古大學 T', 1280),
-    ('PANTS', '休閒棉質長褲', 1380),
-    ('SHORTS', '復古休閒短褲', 880),
+    ('TEE-WHITE', '經典素面 T 恤 · 白', 590),
+    ('TEE-BLACK', '經典素面 T 恤 · 黑', 590),
+    ('SWEAT-WINE', '復古大學 T · 酒紅', 1280),
+    ('SWEAT-NAVY', '復古大學 T · 海軍藍', 1280),
+    ('SWEAT-MUSTARD', '復古大學 T · 芥末黃', 1280),
+    ('SWEAT-FOREST', '復古大學 T · 森林綠', 1280),
+    ('SHORTS-BRICK', '休閒短褲 · 磚紅', 880),
+    ('SHORTS-OLIVE', '休閒短褲 · 橄欖綠', 880),
+    ('SHORTS-NAVY', '休閒短褲 · 海軍藍', 880),
+    ('SHORTS-KHAKI', '休閒短褲 · 卡其', 880),
+    ('PANTS-KHAKI', '休閒棉褲 · 卡其', 1380),
+    ('PANTS-CHARCOAL', '休閒棉褲 · 炭灰', 1380),
 ]
 
 
