@@ -9,9 +9,9 @@
 |-----|--------|------|
 | `apps/lean-backend` | 後端 API + DB（唯一真相） | Django 6 + django-ninja + Postgres（uv） |
 | `apps/lean-admin` | 管理後台（auth 之後長在這） | Vue 3 + Vite（:5174） |
-| `apps/lean-web` | 對外門市（極簡櫥窗；讀同一後端，購物車是假的示範用） | Vue 3 + Vite（:5175） |
+| `apps/lean-web` | 對外門市（登入→加購→真下單，無金流） | Vue 3 + Vite（:5175） |
 
-> `lean-web` 刻意極簡（一頁商品 + 假購物車），示範「改後台 → 前台跟著變」，是免費體驗的鏡子；不是可上線的門市（那留給下游）。兩個前端都打 `lean-backend` 的 `/api/v1`。
+> `lean-web` 極簡但**能真下單**：登入（示範登入——後端刻意還沒 auth，email 對到會員即可）→ 加購 → 結帳 `POST /order` → 後台訂單列表就看得到那張「待付款」單。示範完整 loop：「改後台→前台變」＋「前台下單→後台看到」。**訂單不再 seed**（`seed_demo` 只灌會員＋商品，訂單由門市產生；測試客 `hero@ai-yorozuya.com`）。仍不是可上線門市（金流／庫存／驗證留下游）。兩個前端都打 `/api/v1`。
 
 `infra/` = 部署層（terraform 一台 EC2 + 整套 prod compose + nginx）。`intents/` = 規則先於 code。
 

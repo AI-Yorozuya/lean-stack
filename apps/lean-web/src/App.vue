@@ -1,8 +1,9 @@
 <script setup>
-// 對外門市首頁——版型抓 _project/lean-commerce 的 storefront（hero / trust / featured / 會員 band）。
-// 差別：① 商品讀 lean-stack「同一個後端」/api/v1/product（改後台→這裡跟著變）
-//       ② 購物車是「假的」：加清單、算小計、跳提示，不真結帳（示範用）
-//       ③ 招牌 STORE_NAME 就是免費體驗 F1「換招牌」要改的字
+// 對外門市——版型抓 _project/lean-commerce 的 storefront。這版是「真的能下單」：
+//   ① 商品讀 lean-stack 同一個後端 /api/v1/product（改後台→這裡跟著變）
+//   ② 登入（示範登入：email 對到會員即可，不驗密碼——後端刻意還沒 auth）
+//   ③ 結帳 = 真的 POST /api/v1/order → 回後台訂單列表就看得到那張「待付款」單
+//   ④ 招牌 STORE_NAME 就是免費體驗 F1「換招牌」要改的字
 import { ref, computed, onMounted } from 'vue'
 
 const STORE_NAME = '選物小舖' // ← 換招牌改這裡
@@ -11,15 +12,22 @@ const products = ref([])
 const loading = ref(true)
 const errorMsg = ref('')
 
-const cart = ref([]) // 假購物車：放商品物件（示範用）
+const cart = ref([]) // 購物車：放商品物件
 const cartOpen = ref(false)
 const toast = ref('')
 let toastTimer = null
 
+// 登入（示範）：me = 目前登入的會員；存 localStorage，重整仍在。
+const me = ref(JSON.parse(localStorage.getItem('lw_me') || 'null'))
+const loginOpen = ref(false)
+const loginEmail = ref('hero@ai-yorozuya.com') // 預填測試客，一鍵登入
+const loginErr = ref('')
+const placing = ref(false)
+
 const money = (n) => 'NT$ ' + Number(n).toLocaleString()
 const subtotal = computed(() => cart.value.reduce((s, p) => s + Number(p.unit_price), 0))
 
-function flash(msg, ms = 1600) {
+function flash(msg, ms = 1800) {
   toast.value = msg
   clearTimeout(toastTimer)
   toastTimer = setTimeout(() => (toast.value = ''), ms)
@@ -31,12 +39,60 @@ function addToCart(p) {
 function removeAt(i) {
   cart.value.splice(i, 1)
 }
-function fakeCheckout() {
-  cartOpen.value = false
-  flash('這是示範門市，先不結帳 😄', 2000)
-}
 function scrollTo(id) {
   document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' })
+}
+
+// ── 登入 / 登出（示範：email 對到會員即可，不驗密碼）──
+async function doLogin() {
+  loginErr.value = ''
+  const email = loginEmail.value.trim().toLowerCase()
+  try {
+    const members = (await (await fetch('/api/v1/member?page_size=100')).json()).items
+    const found = members.find((m) => m.email.toLowerCase() === email)
+    if (!found) { loginErr.value = '查無此帳號（試 hero@ai-yorozuya.com）'; return }
+    me.value = { id: found.id, name: found.name, email: found.email }
+    localStorage.setItem('lw_me', JSON.stringify(me.value))
+    loginOpen.value = false
+    flash(`歡迎，${found.name}`)
+  } catch (e) {
+    loginErr.value = '登入失敗，請確認後端有起來。'
+    console.error(e)
+  }
+}
+function logout() {
+  me.value = null
+  localStorage.removeItem('lw_me')
+}
+
+// ── 結帳 = 真的建一張訂單（沒登入先叫登入；沒金流，訂單落在「待付款」）──
+async function checkout() {
+  if (!me.value) { loginOpen.value = true; return }
+  if (!cart.value.length || placing.value) return
+  const grouped = {} // 同商品合併成 quantity
+  for (const p of cart.value) grouped[p.id] = (grouped[p.id] || 0) + 1
+  const items = Object.entries(grouped).map(([product_id, quantity]) => ({ product_id: Number(product_id), quantity }))
+  placing.value = true
+  try {
+    const res = await fetch('/api/v1/order', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ member_id: me.value.id, items }),
+    })
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      throw new Error(err.detail || '下單失敗')
+    }
+    const order = await res.json()
+    cart.value = []
+    cartOpen.value = false
+    flash(`訂單成立 ${order.order_no}　（回後台看得到這張「待付款」單）`, 3200)
+  } catch (e) {
+    flash('下單失敗：' + e.message, 2600)
+    console.error(e)
+  } finally {
+    placing.value = false
+  }
 }
 
 onMounted(async () => {
@@ -63,6 +119,11 @@ onMounted(async () => {
         <a class="logo rd-serif" @click="scrollTo('top')"><img src="/bearhead.png" alt="" class="logo-img" />{{ STORE_NAME }}</a>
         <nav class="nav">
           <a class="nlink" @click="scrollTo('featured')">所有商品</a>
+          <template v-if="me">
+            <span class="hi">你好，{{ me.name }}</span>
+            <a class="nlink" @click="logout">登出</a>
+          </template>
+          <a v-else class="nlink" @click="loginOpen = true">登入</a>
           <button class="cart" title="購物車" @click="cartOpen = true">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12l-1 12H7L6 8z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>
             <span v-if="cart.length" class="badge">{{ cart.length }}</span>
@@ -128,7 +189,10 @@ onMounted(async () => {
 
         <div v-else class="grid">
           <article v-for="p in products" :key="p.id" class="rd-pcard">
-            <div class="media"><span class="initial rd-serif">{{ p.name.slice(0, 1) }}</span></div>
+            <div class="media">
+              <img v-if="p.image_url" :src="p.image_url" :alt="p.name" loading="lazy" />
+              <span v-else class="initial rd-serif">{{ p.name.slice(0, 1) }}</span>
+            </div>
             <div class="body">
               <div class="name rd-serif">{{ p.name }}</div>
               <div class="price rd-num">{{ money(p.unit_price) }}</div>
@@ -159,7 +223,7 @@ onMounted(async () => {
       <div class="rd-wrap">
         <div class="foot-brand rd-serif"><img src="/bearhead.png" alt="" class="foot-logo" />{{ STORE_NAME }}</div>
         <p>嚴選每一件商品，安心購物、快速到貨。把好東西，送到你的日常。</p>
-        <p class="tiny">lean-web · 示範門市（購物車為假、商品來自 lean-stack 後台）</p>
+        <p class="tiny">lean-web · 示範門市（登入下真單、無金流；商品／訂單走 lean-stack 後端）</p>
       </div>
     </footer>
 
@@ -175,7 +239,10 @@ onMounted(async () => {
         </div>
         <div v-if="cart.length" class="dr-list">
           <div v-for="(p, i) in cart" :key="i" class="dr-item">
-            <div class="dr-thumb rd-serif">{{ p.name.slice(0, 1) }}</div>
+            <div class="dr-thumb">
+              <img v-if="p.image_url" :src="p.image_url" :alt="p.name" />
+              <span v-else class="rd-serif">{{ p.name.slice(0, 1) }}</span>
+            </div>
             <div class="dr-info">
               <div class="dr-name">{{ p.name }}</div>
               <div class="dr-price rd-num">{{ money(p.unit_price) }}</div>
@@ -186,9 +253,27 @@ onMounted(async () => {
         <p v-else class="dr-empty">購物車還是空的</p>
         <div class="dr-foot">
           <div class="dr-sum"><span>小計</span><span class="rd-num">{{ money(subtotal) }}</span></div>
-          <button class="rd-btn dr-checkout" :disabled="!cart.length" @click="fakeCheckout">前往結帳</button>
+          <p class="dr-who">{{ me ? `以「${me.name}」的身分結帳（無金流，訂單落待付款）` : '結帳需要先登入' }}</p>
+          <button class="rd-btn dr-checkout" :disabled="!cart.length || placing" @click="checkout">
+            {{ placing ? '下單中…' : me ? '前往結帳' : '登入並結帳' }}
+          </button>
         </div>
       </aside>
+    </transition>
+
+    <!-- 登入對話框（示範登入：email 對到會員即可，不驗密碼）-->
+    <transition name="scrim">
+      <div v-if="loginOpen" class="scrim" @click="loginOpen = false" />
+    </transition>
+    <transition name="pop">
+      <div v-if="loginOpen" class="modal">
+        <div class="m-head"><strong class="rd-serif">會員登入</strong><button class="x" @click="loginOpen = false">✕</button></div>
+        <p class="m-hint">示範門市：輸入 email 就登入（不驗密碼——後端還沒 auth）。已帶好測試帳號。</p>
+        <label class="m-label">Email</label>
+        <input v-model="loginEmail" class="m-input" placeholder="hero@ai-yorozuya.com" @keyup.enter="doLogin" />
+        <p v-if="loginErr" class="m-err">{{ loginErr }}</p>
+        <button class="rd-btn m-btn" @click="doLogin">登入</button>
+      </div>
     </transition>
 
     <transition name="fade">
@@ -204,9 +289,10 @@ onMounted(async () => {
 .hd-in { display: flex; align-items: center; justify-content: space-between; height: 62px; }
 .logo { display: inline-flex; align-items: center; gap: 9px; font-size: 20px; font-weight: 600; letter-spacing: 0.02em; }
 .logo-img { height: 26px; width: auto; }
-.nav { display: flex; align-items: center; gap: 22px; }
+.nav { display: flex; align-items: center; gap: 18px; }
 .nlink { font: 500 14px 'Noto Sans TC'; color: var(--ink700); }
 .nlink:hover { color: var(--accent); }
+.hi { font: 500 14px 'Noto Sans TC'; color: var(--ink900); }
 .cart { position: relative; border: 1px solid var(--line2); background: #fff; color: var(--ink900); width: 42px; height: 42px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.15s; }
 .cart:hover { background: var(--cream); }
 .badge { position: absolute; top: -4px; right: -4px; background: var(--accent); color: #fff; font: 700 11px 'Plus Jakarta Sans'; min-width: 18px; height: 18px; border-radius: 999px; display: flex; align-items: center; justify-content: center; padding: 0 4px; }
@@ -235,7 +321,8 @@ onMounted(async () => {
 
 .rd-pcard { border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; background: #fff; display: flex; flex-direction: column; transition: box-shadow 0.2s, transform 0.2s; }
 .rd-pcard:hover { box-shadow: 0 20px 44px -24px rgba(40, 30, 20, 0.45); transform: translateY(-3px); }
-.media { aspect-ratio: 1/1; background: linear-gradient(135deg, #f3ebdd, #e7d6c0); display: flex; align-items: center; justify-content: center; }
+.media { aspect-ratio: 1/1; background: linear-gradient(135deg, #f3ebdd, #e7d6c0); display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.media img { width: 100%; height: 100%; object-fit: cover; }
 .initial { font-size: 54px; font-weight: 600; color: #cbb48f; }
 .body { padding: 15px; display: flex; flex-direction: column; gap: 9px; }
 .name { font: 600 15px 'Noto Serif TC'; color: var(--ink900); line-height: 1.35; }
@@ -265,7 +352,8 @@ onMounted(async () => {
 .x { border: none; background: none; font-size: 16px; color: var(--ink400); cursor: pointer; }
 .dr-list { flex: 1; overflow: auto; padding: 8px 14px; }
 .dr-item { display: flex; align-items: center; gap: 12px; padding: 12px 8px; border-bottom: 1px solid #f1e9dc; }
-.dr-thumb { width: 46px; height: 46px; border-radius: 10px; background: linear-gradient(135deg, #f3ebdd, #e7d6c0); display: flex; align-items: center; justify-content: center; font-size: 20px; color: #cbb48f; flex-shrink: 0; }
+.dr-thumb { width: 46px; height: 46px; border-radius: 10px; overflow: hidden; background: linear-gradient(135deg, #f3ebdd, #e7d6c0); display: flex; align-items: center; justify-content: center; font-size: 20px; color: #cbb48f; flex-shrink: 0; }
+.dr-thumb img { width: 100%; height: 100%; object-fit: cover; }
 .dr-info { flex: 1; min-width: 0; }
 .dr-name { font: 500 14px 'Noto Sans TC'; color: var(--ink900); }
 .dr-price { font: 700 13px 'Plus Jakarta Sans'; color: var(--accent); margin-top: 2px; }
@@ -273,10 +361,24 @@ onMounted(async () => {
 .dr-x:hover { color: #c0392b; }
 .dr-empty { flex: 1; display: flex; align-items: center; justify-content: center; color: var(--ink400); }
 .dr-foot { border-top: 1px solid var(--line); padding: 18px 22px; }
-.dr-sum { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 14px; font: 600 15px 'Noto Sans TC'; }
+.dr-sum { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; font: 600 15px 'Noto Sans TC'; }
 .dr-sum .rd-num { font-size: 20px; font-weight: 800; }
+.dr-who { font-size: 12px; color: var(--ink400); margin-bottom: 12px; }
 .dr-checkout { width: 100%; }
 .dr-checkout:disabled { opacity: 0.5; cursor: not-allowed; filter: none; }
+
+/* 登入對話框 */
+.modal { position: fixed; z-index: 55; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 360px; max-width: 90vw; background: #fffdfa; border-radius: 16px; padding: 22px 24px; box-shadow: 0 30px 60px -20px rgba(40, 30, 20, 0.5); }
+.m-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.m-head strong { font-size: 19px; }
+.m-hint { font-size: 12.5px; color: var(--ink400); line-height: 1.6; margin-bottom: 16px; }
+.m-label { font-size: 12px; color: var(--ink3, var(--ink400)); display: block; margin-bottom: 6px; }
+.m-input { width: 100%; padding: 12px 14px; border: 1.5px solid var(--line2); border-radius: 10px; font-size: 14px; color: var(--ink900); background: #fff; outline: none; transition: border-color 0.15s; }
+.m-input:focus { border-color: var(--accent); }
+.m-err { color: #c0392b; font-size: 13px; margin-top: 8px; }
+.m-btn { width: 100%; margin-top: 16px; }
+.pop-enter-active, .pop-leave-active { transition: opacity 0.18s, transform 0.18s; }
+.pop-enter-from, .pop-leave-to { opacity: 0; transform: translate(-50%, -46%); }
 
 .toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%); z-index: 60; background: var(--ink900); color: #fff; padding: 11px 20px; border-radius: 999px; font-size: 14px; box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2); }
 

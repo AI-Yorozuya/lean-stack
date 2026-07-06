@@ -25,6 +25,7 @@ class ProductSchema(Schema):
     sku: str
     name: str
     unit_price: float
+    image_url: str           # 商品圖網址（門市前台 <img> 用）
     listed_at: str           # 上架日期（= created_at 的日期，建檔即上架）
     is_active: bool
 

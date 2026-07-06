@@ -16,6 +16,9 @@ class Product(TimeStampedModel):
     sku = models.CharField(max_length=40, unique=True)   # 鐵則 {一 sku 一商品}
     name = models.CharField(max_length=100)
     unit_price = models.DecimalField(max_digits=10, decimal_places=2)  # 牌價（現價）
+    # 商品圖：這裡先用「圖片網址」（門市前台直接 <img>）。要換成真上傳檔就改 ImageField
+    # （見 core/settings.py 的 STORAGES / USE_S3；那條路本機↔S3 只改 env）。
+    image_url = models.CharField(max_length=300, blank=True)
     # 下架不是刪——關掉 is_active 就不能再被下單，但歷史明細仍指得到。
     is_active = models.BooleanField(default=True)
 
