@@ -21,6 +21,8 @@ let toastTimer = null
 const me = ref(JSON.parse(localStorage.getItem('lw_me') || 'null'))
 const loginOpen = ref(false)
 const loginEmail = ref('hero@ai-yorozuya.com') // 預填測試客，一鍵登入
+const loginPw = ref('12345678')                // 示範密碼，也先幫她填好
+const DEMO_PW = '12345678'                      // 前端示範用（真 auth 是後端待做的接縫）
 const loginErr = ref('')
 const placing = ref(false)
 
@@ -43,10 +45,11 @@ function scrollTo(id) {
   document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' })
 }
 
-// ── 登入 / 登出（示範：email 對到會員即可，不驗密碼）──
+// ── 登入 / 登出（示範：email 對到會員 + 前端示範密碼；真驗密碼是後端待做的接縫）──
 async function doLogin() {
   loginErr.value = ''
   const email = loginEmail.value.trim().toLowerCase()
+  if (loginPw.value !== DEMO_PW) { loginErr.value = '密碼錯誤（示範密碼：12345678）'; return }
   try {
     const members = (await (await fetch('/api/v1/member?page_size=100')).json()).items
     const found = members.find((m) => m.email.toLowerCase() === email)
@@ -282,9 +285,11 @@ onMounted(async () => {
     <transition name="pop">
       <div v-if="loginOpen" class="modal">
         <div class="m-head"><strong class="rd-serif">會員登入</strong><button class="x" @click="loginOpen = false">✕</button></div>
-        <p class="m-hint">示範門市：輸入 email 就登入（不驗密碼——後端還沒 auth）。已帶好測試帳號。</p>
+        <p class="m-hint">示範門市：帳號密碼都幫你帶好了，直接按登入。（真的驗密碼是後端待做的接縫，這裡先做前端示範。）</p>
         <label class="m-label">Email</label>
         <input v-model="loginEmail" class="m-input" placeholder="hero@ai-yorozuya.com" @keyup.enter="doLogin" />
+        <label class="m-label">密碼</label>
+        <input v-model="loginPw" type="password" class="m-input" placeholder="12345678" @keyup.enter="doLogin" />
         <p v-if="loginErr" class="m-err">{{ loginErr }}</p>
         <button class="rd-btn m-btn" @click="doLogin">登入</button>
       </div>
