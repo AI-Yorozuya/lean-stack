@@ -67,7 +67,7 @@
 
 ## 進階層（未內建，未來在此接入）
 
-- **auth/登入**：未內建。後端接縫在 `core/api.py`（`NinjaAPI(auth=...)`）；後台前端守衛接縫在 `apps/lean-admin/src/router/index.js`。
+- **會員登入**：**已做最小骨架**（見 [intents/會員登入.md](intents/會員登入.md)）——`POST /member/login` 驗雜湊密碼發憑證（Django `signing`，非 JWT）、`member_auth` 守衛（`apps/member/auth.py`）、門市 lean-web 真登入。**下一步**：把 `POST /order` 鎖成登入才能下（需 optional-auth，因後台也建單）。**仍 park**：自助註冊 / 忘記密碼 / OTP、後台（員工）登入——後台守衛接縫仍在 `apps/lean-admin/src/router/index.js`。
 
 ## 版本控制（對新手：用生活語言演出來，別教 git 詞）
 

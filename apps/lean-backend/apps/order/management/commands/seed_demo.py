@@ -22,6 +22,10 @@ MEMBERS = [
     ('門市訪客', 'hero@ai-yorozuya.com', '0900-000-000'),
 ]
 
+# 測試客的示範密碼：門市登入頁已幫她預填好，一鍵登入。
+# 存進 DB 的是**雜湊**（Member.set_password），不是這串明文。
+DEMO_PASSWORD = '12345678'
+
 # 服飾電商目錄：(sku, 品名, 牌價)。圖 = /products/<sku>.png（lean-web public/ 供）。
 # 底圖用 Medusa 官方 demo 棚拍照，再用「保留光影、換飽和色 + 遮罩留白」生出各色——
 # 所以 12 樣同一套棚拍風格、顏色卻真的各異（不是同張照片重貼）。
@@ -59,6 +63,8 @@ class Command(BaseCommand):
                 email=email, defaults={'name': name, 'phone': phone}
             )
             if created:
+                m.set_password(DEMO_PASSWORD)   # 設示範密碼（存雜湊），門市才登得進來
+                m.save(update_fields=['password'])
                 reg = now - timedelta(days=180)
                 Member.objects.filter(pk=m.pk).update(created_at=reg, updated_at=reg)
 

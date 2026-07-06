@@ -7,6 +7,7 @@
 會員就是「下單的人」：訂單的 Order.member 外鍵指向這裡（見 apps/order/models.py）。
 不另捏客戶表——同一個「人」只有一個真相。
 """
+from django.contrib.auth.hashers import check_password, make_password
 from django.db import models
 
 from apps._common.models import TimeStampedModel
@@ -23,6 +24,17 @@ class Member(TimeStampedModel):
     phone = models.CharField(max_length=30, blank=True)
     # 停用不是刪——用狀態欄關閉，歷史（含他下過的訂單）都留得住。
     status = models.CharField(max_length=8, choices=Status.choices, default=Status.ACTIVE)
+    # 登入密碼：**永遠存雜湊、不存明文**（set_password 用 Django 內建 PBKDF2 雜湊）。
+    # 空字串 = 還沒設密碼（不能登入）。真驗密碼的登入端點見 apps/member/apis.py。
+    password = models.CharField(max_length=128, blank=True)
+
+    def set_password(self, raw_password):
+        """設定密碼：存的是雜湊，不是明文。"""
+        self.password = make_password(raw_password)
+
+    def check_password(self, raw_password):
+        """核對密碼：拿明文跟存的雜湊比。沒設過密碼一律不通過。"""
+        return bool(self.password) and check_password(raw_password, self.password)
 
     def __str__(self):
         return self.name

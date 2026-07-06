@@ -1,7 +1,7 @@
 <script setup>
 // 對外門市——版型抓 _project/lean-commerce 的 storefront。這版是「真的能下單」：
 //   ① 商品讀 lean-stack 同一個後端 /api/v1/product（改後台→這裡跟著變）
-//   ② 登入（示範登入：email 對到會員即可，不驗密碼——後端刻意還沒 auth）
+//   ② 登入（真登入：POST /member/login 驗雜湊密碼 → 拿憑證，之後帶 Authorization header）
 //   ③ 結帳 = 真的 POST /api/v1/order → 回後台訂單列表就看得到那張「待付款」單
 //   ④ 招牌 STORE_NAME 就是免費體驗 F1「換招牌」要改的字
 import { ref, computed, onMounted } from 'vue'
@@ -17,13 +17,16 @@ const cartOpen = ref(false)
 const toast = ref('')
 let toastTimer = null
 
-// 登入（示範）：me = 目前登入的會員；存 localStorage，重整仍在。
+// 登入：me = 目前登入的會員、token = 後端發的憑證；都存 localStorage，重整仍在。
 const me = ref(JSON.parse(localStorage.getItem('lw_me') || 'null'))
+const token = ref(localStorage.getItem('lw_token') || '')
 const loginOpen = ref(false)
 const loginEmail = ref('hero@ai-yorozuya.com') // 預填測試客，一鍵登入
 const loginPw = ref('12345678')                // 示範密碼，也先幫她填好
-const DEMO_PW = '12345678'                      // 前端示範用（真 auth 是後端待做的接縫）
 const loginErr = ref('')
+
+// 帶憑證的請求頭：登入後所有「要證明是本人」的呼叫都帶上它。
+const authHeaders = () => (token.value ? { Authorization: `Bearer ${token.value}` } : {})
 const placing = ref(false)
 
 const money = (n) => 'NT$ ' + Number(n).toLocaleString()
@@ -45,19 +48,24 @@ function scrollTo(id) {
   document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' })
 }
 
-// ── 登入 / 登出（示範：email 對到會員 + 前端示範密碼；真驗密碼是後端待做的接縫）──
+// ── 登入 / 登出（真的打後端：驗雜湊密碼 → 拿憑證）──
 async function doLogin() {
   loginErr.value = ''
-  const email = loginEmail.value.trim().toLowerCase()
-  if (loginPw.value !== DEMO_PW) { loginErr.value = '密碼錯誤（示範密碼：12345678）'; return }
   try {
-    const members = (await (await fetch('/api/v1/member?page_size=100')).json()).items
-    const found = members.find((m) => m.email.toLowerCase() === email)
-    if (!found) { loginErr.value = '查無此帳號（試 hero@ai-yorozuya.com）'; return }
-    me.value = { id: found.id, name: found.name, email: found.email }
+    const res = await fetch('/api/v1/member/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: loginEmail.value.trim().toLowerCase(), password: loginPw.value }),
+    })
+    if (res.status === 401) { loginErr.value = '帳號或密碼錯誤'; return }
+    if (!res.ok) { loginErr.value = '登入失敗，請確認後端有起來。'; return }
+    const data = await res.json()
+    token.value = data.access_token
+    me.value = { id: data.member.id, name: data.member.name, email: data.member.email }
+    localStorage.setItem('lw_token', token.value)
     localStorage.setItem('lw_me', JSON.stringify(me.value))
     loginOpen.value = false
-    flash(`歡迎，${found.name}`)
+    flash(`歡迎，${me.value.name}`)
   } catch (e) {
     loginErr.value = '登入失敗，請確認後端有起來。'
     console.error(e)
@@ -65,7 +73,9 @@ async function doLogin() {
 }
 function logout() {
   me.value = null
+  token.value = ''
   localStorage.removeItem('lw_me')
+  localStorage.removeItem('lw_token')
 }
 
 // ── 結帳 = 真的建一張訂單（沒登入先叫登入；沒金流，訂單落在「待付款」）──
@@ -79,7 +89,7 @@ async function checkout() {
   try {
     const res = await fetch('/api/v1/order', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
       body: JSON.stringify({ member_id: me.value.id, items }),
     })
     if (!res.ok) {
@@ -112,6 +122,13 @@ onMounted(async () => {
     console.error(e)
   } finally {
     loading.value = false
+  }
+  // 重整後拿存著的憑證去問 /me；過期/失效就自動登出（別讓畫面顯示著假的登入狀態）。
+  if (token.value) {
+    try {
+      const r = await fetch('/api/v1/member/me', { headers: authHeaders() })
+      if (r.status === 401) logout()
+    } catch (e) { /* 後端沒起來就先留著，不誤登出 */ }
   }
   // 每 3.2 秒換一張
   setInterval(() => {
@@ -278,14 +295,14 @@ onMounted(async () => {
       </aside>
     </transition>
 
-    <!-- 登入對話框（示範登入：email 對到會員即可，不驗密碼）-->
+    <!-- 登入對話框（真登入：帳密送 /member/login，帳密都預填好一鍵登入）-->
     <transition name="scrim">
       <div v-if="loginOpen" class="scrim" @click="loginOpen = false" />
     </transition>
     <transition name="pop">
       <div v-if="loginOpen" class="modal">
         <div class="m-head"><strong class="rd-serif">會員登入</strong><button class="x" @click="loginOpen = false">✕</button></div>
-        <p class="m-hint">示範門市：帳號密碼都幫你帶好了，直接按登入。（真的驗密碼是後端待做的接縫，這裡先做前端示範。）</p>
+        <p class="m-hint">示範門市：帳號密碼都幫你帶好了，直接按登入。（後端真的驗密碼——雜湊比對後發憑證。）</p>
         <label class="m-label">Email</label>
         <input v-model="loginEmail" class="m-input" placeholder="hero@ai-yorozuya.com" @keyup.enter="doLogin" />
         <label class="m-label">密碼</label>

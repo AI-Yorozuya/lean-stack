@@ -43,5 +43,18 @@ class MemberListSchema(Schema):
     count: int
 
 
+# ── 登入 ────────────────────────────────────────────────
+class LoginIn(Schema):
+    """登入輸入：email + 密碼（門市前台 lean-web 送）。"""
+    email: str = Field(..., min_length=1)
+    password: str = Field(..., min_length=1)
+
+
+class LoginOut(Schema):
+    """登入回應：一張憑證 + 這個人是誰。憑證之後帶在 Authorization header。"""
+    access_token: str
+    member: MemberSchema
+
+
 class MessageSchema(Schema):
     message: str

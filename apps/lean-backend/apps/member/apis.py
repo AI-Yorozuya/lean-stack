@@ -1,5 +1,7 @@
 """會員管理 API。規則來源：intents/會員管理.md。
 
+- 登入             → POST /member/login   （發憑證；門市前台用）
+- 我是誰（受保護） → GET  /member/me      （帶憑證才進得來）
 - 列表（搜尋 + 分頁）→ GET  /member
 - 建立             → POST /member
 - 改（姓名/電話）  → PUT  /member/{id}
@@ -9,14 +11,18 @@
 鐵則把關：
 - {一 email 一會員} → email unique（DB），撞了轉 422 白話。
 - {停用=關閉不刪}   → 只有 deactivate 改狀態，**沒有 DELETE 端點**。
+- {登入才是本人}   → /login 驗雜湊密碼發憑證；/me 靠 member_auth 守衛（見 auth.py）。
 """
 from django.db import IntegrityError
 from django.shortcuts import get_object_or_404
 from ninja import Router
 from ninja.errors import HttpError
 
+from apps.member.auth import issue_token, member_auth
 from apps.member.models import Member
 from apps.member.schemas import (
+    LoginIn,
+    LoginOut,
     MemberIn,
     MemberListSchema,
     MemberSchema,
@@ -24,6 +30,31 @@ from apps.member.schemas import (
 )
 
 router = Router(tags=['member'])
+
+
+# ── 登入 / 我是誰（門市前台 lean-web 用）──────────────────────────
+@router.post('/login', response=LoginOut)
+def login(request, payload: LoginIn):
+    """帳號密碼登入：對到會員 + 密碼正確 → 發一張憑證。
+
+    帳號或密碼錯都回同一句 401（不透露是哪個錯，別幫人試帳號）。
+    真驗密碼在這裡發生（雜湊比對）——門市那張「示範密碼」到此變成後端認證。
+    """
+    member = Member.objects.filter(
+        email=payload.email.strip().lower(), status=Member.Status.ACTIVE
+    ).first()
+    if not member or not member.check_password(payload.password):
+        raise HttpError(401, '帳號或密碼錯誤')
+    return {'access_token': issue_token(member), 'member': member}
+
+
+@router.get('/me', response=MemberSchema, auth=member_auth)
+def me(request):
+    """回「我是誰」——只有帶著有效憑證才進得來（守衛驗過的 Member）。
+
+    這支就是「憑證真的鎖得住東西」的證明：沒 token / token 壞 / 過期 → 401。
+    """
+    return request.auth
 
 
 @router.get('', response=MemberListSchema)
