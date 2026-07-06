@@ -3,12 +3,15 @@
 全端教學 sandbox。給在這 repo 工作的 AI agent 的慣例與紀律。**規則優先於預設行為。**
 細節盡量寫在「對應檔案的 in-code 註解」裡，這份只給地圖與鐵則。
 
-## 兩 app 佈局
+## 三 app 佈局
 
 | app | 是什麼 | 技術 |
 |-----|--------|------|
-| `apps/lean-backend` | 後端 API + DB | Django 6 + django-ninja + Postgres（uv） |
+| `apps/lean-backend` | 後端 API + DB（唯一真相） | Django 6 + django-ninja + Postgres（uv） |
 | `apps/lean-admin` | 管理後台（auth 之後長在這） | Vue 3 + Vite（:5174） |
+| `apps/lean-web` | 對外門市（極簡櫥窗；讀同一後端，購物車是假的示範用） | Vue 3 + Vite（:5175） |
+
+> `lean-web` 刻意極簡（一頁商品 + 假購物車），示範「改後台 → 前台跟著變」，是免費體驗的鏡子；不是可上線的門市（那留給下游）。兩個前端都打 `lean-backend` 的 `/api/v1`。
 
 `infra/` = 部署層（terraform 一台 EC2 + 整套 prod compose + nginx）。`intents/` = 規則先於 code。
 
@@ -18,7 +21,7 @@
 - **單一註冊點**：所有 router 在 `apps/lean-backend/core/api.py` 用 `api.add_router(...)` 掛上去（只有一個 NinjaAPI，掛在 `/api/v1/`）。新增端點不用改 `core/urls.py`。
 - **`_common.TimeStampedModel`**：領域 model 一律繼承它（自動 created_at / updated_at）。見 `apps/_common/models.py`。
 - schema 用 ninja `Schema`（pydantic）放各 app 的 `schemas.py`。
-- **整套一律用 docker compose 起**（`infra/docker-compose.local.yml`，從 repo 根目錄跑；一次帶 postgres+redis+backend+worker+admin 前端；backend `uvicorn --reload`、前端 vite dev，改 code 都即時反映不用 rebuild）。**預設全走 docker、不跑本機 runserver**——Docker Desktop 是唯一狀態視窗（五綠燈=活著），log 用 `docker compose logs <service>` 直讀。（工程師例外：host 直接 `npm run dev` 可以，vite proxy 沒設 env 時 fallback `localhost:8000`——那是 dogfood 用的後門，新手流程一律 docker。）管理指令走 `docker compose -f infra/docker-compose.local.yml exec backend uv run python manage.py <cmd>`。`uv`/`npm` 都是容器內的事。撞 port 用 `LEAN_BACKEND_PORT`/`LEAN_ADMIN_PORT` 覆寫。新手啟動劇本見 `START.md`（下半是給 AI 的 runbook，照做）。
+- **整套一律用 docker compose 起**（`infra/docker-compose.local.yml`，從 repo 根目錄跑；一次帶 postgres+redis+backend+worker+admin+web 前端；backend `uvicorn --reload`、前端 vite dev，改 code 都即時反映不用 rebuild）。**預設全走 docker、不跑本機 runserver**——Docker Desktop 是唯一狀態視窗（五綠燈=活著），log 用 `docker compose logs <service>` 直讀。（工程師例外：host 直接 `npm run dev` 可以，vite proxy 沒設 env 時 fallback `localhost:8000`——那是 dogfood 用的後門，新手流程一律 docker。）管理指令走 `docker compose -f infra/docker-compose.local.yml exec backend uv run python manage.py <cmd>`。`uv`/`npm` 都是容器內的事。撞 port 用 `LEAN_BACKEND_PORT`/`LEAN_ADMIN_PORT`/`LEAN_WEB_PORT` 覆寫。新手啟動劇本見 `START.md`（下半是給 AI 的 runbook，照做）。
 
 ## INTENT-first 加功能（本 repo 的核心做法）
 

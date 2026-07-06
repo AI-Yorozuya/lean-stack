@@ -107,5 +107,21 @@ services:
     depends_on:
       - backend
 
+  # ── web 前端（對外門市 storefront）：跟 admin 同一套，讀同一個後端 API ──
+  # 極簡櫥窗：一頁商品 + 假購物車，示範「改後台 → 前台跟著變」。
+  web:
+    image: node:22-alpine
+    working_dir: /app
+    command: sh -c "npm install && npm run dev -- --host"
+    environment:
+      VITE_API_PROXY_TARGET: http://backend:8000
+    ports:
+      - "${LEAN_WEB_PORT:-5175}:5175"
+    volumes:
+      - ../apps/lean-web:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+
 volumes:
   lean-stack-pg-data:

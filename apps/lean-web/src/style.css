@@ -1,0 +1,9 @@
+/* 全站基底：暖色紙感背景 + 系統中文字。門市要溫暖、好親近（跟後台的冷灰刻意不同）。 */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Noto Sans TC',
+    'Microsoft JhengHei', sans-serif;
+  background: #faf6f0;
+  color: #2b2620;
+  -webkit-font-smoothing: antialiased;
+}
