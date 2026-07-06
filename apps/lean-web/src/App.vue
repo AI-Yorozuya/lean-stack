@@ -86,7 +86,7 @@ onMounted(async () => {
               <a class="ulink" @click="flash('會員首購 88 折（示範門市）')">會員首購 88 折</a>
             </div>
           </div>
-          <div class="himg" />
+          <div class="himg"><img src="/bear.png" alt="AI萬事屋" class="hero-bear" /></div>
         </div>
       </section>
 
@@ -217,7 +217,8 @@ onMounted(async () => {
 .h1 { font-weight: 500; font-size: 50px; line-height: 1.25; color: #201810; margin: 20px 0 22px; letter-spacing: 0.5px; }
 .lead { font-size: 15px; line-height: 1.85; color: var(--ink600); max-width: 380px; margin: 0 0 32px; }
 .cta { display: flex; align-items: center; gap: 18px; }
-.himg { background: linear-gradient(135deg, var(--soft) 0%, #ecd9c7 55%, #e0cdb6 100%); }
+.himg { background: linear-gradient(135deg, var(--soft) 0%, #ecd9c7 55%, #e0cdb6 100%); display: flex; align-items: center; justify-content: center; padding: 32px; }
+.hero-bear { width: 78%; max-height: 84%; object-fit: contain; }
 
 .trust-wrap { padding-top: 22px; }
 .trust { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; padding: 22px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
