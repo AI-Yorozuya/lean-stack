@@ -95,6 +95,11 @@ async function checkout() {
   }
 }
 
+// Hero 輪播：挑幾件顏色鮮明的商品跑馬燈（換掉原本的熊）。
+const heroSkus = ['SWEAT-WINE', 'SWEAT-FOREST', 'SHORTS-NAVY', 'SWEAT-MUSTARD', 'SHORTS-BRICK']
+const heroSlides = computed(() => heroSkus.map((s) => products.value.find((p) => p.sku === s)).filter(Boolean))
+const slideIdx = ref(0)
+
 onMounted(async () => {
   try {
     const res = await fetch('/api/v1/product?page_size=100&active_only=true')
@@ -105,6 +110,10 @@ onMounted(async () => {
   } finally {
     loading.value = false
   }
+  // 每 3.2 秒換一張
+  setInterval(() => {
+    if (heroSlides.value.length) slideIdx.value = (slideIdx.value + 1) % heroSlides.value.length
+  }, 3200)
 })
 </script>
 
@@ -147,7 +156,12 @@ onMounted(async () => {
               <a class="ulink" @click="flash('會員首購 88 折（示範門市）')">會員首購 88 折</a>
             </div>
           </div>
-          <div class="himg"><img src="/bear.png" alt="AI萬事屋" class="hero-bear" /></div>
+          <div class="himg">
+            <img v-for="(p, i) in heroSlides" :key="p.id" :src="p.image_url" :alt="p.name" class="cslide" :class="{ on: i === slideIdx }" />
+            <div v-if="heroSlides.length > 1" class="dots">
+              <button v-for="(p, i) in heroSlides" :key="i" type="button" :class="{ on: i === slideIdx }" :aria-label="`第 ${i + 1} 張`" @click="slideIdx = i" />
+            </div>
+          </div>
         </div>
       </section>
 
@@ -303,8 +317,12 @@ onMounted(async () => {
 .h1 { font-weight: 500; font-size: 50px; line-height: 1.25; color: #201810; margin: 20px 0 22px; letter-spacing: 0.5px; }
 .lead { font-size: 15px; line-height: 1.85; color: var(--ink600); max-width: 380px; margin: 0 0 32px; }
 .cta { display: flex; align-items: center; gap: 18px; }
-.himg { background: linear-gradient(135deg, var(--soft) 0%, #ecd9c7 55%, #e0cdb6 100%); display: flex; align-items: center; justify-content: center; padding: 32px; }
-.hero-bear { width: 78%; max-height: 84%; object-fit: contain; }
+.himg { position: relative; background: #f0efeb; overflow: hidden; }
+.cslide { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 42%; opacity: 0; transition: opacity 0.7s ease; }
+.cslide.on { opacity: 1; }
+.dots { position: absolute; bottom: 14px; left: 0; right: 0; display: flex; justify-content: center; gap: 7px; z-index: 2; }
+.dots button { width: 8px; height: 8px; border-radius: 999px; border: none; background: rgba(40, 30, 20, 0.28); cursor: pointer; padding: 0; transition: background 0.2s, width 0.2s; }
+.dots button.on { background: var(--accent); width: 20px; }
 
 .trust-wrap { padding-top: 22px; }
 .trust { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; padding: 22px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
