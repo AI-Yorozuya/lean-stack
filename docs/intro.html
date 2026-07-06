@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>lean-stack · 快速介紹</title>
+<style>
+  :root {
+    --red: #b53920; --ink: #201a14; --ink2: #6b5d4d; --ink3: #9a8b78;
+    --line: #e7ddcf; --bg: #ffffff; --soft: #faf6f0; --card: #fffdfa;
+    --admin: #2563eb; --web: #b53920; --api: #16a34a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Noto Sans TC','PingFang TC','Microsoft JhengHei',system-ui,sans-serif;
+    background: var(--soft); color: var(--ink); line-height: 1.7; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 940px; margin: 0 auto; padding: 48px 24px 80px; }
+  header.hero { text-align: center; padding: 20px 0 40px; }
+  .hero h1 { font-size: 44px; letter-spacing: 1px; }
+  .hero h1 .dot { color: var(--red); }
+  .hero .sub { color: var(--ink2); font-size: 17px; margin-top: 10px; }
+  .hero .facts { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 20px; }
+  .fact { background: var(--card); border: 1px solid var(--line); border-radius: 999px; padding: 6px 15px; font-size: 13px; color: var(--ink2); }
+  .fact b { color: var(--ink); }
+
+  section { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 28px 30px; margin-top: 22px; }
+  h2 { font-size: 22px; display: flex; align-items: center; gap: 10px; }
+  h2::before { content: ""; width: 6px; height: 22px; background: var(--red); border-radius: 3px; }
+  h2 .en { font-size: 13px; color: var(--ink3); font-weight: 400; letter-spacing: 2px; text-transform: uppercase; }
+  .lead { color: var(--ink2); margin: 8px 0 22px; font-size: 15px; }
+
+  /* 架構圖 */
+  .arch { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .tier { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+  .node { border-radius: 12px; padding: 14px 20px; text-align: center; min-width: 180px; border: 1.5px solid; background: #fff; }
+  .node .t { font-weight: 600; font-size: 15px; }
+  .node .m { font-size: 12px; color: var(--ink3); margin-top: 3px; }
+  .node.fe-admin { border-color: var(--admin); } .node.fe-admin .t { color: var(--admin); }
+  .node.fe-web { border-color: var(--web); } .node.fe-web .t { color: var(--web); }
+  .node.be { border-color: var(--api); background: #f2fbf5; min-width: 320px; } .node.be .t { color: var(--api); }
+  .node.db { border-color: var(--line); min-width: 150px; }
+  .conn { color: var(--ink3); font-size: 13px; display: flex; flex-direction: column; align-items: center; }
+  .conn .arrow { font-size: 20px; line-height: 1; }
+  .api-label { background: var(--ink); color: #fff; border-radius: 999px; padding: 3px 14px; font-size: 12.5px; letter-spacing: 1px; margin: 2px 0; }
+
+  /* ERD / model × action */
+  .erd { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .entity { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  .entity .head { background: var(--soft); padding: 10px 14px; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
+  .entity .head .rel { font-size: 11px; color: var(--ink3); font-weight: 400; }
+  .entity .fields { padding: 10px 14px; font-size: 13px; color: var(--ink2); }
+  .entity .fields code { background: var(--soft); padding: 1px 6px; border-radius: 5px; font-size: 12px; color: var(--ink); }
+  .entity .act { padding: 10px 14px; border-top: 1px dashed var(--line); font-size: 13px; }
+  .entity .act b { color: var(--red); font-size: 12px; }
+  .relnote { grid-column: 1/-1; text-align: center; color: var(--ink3); font-size: 13px; margin-top: 2px; }
+
+  /* 狀態機 */
+  .sm { display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; margin-top: 20px; }
+  .pill { border: 1.5px solid var(--line); border-radius: 999px; padding: 8px 16px; font-size: 14px; font-weight: 600; background: #fff; }
+  .pill.start { border-color: var(--red); color: var(--red); }
+  .pill.term { background: var(--soft); color: var(--ink3); border-style: dashed; }
+  .smarrow { color: var(--ink3); font-size: 13px; text-align: center; }
+  .smarrow b { display: block; color: var(--ink); font-size: 12px; }
+  .sm-cancel { text-align: center; color: var(--ink3); font-size: 13px; margin-top: 12px; }
+
+  /* 技術 */
+  .stack { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  .stack .col h3 { font-size: 14px; color: var(--ink3); letter-spacing: 1px; margin-bottom: 10px; text-transform: uppercase; }
+  .chips { display: flex; flex-wrap: wrap; gap: 7px; }
+  .chip { background: var(--soft); border: 1px solid var(--line); border-radius: 8px; padding: 5px 11px; font-size: 13px; }
+  .chip b { color: var(--red); }
+
+  .run { background: var(--ink); color: #eee; border-radius: 12px; padding: 16px 20px; font-family: ui-monospace, Menlo, monospace; font-size: 13.5px; margin-top: 6px; overflow-x: auto; }
+  .run .c { color: #7fd88f; }
+  .run .u { color: #f0c674; }
+  footer { text-align: center; color: var(--ink3); font-size: 13px; margin-top: 30px; }
+
+  @media (max-width: 720px) {
+    .erd, .stack { grid-template-columns: 1fr; }
+    .hero h1 { font-size: 34px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <h1>lean-stack<span class="dot">.</span></h1>
+    <div class="sub">全端教學 sandbox —— 一個 repo、三個 app、一條端到端。</div>
+    <div class="facts">
+      <span class="fact">🐻 AI 萬事屋</span>
+      <span class="fact"><b>INTENT-first</b>：先寫規則、再生 code</span>
+      <span class="fact">Docker 一鍵起</span>
+      <span class="fact">教學範例：會員 · 商品 · 訂單</span>
+    </div>
+  </header>
+
+  <!-- 1. 三個 app 怎麼接 -->
+  <section>
+    <h2>三個 app 怎麼接 <span class="en">architecture</span></h2>
+    <p class="lead">兩個前端（給人看）都打同一個後端的 <code>/api/v1</code>；後端是唯一真相，資料在 Postgres，慢工作丟給 Redis + celery。</p>
+    <div class="arch">
+      <div class="tier">
+        <div class="node fe-admin"><div class="t">lean-admin</div><div class="m">管理後台 · Vue 3 + Vite · :5174</div></div>
+        <div class="node fe-web"><div class="t">lean-web</div><div class="m">對外門市 · Vue 3 + Vite · :5175</div></div>
+      </div>
+      <div class="conn"><span class="arrow">↓</span><span class="api-label">HTTP · /api/v1</span><span class="arrow">↓</span></div>
+      <div class="tier">
+        <div class="node be"><div class="t">lean-backend</div><div class="m">Django 6 + django-ninja（唯一真相：資料模型 · 鐵則 · 狀態機）· :8000</div></div>
+      </div>
+      <div class="conn"><span class="arrow">↓</span></div>
+      <div class="tier">
+        <div class="node db"><div class="t">PostgreSQL</div><div class="m">資料</div></div>
+        <div class="node db"><div class="t">Redis</div><div class="m">佇列</div></div>
+        <div class="node db"><div class="t">celery-worker</div><div class="m">非同步任務</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. 資料模型 × 使用者動作 -->
+  <section>
+    <h2>資料模型 × 使用者動作 <span class="en">model × action</span></h2>
+    <p class="lead">四個「東西」、三條關聯。會員<b>下單</b>；訂單<b>含</b>明細；明細下單當下從商品<b>抄快照</b>（之後改目錄不動歷史）。</p>
+    <div class="erd">
+      <div class="entity">
+        <div class="head">會員 Member <span class="rel">1 — N 訂單</span></div>
+        <div class="fields"><code>name</code> <code>email*</code> <code>phone</code> <code>status</code></div>
+        <div class="act"><b>動作</b>　看清單 · 搜尋（新增/編輯/刪除＝你試缺口）</div>
+      </div>
+      <div class="entity">
+        <div class="head">商品 Product <span class="rel">1 — N 明細</span></div>
+        <div class="fields"><code>sku*</code> <code>name</code> <code>unit_price</code> <code>is_active</code></div>
+        <div class="act"><b>動作</b>　看 · 搜尋 · 篩選 · 新增 · 編輯（inline 上架 / 加刪除＝練習）</div>
+      </div>
+      <div class="entity">
+        <div class="head">訂單 Order <span class="rel">含 N 明細</span></div>
+        <div class="fields"><code>order_no*</code> <code>member</code> <code>status</code> <code>total</code>（衍生）</div>
+        <div class="act"><b>動作</b>　新增 · 編輯 · 刪除 · 看詳細 ＋ 狀態機（收款/出貨/取消）</div>
+      </div>
+      <div class="entity">
+        <div class="head">明細 OrderItem <span class="rel">快照 from 商品</span></div>
+        <div class="fields"><code>name</code>（快照）<code>unit_price</code>（快照）<code>quantity</code> <code>subtotal</code>（衍生）</div>
+        <div class="act"><b>鐵則</b>　總額 = 明細加總 · 已出貨不可改</div>
+      </div>
+      <div class="relnote">＊ = 業務識別碼（唯一，非主鍵）　·　衍生 = 後端算、不手填　·　快照 = 下單當下抄一份</div>
+    </div>
+
+    <div style="margin-top:26px">
+      <div class="lead" style="margin:0 0 6px"><b style="color:var(--ink)">訂單生命週期</b>（狀態機：有向、有守衛、有終態）</div>
+      <div class="sm">
+        <span class="pill start">待付款</span>
+        <span class="smarrow"><b>收款</b>→</span>
+        <span class="pill">待出貨</span>
+        <span class="smarrow"><b>出貨</b>→</span>
+        <span class="pill term">已出貨</span>
+      </div>
+      <div class="sm-cancel">待付款 / 待出貨 —（<b>取消</b>）→ <span style="border:1.5px dashed var(--line);border-radius:999px;padding:2px 12px;color:var(--ink3)">已取消</span>　·　非法轉移後端擋（422）</div>
+    </div>
+  </section>
+
+  <!-- 3. 使用的技術 -->
+  <section>
+    <h2>使用的技術 <span class="en">tech stack</span></h2>
+    <div class="stack">
+      <div class="col">
+        <h3>後端</h3>
+        <div class="chips">
+          <span class="chip"><b>Django 6</b></span>
+          <span class="chip">django-ninja</span>
+          <span class="chip">Pydantic Schema</span>
+          <span class="chip">PostgreSQL</span>
+          <span class="chip">Celery</span>
+          <span class="chip">Redis</span>
+          <span class="chip">uv</span>
+        </div>
+      </div>
+      <div class="col">
+        <h3>前端</h3>
+        <div class="chips">
+          <span class="chip"><b>Vue 3</b></span>
+          <span class="chip">Vite</span>
+          <span class="chip">shadcn-vue</span>
+          <span class="chip">reka-ui</span>
+          <span class="chip">Tailwind v4</span>
+          <span class="chip">Vue Router</span>
+        </div>
+      </div>
+      <div class="col">
+        <h3>基建 / DevX</h3>
+        <div class="chips">
+          <span class="chip"><b>Docker Compose</b></span>
+          <span class="chip">dev/prod parity</span>
+          <span class="chip">Terraform</span>
+          <span class="chip">Nginx</span>
+          <span class="chip">S3（media）</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. 一鍵起 -->
+  <section>
+    <h2>一鍵起 <span class="en">run</span></h2>
+    <div class="run"><span class="c"># repo 根目錄，一句話帶起整套（五綠燈=活著）</span><br>
+      docker compose -f infra/docker-compose.local.yml up -d</div>
+    <div class="facts" style="justify-content:flex-start;margin-top:16px">
+      <span class="fact">後台 <b>:5174</b></span>
+      <span class="fact">門市 <b>:5175</b></span>
+      <span class="fact">API <b>:8000/api/v1</b></span>
+    </div>
+  </section>
+
+  <footer>lean-stack · 全端教學 sandbox　·　規則優先於預設行為</footer>
+</div>
+</body>
+</html>
