@@ -132,8 +132,8 @@ onMounted(async () => {
             <div class="body">
               <div class="name rd-serif">{{ p.name }}</div>
               <div class="price rd-num">{{ money(p.unit_price) }}</div>
-              <button class="rd-btn-soft" @click="addToCart(p)">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12l-1 12H7L6 8z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>
+              <button class="add-btn" @click="addToCart(p)">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12l-1 12H7L6 8z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>
                 加入購物車
               </button>
             </div>
@@ -240,6 +240,8 @@ onMounted(async () => {
 .body { padding: 15px; display: flex; flex-direction: column; gap: 9px; }
 .name { font: 600 15px 'Noto Serif TC'; color: var(--ink900); line-height: 1.35; }
 .price { font: 800 18px 'Plus Jakarta Sans'; color: var(--accent); }
+.add-btn { margin-top: 2px; border: none; background: var(--accent); color: #fff; font: 600 13.5px 'Noto Sans TC'; padding: 11px; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: filter 0.15s; }
+.add-btn:hover { filter: brightness(0.94); }
 
 .sub-wrap { padding-top: 36px; padding-bottom: 8px; }
 .sub { display: grid; grid-template-columns: 1fr 1.1fr; border-radius: var(--r); overflow: hidden; background: var(--ink900); min-height: 280px; }
