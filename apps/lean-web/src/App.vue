@@ -60,7 +60,7 @@ onMounted(async () => {
     <!-- Header -->
     <header class="hd">
       <div class="rd-wrap hd-in">
-        <a class="logo rd-serif" @click="scrollTo('top')">🐻 {{ STORE_NAME }}</a>
+        <a class="logo rd-serif" @click="scrollTo('top')"><img src="/bearhead.png" alt="" class="logo-img" />{{ STORE_NAME }}</a>
         <nav class="nav">
           <a class="nlink" @click="scrollTo('featured')">所有商品</a>
           <button class="cart" title="購物車" @click="cartOpen = true">
@@ -157,7 +157,7 @@ onMounted(async () => {
 
     <footer class="foot">
       <div class="rd-wrap">
-        <div class="foot-brand rd-serif">🐻 {{ STORE_NAME }}</div>
+        <div class="foot-brand rd-serif"><img src="/bearhead.png" alt="" class="foot-logo" />{{ STORE_NAME }}</div>
         <p>嚴選每一件商品，安心購物、快速到貨。把好東西，送到你的日常。</p>
         <p class="tiny">lean-web · 示範門市（購物車為假、商品來自 lean-stack 後台）</p>
       </div>
@@ -202,7 +202,8 @@ onMounted(async () => {
 
 .hd { position: sticky; top: 0; z-index: 20; background: #fffdfa; border-bottom: 1px solid var(--line); }
 .hd-in { display: flex; align-items: center; justify-content: space-between; height: 62px; }
-.logo { font-size: 20px; font-weight: 600; letter-spacing: 0.02em; }
+.logo { display: inline-flex; align-items: center; gap: 9px; font-size: 20px; font-weight: 600; letter-spacing: 0.02em; }
+.logo-img { height: 26px; width: auto; }
 .nav { display: flex; align-items: center; gap: 22px; }
 .nlink { font: 500 14px 'Noto Sans TC'; color: var(--ink700); }
 .nlink:hover { color: var(--accent); }
@@ -248,7 +249,8 @@ onMounted(async () => {
 .sub-btn { border: none; background: #fff; color: var(--ink900); font: 600 14px 'Noto Sans TC'; padding: 13px 28px; border-radius: 100px; cursor: pointer; width: fit-content; }
 
 .foot { margin-top: 40px; border-top: 1px solid var(--line); padding: 40px 0 48px; text-align: center; color: var(--ink600); }
-.foot-brand { font-size: 20px; font-weight: 600; margin-bottom: 12px; }
+.foot-brand { display: inline-flex; align-items: center; gap: 9px; font-size: 20px; font-weight: 600; margin-bottom: 12px; }
+.foot-logo { height: 24px; width: auto; }
 .foot p { font-size: 14px; margin: 4px 0; }
 .foot .tiny { font-size: 12px; color: var(--ink300); margin-top: 14px; }
 
