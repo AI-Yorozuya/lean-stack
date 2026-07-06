@@ -32,20 +32,14 @@ MEMBERS = [
     ('楊佳穎', 'jiaying.yang@example.com', '0966-778-990'),
 ]
 
-# 服飾電商目錄：(sku, 品名, 牌價)。圖走 image_url = /products/<sku>.jpg（lean-web 的 public/ 供）。
+# 服飾電商目錄：(sku, 品名, 牌價)。圖 = /products/<sku>.png（lean-web public/ 供）——
+# 用 Medusa 官方 demo 的棚拍圖（乾淨白灰底、風格統一），所以目錄收斂成它涵蓋的這幾樣。
 PRODUCTS = [
-    ('TOP-TEE', '純棉素色 T 恤', 590),
-    ('TOP-OXF', '牛津紐扣襯衫', 1280),
-    ('TOP-POLO', '經典 POLO 衫', 890),
-    ('TOP-KNIT', '羅紋針織毛衣', 1580),
-    ('BTM-JEAN', '直筒牛仔褲', 1680),
-    ('BTM-CHINO', '休閒卡其褲', 1280),
-    ('BTM-SHORT', '棉質短褲', 780),
-    ('OUT-HOOD', '連帽刷毛外套', 1980),
-    ('OUT-DENIM', '牛仔外套', 2280),
-    ('OUT-COAT', '長版風衣', 3280),
-    ('ACC-CAP', '棒球帽', 590),
-    ('ACC-SOCK', '中筒襪（三雙組）', 380),
+    ('TEE-WHITE', '經典素面 T 恤（白）', 590),
+    ('TEE-BLACK', '經典素面 T 恤（黑）', 590),
+    ('SWEAT', '復古大學 T', 1280),
+    ('PANTS', '休閒棉質長褲', 1380),
+    ('SHORTS', '復古休閒短褲', 880),
 ]
 
 
@@ -74,7 +68,7 @@ class Command(BaseCommand):
         for idx, (sku, name, price) in enumerate(PRODUCTS):
             p, created = Product.objects.get_or_create(
                 sku=sku,
-                defaults={'name': name, 'unit_price': price, 'image_url': f'/products/{sku}.jpg'},
+                defaults={'name': name, 'unit_price': price, 'image_url': f'/products/{sku}.png'},
             )
             if created:
                 listed = now - timedelta(days=200 - idx * 15)
