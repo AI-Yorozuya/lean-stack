@@ -15,21 +15,11 @@ from django.utils import timezone
 from apps.member.models import Member
 from apps.product.models import Product
 
-# 會員：台灣風姓名＋email＋手機。email 是識別（一 email 一會員）。
-# 第一筆是門市前台的「測試客」——lean-web 就登入這個帳號下單。
+# 會員：只灌**一位**——門市前台的「測試客」。lean-web 就登入這個帳號下單。
+# 刻意不灌一堆假會員：會員頁在教學裡是「最單純讀清單」，一位真人夠示範；
+# 名單要長起來，是靠門市之後真的有人來（後端補上註冊/登入才會長）。
 MEMBERS = [
     ('門市訪客', 'hero@ai-yorozuya.com', '0900-000-000'),
-    ('陳雅婷', 'yating.chen@example.com', '0912-345-678'),
-    ('林建宏', 'jianhong.lin@example.com', '0922-113-224'),
-    ('黃淑芬', 'shufen.huang@example.com', '0933-556-778'),
-    ('張家豪', 'jiahao.chang@example.com', '0955-778-990'),
-    ('吳佩珊', 'peishan.wu@example.com', '0966-224-668'),
-    ('劉俊傑', 'junjie.liu@example.com', '0988-336-996'),
-    ('王思涵', 'sihan.wang@example.com', '0911-223-344'),
-    ('蔡宗翰', 'zonghan.tsai@example.com', '0977-445-668'),
-    ('鄭雅雯', 'yawen.cheng@example.com', '0933-889-221'),
-    ('許志明', 'zhiming.hsu@example.com', '0955-667-889'),
-    ('楊佳穎', 'jiaying.yang@example.com', '0966-778-990'),
 ]
 
 # 服飾電商目錄：(sku, 品名, 牌價)。圖 = /products/<sku>.png（lean-web public/ 供）。
@@ -63,13 +53,13 @@ class Command(BaseCommand):
         # 註冊 / 上架日期往回散開，讓那些日期欄有變化（created_at 是 auto_now_add，建完 update 回填）。
         now = timezone.now()
 
-        # 會員：get_or_create 認 email。註冊日期散在過去約 40~280 天。
+        # 會員：get_or_create 認 email。測試客的註冊日期設在過去約半年前。
         for idx, (name, email, phone) in enumerate(MEMBERS):
             m, created = Member.objects.get_or_create(
                 email=email, defaults={'name': name, 'phone': phone}
             )
             if created:
-                reg = now - timedelta(days=280 - idx * 22)
+                reg = now - timedelta(days=180)
                 Member.objects.filter(pk=m.pk).update(created_at=reg, updated_at=reg)
 
         # 商品：get_or_create 認 sku。圖 = /products/<sku>.jpg。上架日期散在過去約 35~200 天。
