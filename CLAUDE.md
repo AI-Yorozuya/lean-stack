@@ -11,7 +11,7 @@
 | `apps/lean-admin` | 管理後台（auth 之後長在這） | Vue 3 + Vite（:5174） |
 | `apps/lean-web` | 對外門市（登入→加購→真下單，無金流） | Vue 3 + Vite（:5175） |
 
-> `lean-web` 極簡但**能真下單**：登入（示範登入——後端刻意還沒 auth，email 對到會員即可）→ 加購 → 結帳 `POST /order` → 後台訂單列表就看得到那張「待付款」單。示範完整 loop：「改後台→前台變」＋「前台下單→後台看到」。**訂單不再 seed**（`seed_demo` 只灌會員＋商品，訂單由門市產生；測試客 `hero@ai-yorozuya.com`）。仍不是可上線門市（金流／庫存／驗證留下游）。兩個前端都打 `/api/v1`。
+> `lean-web` 極簡但**能真下單**：登入（**真登入**——`POST /member/login` 驗雜湊密碼發憑證，見 [intents/會員登入.md](intents/會員登入.md)）→ 加購 → 帶憑證結帳 `POST /web/order`（門市 BFF，下單的人＝憑證本人）→ 後台訂單列表就看得到那張「待付款」單。示範完整 loop：「改後台→前台變」＋「前台下單→後台看到」。**訂單不再 seed**（`seed_demo` 只灌一位測試客＋商品，訂單由門市產生；測試客 `hero@ai-yorozuya.com` / 密碼 `12345678`）。仍不是可上線門市（金流／庫存留下游）。兩個前端都打 `/api/v1`。
 
 `infra/` = 部署層（terraform 一台 EC2 + 整套 prod compose + nginx）。`intents/` = 規則先於 code。
 

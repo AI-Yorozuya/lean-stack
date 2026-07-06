@@ -2,7 +2,7 @@
 // 對外門市——版型抓 _project/lean-commerce 的 storefront。這版是「真的能下單」：
 //   ① 商品讀 lean-stack 同一個後端 /api/v1/product（改後台→這裡跟著變）
 //   ② 登入（真登入：POST /member/login 驗雜湊密碼 → 拿憑證，之後帶 Authorization header）
-//   ③ 結帳 = 真的 POST /api/v1/order → 回後台訂單列表就看得到那張「待付款」單
+//   ③ 結帳 = 帶憑證 POST /api/v1/web/order（門市 BFF，下單的人＝憑證本人）→ 後台看到那張「待付款」單
 //   ④ 招牌 STORE_NAME 就是免費體驗 F1「換招牌」要改的字
 import { ref, computed, onMounted } from 'vue'
 
@@ -131,7 +131,7 @@ onMounted(async () => {
   } finally {
     loading.value = false
   }
-  // 重整後拿存著的憑證去問 /me；過期/失效就自動登出（別讓畫面顯示著假的登入狀態）。
+  // 重整後拿存著的憑證去問 /me；過期/失效就自動登出（別讓畫面顯示著失效的登入狀態）。
   if (token.value) {
     try {
       const r = await fetch('/api/v1/member/me', { headers: authHeaders() })
@@ -269,7 +269,7 @@ onMounted(async () => {
       </div>
     </footer>
 
-    <!-- 假購物車 drawer -->
+    <!-- 購物車 drawer -->
     <transition name="scrim">
       <div v-if="cartOpen" class="scrim" @click="cartOpen = false" />
     </transition>
@@ -392,7 +392,7 @@ onMounted(async () => {
 .foot p { font-size: 14px; margin: 4px 0; }
 .foot .tiny { font-size: 12px; color: var(--ink300); margin-top: 14px; }
 
-/* 假購物車 drawer */
+/* 購物車 drawer */
 .scrim { position: fixed; inset: 0; background: rgba(30, 22, 14, 0.4); z-index: 40; }
 .drawer { position: fixed; top: 0; right: 0; z-index: 50; width: 360px; max-width: 88vw; height: 100vh; background: #fffdfa; box-shadow: -20px 0 50px -20px rgba(40, 30, 20, 0.4); display: flex; flex-direction: column; }
 .dr-head { display: flex; align-items: center; justify-content: space-between; padding: 18px 22px; border-bottom: 1px solid var(--line); }
