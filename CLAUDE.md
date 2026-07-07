@@ -91,6 +91,8 @@
 
 **危險操作護欄（單向門，動手前一定先問人）：** `push -f`、`reset --hard`、`rebase` 已推出去的分支、`branch -D`、`clean -fd`、任何會**真的抹掉 commit / 檔案**的操作。這些「通用但難回頭」——放手但底下要有網。
 
+> 這條護欄已**硬體化**：`.claude/settings.json`（deny 清單）＋ `.claude/hooks/guard.sh`（PreToolUse 攔變體）會直接擋下這些操作。被擋到不是錯誤，是護欄在工作——改走安全做法，真有必要時請使用者本人在終端機執行。
+
 ## commit 慣例
 
 `type(scope): subject` — type: feat/fix/refactor/docs/chore/test；scope: lean-backend / lean-admin / infra / docs。
