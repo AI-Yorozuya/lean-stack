@@ -22,7 +22,7 @@
 4. 跟 Claude 說:
    > 幫我把 https://github.com/AI-Yorozuya/lean-stack 抓下來,然後照裡面的 START.md 把系統跑起來。
 5. **第一次會等 5–20 分鐘**(它在幫你下載和組裝環境),不是當掉。之後每次啟動都是幾十秒的事。
-6. 完成時 Claude 會給你**後台網址**(給你管理的)。打開,動了,就是你的系統。
+6. 完成時 Claude 會給你**兩個網址**:**前台**(給客人逛的門市)和**後台**(給你管理的)。都打開,動了,就是你的系統——去前台下一張單,後台馬上看得到。
 
 ## 每次開工(日常)
 
@@ -44,7 +44,7 @@
 
 | 想看什麼 | 去哪 |
 |---|---|
-| 我的系統(成果) | **瀏覽器**——Claude 給你的後台網址 |
+| 我的系統(成果) | **瀏覽器**——Claude 給你的前台＋後台網址 |
 | 系統活著沒 | **Docker Desktop**——綠燈活著、紅燈掛了(跟 Claude 說一聲就好) |
 | 錯誤訊息、log | **不用你看**——Claude 自己讀得到 |
 
@@ -81,23 +81,25 @@ docker compose -f infra/docker-compose.local.yml up --build -d
 ```
 - 首次 build 慢(拉 image + npm install),**先主動告訴她**「第一次要等幾分鐘,不是當掉」。
 - **撞 port**(`port is already allocated`):用環境變數覆寫再起,並告訴她網址變了:
-  `LEAN_BACKEND_PORT=8001 LEAN_ADMIN_PORT=5176 docker compose -f infra/docker-compose.local.yml up -d`(只覆寫撞到的那個即可)
+  `LEAN_BACKEND_PORT=8001 LEAN_ADMIN_PORT=5176 LEAN_WEB_PORT=5177 docker compose -f infra/docker-compose.local.yml up -d`(只覆寫撞到的那個即可)
 
 ### 3. 驗收(全過才算跑起來)
 
 ```bash
-docker compose -f infra/docker-compose.local.yml ps          # 五個 service 全 Up(postgres/redis 要 healthy)
+docker compose -f infra/docker-compose.local.yml ps          # 六個 service 全 Up(postgres/redis 要 healthy)
 curl -s localhost:8000/api/v1/health                   # {"status": "ok"}(port 有覆寫就用覆寫的)
-curl -s -o /dev/null -w '%{http_code}' localhost:5174  # 200
+curl -s -o /dev/null -w '%{http_code}' localhost:5174  # 200(後台)
+curl -s -o /dev/null -w '%{http_code}' localhost:5175  # 200(前台門市)
 curl -s localhost:5174/api/v1/health                   # 前端 proxy 穿透也要通
 ```
 
 ### 4. 回報格式
 
-給她一個可點的網址＋一句話:
+給她兩個可點的網址＋一句話:
 > 跑起來了 ✓
+> 前台(給客人逛的門市):http://localhost:5175
 > 後台(給你管理的):http://localhost:5174
-> Docker Desktop 裡那五個綠燈就是你的系統,亮著=活著。
+> Docker Desktop 裡那六個綠燈就是你的系統,亮著=活著。去前台下一張單,後台馬上看得到!
 
 ### 5. 之後的日常對應
 
