@@ -1,8 +1,8 @@
 <script setup>
 // 對外門市——版型抓 _project/lean-commerce 的 storefront。這版是「真的能下單」：
-//   ① 商品讀 lean-stack 同一個後端 /api/v1/product（改後台→這裡跟著變）
-//   ② 登入（真登入：POST /member/login 驗雜湊密碼 → 拿憑證，之後帶 Authorization header）
-//   ③ 結帳 = 帶憑證 POST /api/v1/web/order（門市 BFF，下單的人＝憑證本人）→ 後台看到那張「待付款」單
+//   ① 商品讀 lean-stack 同一個後端 /api/v1/products（改後台→這裡跟著變）
+//   ② 登入（真登入：POST /members/login 驗雜湊密碼 → 拿憑證，之後帶 Authorization header）
+//   ③ 結帳 = 帶憑證 POST /api/v1/web/orders（門市 BFF，下單的人＝憑證本人）→ 後台看到那張「待付款」單
 //   ④ 招牌 STORE_NAME 就是免費體驗 F1「換招牌」要改的字
 import { ref, computed, onMounted } from 'vue'
 
@@ -52,7 +52,7 @@ function scrollTo(id) {
 async function doLogin() {
   loginErr.value = ''
   try {
-    const res = await fetch('/api/v1/member/login', {
+    const res = await fetch('/api/v1/members/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: loginEmail.value.trim().toLowerCase(), password: loginPw.value }),
@@ -88,7 +88,7 @@ async function checkout() {
   placing.value = true
   try {
     // 打門市 BFF 的下單端點：只送明細，下單的人由後端從憑證認定（不送 member_id）。
-    const res = await fetch('/api/v1/web/order', {
+    const res = await fetch('/api/v1/web/orders', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...authHeaders() },
       body: JSON.stringify({ items }),
@@ -123,7 +123,7 @@ const slideIdx = ref(0)
 
 onMounted(async () => {
   try {
-    const res = await fetch('/api/v1/product?page_size=100&active_only=true')
+    const res = await fetch('/api/v1/products?page_size=100&active_only=true')
     products.value = (await res.json()).items
   } catch (e) {
     errorMsg.value = '商品載入失敗，請確認後端有起來。'
@@ -134,7 +134,7 @@ onMounted(async () => {
   // 重整後拿存著的憑證去問 /me；過期/失效就自動登出（別讓畫面顯示著失效的登入狀態）。
   if (token.value) {
     try {
-      const r = await fetch('/api/v1/member/me', { headers: authHeaders() })
+      const r = await fetch('/api/v1/members/me', { headers: authHeaders() })
       if (r.status === 401) logout()
     } catch (e) { /* 後端沒起來就先留著，不誤登出 */ }
   }

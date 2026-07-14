@@ -6,23 +6,23 @@ export function listProducts({ page = 1, pageSize = 100, q = '', activeOnly = fa
   const params = { page, page_size: pageSize }
   if (q) params.q = q
   if (activeOnly) params.active_only = true
-  return http.get('/product', { params }).then((res) => res.data) // → { items, count }
+  return http.get('/products', { params }).then((res) => res.data) // → { items, count }
 }
 
 export function createProduct(payload) {
   // payload: { sku, name, unit_price }
-  return http.post('/product', payload).then((res) => res.data)
+  return http.post('/products', payload).then((res) => res.data)
 }
 
 export function updateProduct(id, payload) {
   // payload: { name, unit_price }（sku 建立後不給改）
-  return http.put(`/product/${id}`, payload).then((res) => res.data)
+  return http.put(`/products/${id}`, payload).then((res) => res.data)
 }
 
 export function deactivateProduct(id) {
-  return http.post(`/product/${id}/deactivate`).then((res) => res.data)
+  return http.post(`/products/${id}/deactivate`).then((res) => res.data)
 }
 
 export function reactivateProduct(id) {
-  return http.post(`/product/${id}/reactivate`).then((res) => res.data)
+  return http.post(`/products/${id}/reactivate`).then((res) => res.data)
 }

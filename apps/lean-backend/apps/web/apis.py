@@ -26,7 +26,7 @@ class CheckoutIn(Schema):
     items: list[OrderItemIn] = Field(..., min_length=1)
 
 
-@router.post('/order', response=OrderSchema)
+@router.post('/orders', response=OrderSchema)
 def checkout(request, payload: CheckoutIn):
     """門市下單：下單的人 = `request.auth`（守衛驗過的本人），前端說了不算。
 

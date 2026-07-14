@@ -25,9 +25,9 @@ api = NinjaAPI(title='lean-stack API', version='1.0.0')
 # ──────────────────────────────────────────────────────────────
 api.add_router('/health', health_router)
 api.add_router('/progress', progress_router)
-api.add_router('/member', member_router)
-api.add_router('/product', product_router)
-api.add_router('/order', order_router)
+api.add_router('/members', member_router)
+api.add_router('/products', product_router)
+api.add_router('/orders', order_router)
 api.add_router('/web', web_router)  # 門市前台 BFF：整個 router 掛 member_auth（登入才能用）
 
 # auth 的接法（本 repo 現況）：

@@ -6,23 +6,23 @@ export function listMembers({ page = 1, pageSize = 100, q = '', status = '' } = 
   const params = { page, page_size: pageSize }
   if (q) params.q = q
   if (status) params.status = status
-  return http.get('/member', { params }).then((res) => res.data) // → { items, count }
+  return http.get('/members', { params }).then((res) => res.data) // → { items, count }
 }
 
 export function createMember(payload) {
   // payload: { name, email, phone }
-  return http.post('/member', payload).then((res) => res.data)
+  return http.post('/members', payload).then((res) => res.data)
 }
 
 export function updateMember(id, payload) {
   // payload: { name, phone }（email 建立後不給改）
-  return http.put(`/member/${id}`, payload).then((res) => res.data)
+  return http.put(`/members/${id}`, payload).then((res) => res.data)
 }
 
 export function deactivateMember(id) {
-  return http.post(`/member/${id}/deactivate`).then((res) => res.data)
+  return http.post(`/members/${id}/deactivate`).then((res) => res.data)
 }
 
 export function reactivateMember(id) {
-  return http.post(`/member/${id}/reactivate`).then((res) => res.data)
+  return http.post(`/members/${id}/reactivate`).then((res) => res.data)
 }

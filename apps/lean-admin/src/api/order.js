@@ -11,29 +11,29 @@ export function listOrders({ page = 1, pageSize = 10, q = '', memberId = null } 
   const params = { page, page_size: pageSize }
   if (q) params.q = q
   if (memberId) params.member_id = memberId
-  return http.get('/order', { params }).then((res) => res.data) // → { items, count }
+  return http.get('/orders', { params }).then((res) => res.data) // → { items, count }
 }
 
 export function getOrder(id) {
-  return http.get(`/order/${id}`).then((res) => res.data)
+  return http.get(`/orders/${id}`).then((res) => res.data)
 }
 
 export function createOrder(payload) {
   // payload: { member_id, items: [{ product_id, quantity }] }
-  return http.post('/order', payload).then((res) => res.data)
+  return http.post('/orders', payload).then((res) => res.data)
 }
 
 export function updateOrderNote(id, note) {
   // 只改備註（inline dialog 用）
-  return http.post(`/order/${id}/note`, { note }).then((res) => res.data)
+  return http.post(`/orders/${id}/note`, { note }).then((res) => res.data)
 }
 
 export function updateOrder(id, payload) {
-  return http.put(`/order/${id}`, payload).then((res) => res.data)
+  return http.put(`/orders/${id}`, payload).then((res) => res.data)
 }
 
 export function deleteOrder(id) {
-  return http.delete(`/order/${id}`).then((res) => res.data)
+  return http.delete(`/orders/${id}`).then((res) => res.data)
 }
 
 // ── 訂單狀態機 ──────────────────
@@ -41,5 +41,5 @@ export function deleteOrder(id) {
 // 前端把 detail 訊息顯示給人看即可（真相/守門在後端）。
 // action ∈ pay | ship | cancel
 export function transitionOrder(id, action) {
-  return http.post(`/order/${id}/${action}`).then((res) => res.data)
+  return http.post(`/orders/${id}/${action}`).then((res) => res.data)
 }
