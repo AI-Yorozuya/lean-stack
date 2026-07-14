@@ -4,14 +4,17 @@
 //   總筆數＝數字頁碼已隱含頁數，小資料省略更乾淨（需要再加回一行小字即可）。
 // 當前頁不反黑，只用「加粗深字 + 很淡的底色 pill」輕輕標。
 // 用法：<Pagination :page="page" :total-pages="totalPages" @update:page="goPage" />
+// 選填「每頁筆數」：傳 :page-size 就會在最右邊出現選單（不傳＝維持原本純頁碼）。
 import { computed } from 'vue'
-import { ChevronLeft, ChevronRight } from '@lucide/vue'
+import { ChevronLeft, ChevronRight, ChevronDown } from '@lucide/vue'
 
 const props = defineProps({
   page: { type: Number, required: true },
   totalPages: { type: Number, required: true },
+  pageSize: { type: Number, default: null },
+  pageSizeOptions: { type: Array, default: () => [20, 30, 40, 50] },
 })
-const emit = defineEmits(['update:page'])
+const emit = defineEmits(['update:page', 'update:pageSize'])
 
 // 數字截斷：頭尾各留、當前頁前後各一，中間用 …（頁數多時不爆一長排）。
 const visiblePages = computed(() => {
@@ -45,7 +48,7 @@ const cellBase =
 </script>
 
 <template>
-  <div class="flex items-center justify-center gap-1">
+  <div class="relative flex items-center justify-center gap-1">
     <button :class="[cellBase, 'text-muted-foreground hover:bg-muted hover:text-foreground']" :disabled="page <= 1" title="上一頁" @click="go(page - 1)">
       <ChevronLeft class="size-4" />
     </button>
@@ -64,5 +67,20 @@ const cellBase =
     <button :class="[cellBase, 'text-muted-foreground hover:bg-muted hover:text-foreground']" :disabled="page >= totalPages" title="下一頁" @click="go(page + 1)">
       <ChevronRight class="size-4" />
     </button>
+
+    <div v-if="pageSize" class="text-muted-foreground absolute right-4 flex items-center gap-1.5 text-sm">
+      <span>每頁</span>
+      <span class="relative inline-flex items-center">
+        <select
+          :value="pageSize"
+          class="border-input bg-background focus-visible:ring-ring appearance-none rounded-md border py-1 pr-7 pl-2.5 text-sm tabular-nums focus-visible:ring-1 focus-visible:outline-none"
+          @change="emit('update:pageSize', Number($event.target.value))"
+        >
+          <option v-for="n in pageSizeOptions" :key="n" :value="n">{{ n }}</option>
+        </select>
+        <ChevronDown class="text-muted-foreground pointer-events-none absolute right-2 size-3.5" />
+      </span>
+      <span>筆</span>
+    </div>
   </div>
 </template>

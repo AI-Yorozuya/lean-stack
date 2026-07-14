@@ -24,17 +24,18 @@ const columns = [
   { label: '註冊日期', width: 'w-32', align: 'center' },
 ]
 
-// 分頁（客戶端；整包載入後切頁）。
+// 分頁（客戶端；整包載入後切頁）。每頁筆數可調（分頁最右邊的選單）。
 const page = ref(1)
-const pageSize = 10
-const totalPages = computed(() => Math.max(1, Math.ceil(members.value.length / pageSize)))
+const pageSize = ref(20)
+const totalPages = computed(() => Math.max(1, Math.ceil(members.value.length / pageSize.value)))
 const pagedMembers = computed(() => {
-  const start = (page.value - 1) * pageSize
-  return members.value.slice(start, start + pageSize)
+  const start = (page.value - 1) * pageSize.value
+  return members.value.slice(start, start + pageSize.value)
 })
 function goPage(p) {
   page.value = Math.min(Math.max(1, p), totalPages.value)
 }
+function setPageSize(n) { pageSize.value = n; page.value = 1 } // 改每頁筆數 → 回第一頁
 
 async function load() {
   loading.value = true
@@ -80,7 +81,7 @@ onMounted(load)
 
       <!-- 分頁（釘在卡底）-->
       <div class="mt-4 shrink-0">
-        <Pagination :page="page" :total-pages="totalPages" @update:page="goPage" />
+        <Pagination :page="page" :total-pages="totalPages" :page-size="pageSize" @update:page="goPage" @update:page-size="setPageSize" />
       </div>
     </div>
   </div>

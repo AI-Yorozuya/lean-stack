@@ -64,13 +64,13 @@ const statusCount = (key) =>
   key === 'all' ? orders.value.length : orders.value.filter((o) => o.status === key).length
 const fmtCount = (n) => (n > 999 ? '999+' : n)
 
-// ── 分頁（客戶端）──
+// ── 分頁（客戶端）── 每頁筆數可調（分頁最右邊的選單）。
 const page = ref(1)
-const pageSize = 15
-const totalPages = computed(() => Math.max(1, Math.ceil(filteredOrders.value.length / pageSize)))
+const pageSize = ref(20)
+const totalPages = computed(() => Math.max(1, Math.ceil(filteredOrders.value.length / pageSize.value)))
 const pagedOrders = computed(() => {
-  const start = (page.value - 1) * pageSize
-  return filteredOrders.value.slice(start, start + pageSize)
+  const start = (page.value - 1) * pageSize.value
+  return filteredOrders.value.slice(start, start + pageSize.value)
 })
 function selectStatus(key) {
   activeStatus.value = key
@@ -79,6 +79,7 @@ function selectStatus(key) {
 function goPage(p) {
   page.value = Math.min(Math.max(1, p), totalPages.value)
 }
+function setPageSize(n) { pageSize.value = n; page.value = 1 } // 改每頁筆數 → 回第一頁
 // 按搜尋鈕 / Enter：套用關鍵字並回第一頁
 function search() {
   keyword.value = q.value.trim()
@@ -225,7 +226,7 @@ async function confirmDelete() {
 
         <!-- 分頁 -->
         <div class="mt-4 shrink-0">
-          <Pagination :page="page" :total-pages="totalPages" @update:page="goPage" />
+          <Pagination :page="page" :total-pages="totalPages" :page-size="pageSize" @update:page="goPage" @update:page-size="setPageSize" />
         </div>
       </div>
     </div>

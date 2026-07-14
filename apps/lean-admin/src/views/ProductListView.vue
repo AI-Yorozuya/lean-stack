@@ -45,17 +45,18 @@ const filteredProducts = computed(() => {
   return products.value.filter((p) => p.is_active === (filterActive.value === 'active'))
 })
 
-// 分頁（客戶端；濾完再切頁）。
+// 分頁（客戶端；濾完再切頁）。每頁筆數可調（分頁最右邊的選單）。
 const page = ref(1)
-const pageSize = 10
-const totalPages = computed(() => Math.max(1, Math.ceil(filteredProducts.value.length / pageSize)))
+const pageSize = ref(20)
+const totalPages = computed(() => Math.max(1, Math.ceil(filteredProducts.value.length / pageSize.value)))
 const pagedProducts = computed(() => {
-  const start = (page.value - 1) * pageSize
-  return filteredProducts.value.slice(start, start + pageSize)
+  const start = (page.value - 1) * pageSize.value
+  return filteredProducts.value.slice(start, start + pageSize.value)
 })
 function goPage(p) {
   page.value = Math.min(Math.max(1, p), totalPages.value)
 }
+function setPageSize(n) { pageSize.value = n; page.value = 1 } // 改每頁筆數 → 回第一頁
 watch(filterActive, () => { page.value = 1 }) // 切上架狀態 → 回第一頁
 
 async function load() {
@@ -169,7 +170,7 @@ async function submitForm() {
 
       <!-- 分頁（釘在卡底）-->
       <div class="mt-4 shrink-0">
-        <Pagination :page="page" :total-pages="totalPages" @update:page="goPage" />
+        <Pagination :page="page" :total-pages="totalPages" :page-size="pageSize" @update:page="goPage" @update:page-size="setPageSize" />
       </div>
     </div>
 
