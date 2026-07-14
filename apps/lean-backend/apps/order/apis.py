@@ -23,6 +23,7 @@ CRUD ＋ 關聯 ＋ 鐵則（把訂單建起來的部分）：
 - {合法轉移}       → Order.apply_transition（models.py）
 """
 from django.db import transaction
+from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404
 from ninja import Router
 from ninja.errors import HttpError
@@ -71,19 +72,27 @@ def place_order(member, items):
 
 # ── 訂單 CRUD ────────────────────────────────────────────────
 @router.get('', response=OrderListSchema)
-def list_orders(request, page: int = 1, page_size: int = 10, q: str = '', member_id: int = None):
-    """讀清單：q 模糊搜會員名，member_id 精準篩，page/page_size 分頁。
+def list_orders(request, page: int = 1, page_size: int = 10, q: str = '', status: str = '', member_id: int = None):
+    """讀清單——**後端完整篩選**：status 篩狀態、q 模糊搜(會員名/單號)、member_id 精準、page/page_size 分頁。
 
-    對應前端元件：input（q）+ select（member_id）+ table + pagination。
+    頁面上每個控制項都是一個 query 參數，後端一次 filter 完只回那一頁——不是抓全部前端再篩。
+    對應前端元件：狀態頁籤(status) + 搜尋框(q) + 分頁(page/page_size) + select(member_id)。
+    status_counts：各狀態的筆數（在 q 篩選後、status 篩選前算），給狀態頁籤的計數。
     """
     qs = Order.objects.select_related('member').prefetch_related('items').order_by('-id')
     if q:
-        qs = qs.filter(member__name__icontains=q)
+        qs = qs.filter(Q(member__name__icontains=q) | Q(order_no__icontains=q))
     if member_id:
         qs = qs.filter(member_id=member_id)
+    # .order_by() 清掉預設 -id 排序，否則會混進 GROUP BY 讓聚合拆成一筆一組
+    by_status = {r['status']: r['n'] for r in qs.order_by().values('status').annotate(n=Count('id'))}
+    status_counts = {'all': sum(by_status.values()),
+                     **{s: by_status.get(s, 0) for s, _ in Order.Status.choices}}
+    if status and status != 'all':
+        qs = qs.filter(status=status)
     count = qs.count()
     start = (max(page, 1) - 1) * page_size
-    return {'items': list(qs[start:start + page_size]), 'count': count}
+    return {'items': list(qs[start:start + page_size]), 'count': count, 'status_counts': status_counts}
 
 
 @router.get('/{order_id}', response=OrderSchema)

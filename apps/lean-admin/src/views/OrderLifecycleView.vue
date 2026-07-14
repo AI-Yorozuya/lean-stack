@@ -52,45 +52,32 @@ const statusTabs = [
 ]
 const activeStatus = ref('all')
 const q = ref('')       // 搜尋輸入框
-const keyword = ref('') // 已按下搜尋、實際生效的關鍵字（會員名 / 單號；客戶端過濾）
-const filteredOrders = computed(() => {
-  let list = orders.value
-  if (activeStatus.value !== 'all') list = list.filter((o) => o.status === activeStatus.value)
-  const kw = keyword.value.toLowerCase()
-  if (kw) list = list.filter((o) => o.member.name.toLowerCase().includes(kw) || o.order_no.toLowerCase().includes(kw))
-  return list
-})
-const statusCount = (key) =>
-  key === 'all' ? orders.value.length : orders.value.filter((o) => o.status === key).length
+const keyword = ref('') // 已按下搜尋、實際生效的關鍵字（送後端當 q）
+
+// ── 後端完整篩選＋伺服器端分頁 ──
+// 狀態頁籤、搜尋、分頁全部送後端；前端只顯示後端回來的那一頁（不抓全部再前端濾）。
+const count = ref(0)            // 符合條件的總筆數（後端算）
+const statusCounts = ref({})   // 各狀態筆數（後端回，給頁籤計數）
+const pageSize = ref(20)
+const page = ref(1)
+const pagedOrders = computed(() => orders.value) // 後端已切好這一頁
+const totalPages = computed(() => Math.max(1, Math.ceil(count.value / pageSize.value)))
+const statusCount = (key) => statusCounts.value[key] ?? 0
 const fmtCount = (n) => (n > 999 ? '999+' : n)
 
-// ── 分頁（客戶端）── 每頁筆數可調（分頁最右邊的選單）。
-const page = ref(1)
-const pageSize = ref(20)
-const totalPages = computed(() => Math.max(1, Math.ceil(filteredOrders.value.length / pageSize.value)))
-const pagedOrders = computed(() => {
-  const start = (page.value - 1) * pageSize.value
-  return filteredOrders.value.slice(start, start + pageSize.value)
-})
-function selectStatus(key) {
-  activeStatus.value = key
-  page.value = 1
-}
-function goPage(p) {
-  page.value = Math.min(Math.max(1, p), totalPages.value)
-}
-function setPageSize(n) { pageSize.value = n; page.value = 1 } // 改每頁筆數 → 回第一頁
-// 按搜尋鈕 / Enter：套用關鍵字並回第一頁
-function search() {
-  keyword.value = q.value.trim()
-  page.value = 1
-}
+function selectStatus(key) { activeStatus.value = key; page.value = 1; load() } // 切狀態 → 回第一頁、重撈
+function goPage(p) { page.value = Math.min(Math.max(1, p), totalPages.value); load() }
+function setPageSize(n) { pageSize.value = n; page.value = 1; load() }
+function search() { keyword.value = q.value.trim(); page.value = 1; load() } // 按搜尋 / Enter → 套用、重撈
 
 async function load() {
   loading.value = true
   errorMsg.value = ''
   try {
-    orders.value = (await listOrders({ pageSize: 100 })).items
+    const res = await listOrders({ page: page.value, pageSize: pageSize.value, q: keyword.value, status: activeStatus.value })
+    orders.value = res.items
+    count.value = res.count
+    statusCounts.value = res.status_counts || {}
   } catch (e) {
     errorMsg.value = '載入失敗,請稍後再試'
     console.error(e)

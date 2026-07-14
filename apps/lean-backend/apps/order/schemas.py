@@ -72,9 +72,10 @@ class OrderSchema(Schema):
 
 
 class OrderListSchema(Schema):
-    """列表回應：items + count，配合前端的 table + pagination。"""
+    """列表回應：items + count（＋ status_counts 給狀態頁籤計數），配合前端的 table + pagination。"""
     items: list[OrderSchema]
     count: int
+    status_counts: dict[str, int] = {}
 
 
 class OrderNoteIn(Schema):

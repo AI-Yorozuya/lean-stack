@@ -7,11 +7,12 @@
 import http from './index'
 
 // ── 訂單 ──────────────────────────────
-export function listOrders({ page = 1, pageSize = 10, q = '', memberId = null } = {}) {
+export function listOrders({ page = 1, pageSize = 10, q = '', status = '', memberId = null } = {}) {
   const params = { page, page_size: pageSize }
   if (q) params.q = q
+  if (status && status !== 'all') params.status = status
   if (memberId) params.member_id = memberId
-  return http.get('/orders', { params }).then((res) => res.data) // → { items, count }
+  return http.get('/orders', { params }).then((res) => res.data) // → { items, count, status_counts }
 }
 
 export function getOrder(id) {
