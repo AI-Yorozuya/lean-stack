@@ -27,11 +27,11 @@ router = Router(tags=['product'])
 
 
 @router.get('', response=ProductListSchema)
-def list_products(request, page: int = 1, page_size: int = 10, q: str = '', active_only: bool = False):
-    """q 模糊搜品名，active_only=True 只看上架（下單表單的商品 select 用這個）。"""
+def list_products(request, page: int = 1, page_size: int = 10, search: str = '', active_only: bool = False):
+    """search 模糊搜品名，active_only=True 只看上架（下單表單的商品 select 用這個）。"""
     qs = Product.objects.order_by('sku')
-    if q:
-        qs = qs.filter(name__icontains=q)
+    if search:
+        qs = qs.filter(name__icontains=search)
     if active_only:
         qs = qs.filter(is_active=True)
     count = qs.count()

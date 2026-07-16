@@ -51,8 +51,8 @@ const statusTabs = [
   { key: 'CANCELLED', label: '已取消' },
 ]
 const activeStatus = ref('all')
-const q = ref('')       // 搜尋輸入框
-const keyword = ref('') // 已按下搜尋、實際生效的關鍵字（送後端當 q）
+const searchInput = ref('') // 搜尋輸入框
+const keyword = ref('')     // 已按下搜尋、實際生效的關鍵字（送後端當 search）
 
 // ── 後端完整篩選＋伺服器端分頁 ──
 // 狀態頁籤、搜尋、分頁全部送後端；前端只顯示後端回來的那一頁（不抓全部再前端濾）。
@@ -68,13 +68,13 @@ const fmtCount = (n) => (n > 999 ? '999+' : n)
 function selectStatus(key) { activeStatus.value = key; page.value = 1; load() } // 切狀態 → 回第一頁、重撈
 function goPage(p) { page.value = Math.min(Math.max(1, p), totalPages.value); load() }
 function setPageSize(n) { pageSize.value = n; page.value = 1; load() }
-function search() { keyword.value = q.value.trim(); page.value = 1; load() } // 按搜尋 / Enter → 套用、重撈
+function search() { keyword.value = searchInput.value.trim(); page.value = 1; load() } // 按搜尋 / Enter → 套用、重撈
 
 async function load() {
   loading.value = true
   errorMsg.value = ''
   try {
-    const res = await listOrders({ page: page.value, pageSize: pageSize.value, q: keyword.value, status: activeStatus.value })
+    const res = await listOrders({ page: page.value, pageSize: pageSize.value, search: keyword.value, status: activeStatus.value })
     orders.value = res.items
     count.value = res.count
     statusCounts.value = res.status_counts || {}
@@ -161,7 +161,7 @@ async function confirmDelete() {
           <!-- 搜尋框：input + 搜尋 icon 鈕接在一起（input 右角磨平、鈕左角磨平且去左框，共用一條分隔線）-->
           <div class="flex w-64">
             <Input
-              v-model="q"
+              v-model="searchInput"
               placeholder="搜尋會員姓名或單號…"
               class="relative rounded-r-none focus-visible:z-10"
               @keyup.enter="search"

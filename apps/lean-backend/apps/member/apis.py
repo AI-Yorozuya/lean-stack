@@ -58,11 +58,11 @@ def me(request):
 
 
 @router.get('', response=MemberListSchema)
-def list_members(request, page: int = 1, page_size: int = 10, q: str = '', status: str = ''):
-    """q 模糊搜姓名，status 精準篩（ACTIVE/INACTIVE），page/page_size 分頁。"""
+def list_members(request, page: int = 1, page_size: int = 10, search: str = '', status: str = ''):
+    """search 模糊搜姓名，status 精準篩（ACTIVE/INACTIVE），page/page_size 分頁。"""
     qs = Member.objects.order_by('name')
-    if q:
-        qs = qs.filter(name__icontains=q)
+    if search:
+        qs = qs.filter(name__icontains=search)
     if status:
         qs = qs.filter(status=status)
     count = qs.count()

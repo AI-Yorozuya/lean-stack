@@ -72,16 +72,16 @@ def place_order(member, items):
 
 # ── 訂單 CRUD ────────────────────────────────────────────────
 @router.get('', response=OrderListSchema)
-def list_orders(request, page: int = 1, page_size: int = 10, q: str = '', status: str = '', member_id: int = None):
-    """讀清單——**後端完整篩選**：status 篩狀態、q 模糊搜(會員名/單號)、member_id 精準、page/page_size 分頁。
+def list_orders(request, page: int = 1, page_size: int = 10, search: str = '', status: str = '', member_id: int = None):
+    """讀清單——**後端完整篩選**：status 篩狀態、search 模糊搜(會員名/單號)、member_id 精準、page/page_size 分頁。
 
     頁面上每個控制項都是一個 query 參數，後端一次 filter 完只回那一頁——不是抓全部前端再篩。
-    對應前端元件：狀態頁籤(status) + 搜尋框(q) + 分頁(page/page_size) + select(member_id)。
-    status_counts：各狀態的筆數（在 q 篩選後、status 篩選前算），給狀態頁籤的計數。
+    對應前端元件：狀態頁籤(status) + 搜尋框(search) + 分頁(page/page_size) + select(member_id)。
+    status_counts：各狀態的筆數（在 search 篩選後、status 篩選前算），給狀態頁籤的計數。
     """
     qs = Order.objects.select_related('member').prefetch_related('items').order_by('-id')
-    if q:
-        qs = qs.filter(Q(member__name__icontains=q) | Q(order_no__icontains=q))
+    if search:
+        qs = qs.filter(Q(member__name__icontains=search) | Q(order_no__icontains=search))
     if member_id:
         qs = qs.filter(member_id=member_id)
     # .order_by() 清掉預設 -id 排序，否則會混進 GROUP BY 讓聚合拆成一筆一組

@@ -25,7 +25,7 @@ import {
 } from '@/components/ui/dialog'
 
 const products = ref([])
-const q = ref('')
+const searchInput = ref('')
 const loading = ref(false)
 const errorMsg = ref('')
 
@@ -64,7 +64,7 @@ async function load() {
   errorMsg.value = ''
   try {
     // 這頁看全部（含下架,才能重新上架）；訂單頁的商品 select 才用 activeOnly。
-    products.value = (await listProducts({ pageSize: 100, q: q.value })).items
+    products.value = (await listProducts({ pageSize: 100, search: searchInput.value })).items
     page.value = 1 // 每次搜尋後回第一頁
   } catch (e) {
     errorMsg.value = '載入失敗,請稍後再試'
@@ -142,7 +142,7 @@ async function submitForm() {
             </SelectContent>
           </Select>
           <div class="flex w-56">
-            <Input v-model="q" placeholder="搜尋商品名稱…" class="relative rounded-r-none focus-visible:z-10" @keyup.enter="load" />
+            <Input v-model="searchInput" placeholder="搜尋商品名稱…" class="relative rounded-r-none focus-visible:z-10" @keyup.enter="load" />
             <Button variant="outline" size="icon" class="shrink-0 rounded-l-none border-l-0" title="搜尋" @click="load"><Search class="size-4" /></Button>
           </div>
         </div>

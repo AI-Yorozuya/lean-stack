@@ -12,7 +12,7 @@ import Pagination from '@/components/Pagination.vue'
 import { TableCell } from '@/components/ui/table'
 
 const members = ref([])
-const q = ref('')
+const searchInput = ref('')
 const loading = ref(false)
 const errorMsg = ref('')
 
@@ -41,7 +41,7 @@ async function load() {
   loading.value = true
   errorMsg.value = ''
   try {
-    members.value = (await listMembers({ pageSize: 100, q: q.value })).items
+    members.value = (await listMembers({ pageSize: 100, search: searchInput.value })).items
     page.value = 1 // 每次搜尋後回第一頁
   } catch (e) {
     errorMsg.value = '載入失敗,請稍後再試'
@@ -63,7 +63,7 @@ onMounted(load)
       <!-- 工具列：只有搜尋。新增/狀態/篩選都留白＝「你試」的缺口。 -->
       <div class="mb-4 flex shrink-0 items-center gap-2">
         <div class="flex w-56">
-          <Input v-model="q" placeholder="搜尋會員姓名…" class="relative rounded-r-none focus-visible:z-10" @keyup.enter="load" />
+          <Input v-model="searchInput" placeholder="搜尋會員姓名…" class="relative rounded-r-none focus-visible:z-10" @keyup.enter="load" />
           <Button variant="outline" size="icon" class="shrink-0 rounded-l-none border-l-0" title="搜尋" @click="load"><Search class="size-4" /></Button>
         </div>
       </div>

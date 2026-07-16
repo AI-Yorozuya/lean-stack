@@ -2,9 +2,9 @@
 // 教學重點：{一 sku 一商品}（撞了後端回 422）、{下架不刪}（沒有 delete，只有下架/上架）。
 import http from './index'
 
-export function listProducts({ page = 1, pageSize = 100, q = '', activeOnly = false } = {}) {
+export function listProducts({ page = 1, pageSize = 100, search = '', activeOnly = false } = {}) {
   const params = { page, page_size: pageSize }
-  if (q) params.q = q
+  if (search) params.search = search
   if (activeOnly) params.active_only = true
   return http.get('/products', { params }).then((res) => res.data) // → { items, count }
 }
