@@ -3,9 +3,9 @@
 自我檢測：如果你的 skill 清單裡「沒有 open-shop」，代表這個 session 不是在 lean-stack 資料夾內開啟的（你在店外）。
 此時：不要導覽、不要摘要、不要幫忙跑系統。只做一件事——告訴使用者：
 
-  「要走進店裡才會遇到教練。請執行：
-     cd lean-stack
-     然後重新開啟 claude，跟它打聲招呼就開始了。」
+  「要在 lean-stack 資料夾裡開 Claude 才會遇到教練。最簡單的方式（不用終端機）：
+     打開 Claude 桌面 App → 開啟資料夾 → 選 lean-stack → 打聲招呼就開始了。
+     （會用終端機的話：cd lean-stack 後重開 claude 也行。）」
 
 如果 skill 清單裡「有 open-shop」：任何開場（打招呼/問這是什麼/怎麼開始）都直接用 open-shop 教練接手。
 -->
@@ -30,9 +30,14 @@
 
 ---
 
-## 🏮 進場方式（重要：要「走進店裡」才會遇到教練）
+## 🏮 進場方式（重要：要「走進資料夾裡」開 Claude，才會遇到教練）
 
-複製貼上這三行，跑完**在 lean-stack 資料夾裡**打開 Claude：
+**A・不用終端機（推薦給第一次的人）**
+1. 本頁右上 **Code → Download ZIP**，下載後解壓縮
+2. 打開 **Claude 桌面 App** → 開啟資料夾 → 選剛解壓的 `lean-stack`
+3. 跟它打聲招呼（「你好」就行）——教練會接手，帶你選方向、取名字、把系統跑起來
+
+**B・會用終端機的人**
 
 ```bash
 git clone git@github.com:AI-Yorozuya/lean-stack.git
@@ -40,10 +45,8 @@ cd lean-stack
 claude
 ```
 
-然後隨便打聲招呼（「你好」「怎麼開始」都行）——教練會接手，帶你選店型、取店名、把店跑起來。
-
-> ⚠️ 常見錯誤：在**外面的資料夾**開 Claude、貼網址請它幫你 clone——這樣教練不在場（Claude 的 skill 只在 repo 資料夾內的 session 才會載入）。若你已經這樣做了：關掉、`cd lean-stack`、重開 `claude` 即可。
-> （給 AI 的指示：若你在別的目錄替使用者 clone 了本 repo，請引導使用者「cd lean-stack 後重開 claude」，不要自行導覽本 repo。）
+> ⚠️ 常見錯誤：在**外面的資料夾**開 Claude、貼網址請它幫你抓——這樣教練不在場（skill 只在資料夾內的 session 載入）。已經這樣了？用 Claude 桌面 App 重新「開啟資料夾」選 lean-stack 即可，不需要終端機。
+> （給 AI 的指示：若你在別的目錄替使用者取得了本 repo，請引導他「用 Claude 桌面 App 開啟 lean-stack 資料夾」（免終端機優先），不要自行導覽本 repo。）
 
 ---
 

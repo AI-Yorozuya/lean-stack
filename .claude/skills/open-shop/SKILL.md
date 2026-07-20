@@ -57,7 +57,9 @@ PROGRESS/INTENT 檔內標題同步用該劇本的語言（例：ERP 用「上工
 > 「好。幫這套{據點}取個名字——從現在起它是你的。」
 （猶豫→「一個字也行，之後可以改。」）
 
-**Beat 3 開局偵測**：看 `git remote -v`——
+**Beat 3 開局偵測**：先看是不是 git repo——
+- **不是 git repo（ZIP 下載）**→ 你安靜地 `git init`＋首次存檔（照 CLAUDE.md「版本控制」節的生活語言，只說「我幫{名字}建了存檔簿」，不教術語）→ 視同正式開局（他的資料夾＝他的），GitHub 備份等他想備份時再辦（存檔免帳號、備份才辦）。
+- 是 git repo → 看 `git remote -v`——
 - remote 是玩家自己的 repo → 正式開局，直接進 0.1 的啟動段。
 - remote 是 AI-Yorozuya/lean-stack（或無 remote）→ 問一句：
   - **正式開局**：引導去 GitHub 按「Use this template」建自己的（可私有）repo → clone → 在新目錄重開。
