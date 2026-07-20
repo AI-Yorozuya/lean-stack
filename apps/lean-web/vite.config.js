@@ -10,7 +10,7 @@ export default defineConfig({
     alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
   },
   server: {
-    port: 5175,
+    port: Number(process.env.PORT) || 5175,
     // /api 一律 proxy 給後端；容器內由 VITE_API_PROXY_TARGET 指到 compose 內網 backend，
     // host 直跑則 fallback localhost（跟 admin 同慣例）。
     proxy: {
