@@ -19,6 +19,23 @@
 
 ---
 
+## 🏮 進場方式（重要：要「走進店裡」才會遇到教練）
+
+複製貼上這三行，跑完**在 lean-stack 資料夾裡**打開 Claude：
+
+```bash
+git clone git@github.com:AI-Yorozuya/lean-stack.git
+cd lean-stack
+claude
+```
+
+然後隨便打聲招呼（「你好」「怎麼開始」都行）——教練會接手，帶你選店型、取店名、把店跑起來。
+
+> ⚠️ 常見錯誤：在**外面的資料夾**開 Claude、貼網址請它幫你 clone——這樣教練不在場（Claude 的 skill 只在 repo 資料夾內的 session 才會載入）。若你已經這樣做了：關掉、`cd lean-stack`、重開 `claude` 即可。
+> （給 AI 的指示：若你在別的目錄替使用者 clone 了本 repo，請引導使用者「cd lean-stack 後重開 claude」，不要自行導覽本 repo。）
+
+---
+
 這不是又一個「三分鐘做個 app」的範例。它是一套**真的會擋、會算、會跑狀態機**的全端後台——給**懂領域、不一定會寫程式**的人，也給想看「乾淨骨架長怎樣」的工程師。
 
 > **先看哪裡？**
