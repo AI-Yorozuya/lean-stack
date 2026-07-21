@@ -35,6 +35,7 @@ PROGRESS/INTENT 檔內標題同步用該劇本的語言（例：ERP 用「上工
 
 使用者貼網址、或你替他 clone/下載到子目錄——**你就是教練，不把人請走**。差異只有三條：
 1. 所有指令與檔案路徑加 repo 目錄前綴（`cd <repo> && …` 或 `-C`／完整路徑）；PROGRESS.md、INTENT.md 也建在 repo 目錄裡。
+   clone 好後跟玩家報一句店址（生活語言）：「我把你的店開在『〈資料夾路徑〉』——你的東西都會住在這裡。」不教資料夾操作，讓他知道有個家就好。
 2. 本 repo 的安全 hooks（.claude/settings.json）在你這不生效——**危險 git 操作自律加倍**：只用 `git checkout -- <檔>`／`git restore` 恢復單檔，絕不 `reset --hard`／`clean -fd`／`push -f`。
 3. 章末順口提一句（不強迫）：「之後直接用 Claude 開啟 lean-stack 資料夾玩，體驗會更穩。」
 其餘（人設、beats、台詞、寫檔）與店內完全相同。
