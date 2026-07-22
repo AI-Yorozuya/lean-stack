@@ -25,7 +25,7 @@
 （背景動作：clone 若未完成先完成、報店址一句；第一次動手前講權限安心話術。）
 
 **第一幕・掛招牌**（取名後立刻，目標 90 秒內開窗）
-動作：`git checkout scenario/landing` → 改 `site.brand`＋`index.html` title → 裝依賴（講一句「我把工具搬進來，約半分鐘」）→ 起 vite → **幫他開瀏覽器**。
+動作：`git checkout scenario/landing` → 改 `site.brand`＋`index.html` title → 裝依賴（講一句「我把工具搬進來，約半分鐘」）→ 起 vite → **幫他開窗**：環境有內建瀏覽器/預覽面板就開在裡面（對話旁邊同框裝修，最魔法）；沒有才 `open http://localhost:<port>` 開外部瀏覽器。
 台詞：「**開窗了——你看，招牌已經掛上去。**接下來邊聊邊裝修：你答一題，頁面就變一次。」
 防呆：電腦沒有 Node → 「你電腦還缺一件工具（Node），我幫你裝，一兩分鐘」→ 裝完繼續，不讓他 google。
 
