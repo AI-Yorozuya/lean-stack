@@ -63,6 +63,6 @@ const scrollTo = (id) => {
 
   <footer class="foot">
     <span>© {{ site.brand }}</span>
-    <span class="made">用 lean-stack 做的一頁式 🐻</span>
+    <a class="made" href="https://aiyorozuya.com/start" target="_blank" rel="noopener">用 AI 萬事屋做的 🐻</a>
   </footer>
 </template>
