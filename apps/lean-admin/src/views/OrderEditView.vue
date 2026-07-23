@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, TableFooter } from '@/components/ui/table'
 import LoadingState from '@/components/LoadingState.vue'
 import NumberInput from '@/components/NumberInput.vue'
+import DatePicker from '@/components/DatePicker.vue'
 import CustomerSelectDialog from '@/components/CustomerSelectDialog.vue'
 import ProductSelectDialog from '@/components/ProductSelectDialog.vue'
 
@@ -146,7 +147,7 @@ function onSelectProduct(p) {
               <div class="flex flex-col gap-1"><Label class="text-muted-foreground text-xs">聯絡人</Label><Input v-model="form.contact_name" /></div>
               <div class="flex flex-col gap-1"><Label class="text-muted-foreground text-xs">聯絡人電話</Label><Input v-model="form.contact_phone" /></div>
               <div class="flex flex-col gap-1"><Label class="text-muted-foreground text-xs">收貨地址</Label><Input v-model="form.shipping_address" maxlength="200" /></div>
-              <div class="flex flex-col gap-1"><Label class="text-muted-foreground text-xs">預計出貨日</Label><Input v-model="form.expected_ship_date" type="date" /></div>
+              <div class="flex flex-col gap-1"><Label class="text-muted-foreground text-xs">預計出貨日</Label><DatePicker v-model="form.expected_ship_date" /></div>
             </div>
           </div>
         </div>
