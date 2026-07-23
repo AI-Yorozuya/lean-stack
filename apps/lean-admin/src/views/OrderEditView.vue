@@ -2,7 +2,7 @@
 // 訂單新增／編輯頁（換頁式，非 dialog）。同一個 view 兩用：
 //   /orders/new       → 新增（沒有 :id）
 //   /orders/:id/edit  → 編輯（有 :id）
-// 表單同一套：選會員 ＋ 從商品目錄挑明細（後端抄快照）。
+// 表單同一套：選客戶 ＋ 從產品目錄挑明細（後端抄快照）。
 // 編輯只有出貨前（待付款/待出貨）能改——後端 update_order 會擋（非法回 422）。
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -52,7 +52,7 @@ const formTotal = computed(() => form.items.reduce((sum, i) => sum + itemSubtota
 
 onMounted(async () => {
   try {
-    // 會員/商品目錄兩種模式都要（下拉選單用）；編輯模式再多抓這張訂單來帶入表單。
+    // 客戶/產品目錄兩種模式都要（下拉選單用）；編輯模式再多抓這張訂單來帶入表單。
     const [m, p] = await Promise.all([
       listMembers({ pageSize: 100 }),
       listProducts({ pageSize: 100 }),
@@ -82,11 +82,11 @@ function goBack() {
 async function submitForm() {
   formError.value = ''
   if (!form.member_id) {
-    formError.value = '請選擇會員'
+    formError.value = '請選擇客戶'
     return
   }
   if (form.items.some((i) => !i.product_id)) {
-    formError.value = '每一筆明細都要選一個商品'
+    formError.value = '每一筆明細都要選一個產品'
     return
   }
   saving.value = true
@@ -106,7 +106,7 @@ async function submitForm() {
   }
 }
 
-// ── 快速新增會員 ──
+// ── 快速新增客戶 ──
 const showNewMember = ref(false)
 const newMember = reactive({ name: '', email: '', phone: '' })
 const newMemberError = ref('')
@@ -142,18 +142,18 @@ async function submitNewMember() {
       <p v-if="errorMsg" class="text-destructive p-5 text-sm">{{ errorMsg }}</p>
 
       <div v-if="!loading && !errorMsg" class="flex min-h-0 flex-1 flex-col gap-4 overflow-auto p-5">
-        <p class="text-muted-foreground text-sm">選會員、從商品目錄挑明細；小計/總計是顯示用,存檔後以後端計算為準。</p>
+        <p class="text-muted-foreground text-sm">選客戶、從產品目錄挑明細；小計/總計是顯示用,存檔後以後端計算為準。</p>
 
         <div class="flex max-w-2xl flex-col gap-1.5">
-          <Label>會員</Label>
+          <Label>客戶</Label>
           <div class="flex gap-2">
             <Select v-model="form.member_id">
-              <SelectTrigger class="flex-1"><SelectValue placeholder="選擇會員" /></SelectTrigger>
+              <SelectTrigger class="flex-1"><SelectValue placeholder="選擇客戶" /></SelectTrigger>
               <SelectContent>
                 <SelectItem v-for="m in members" :key="m.id" :value="String(m.id)">{{ m.name }}</SelectItem>
               </SelectContent>
             </Select>
-            <Button variant="outline" @click="showNewMember = !showNewMember">＋ 新會員</Button>
+            <Button variant="outline" @click="showNewMember = !showNewMember">＋ 新客戶</Button>
           </div>
           <div v-if="showNewMember" class="bg-muted flex flex-col gap-2 rounded-md p-2">
             <div class="flex gap-2">
@@ -167,10 +167,10 @@ async function submitNewMember() {
         </div>
 
         <div class="flex max-w-2xl flex-col gap-2">
-          <Label>明細（從商品目錄挑；小計 = 數量 × 牌價,自動算）</Label>
+          <Label>明細（從產品目錄挑；小計 = 數量 × 單價,自動算）</Label>
           <div v-for="(item, idx) in form.items" :key="idx" class="flex items-center gap-2">
             <Select v-model="item.product_id">
-              <SelectTrigger class="flex-1"><SelectValue placeholder="選擇商品" /></SelectTrigger>
+              <SelectTrigger class="flex-1"><SelectValue placeholder="選擇產品" /></SelectTrigger>
               <SelectContent>
                 <SelectItem v-for="p in activeProducts" :key="p.id" :value="String(p.id)">
                   {{ p.name }}（{{ p.unit_price.toLocaleString() }}）

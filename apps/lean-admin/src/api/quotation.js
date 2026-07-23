@@ -2,7 +2,7 @@
 // 教學重點：
 // - 前端不算錢——小計/總額都是後端算好回來的（鐵則住在後端）。表單即時小計只是顯示。
 // - 明細只送 product_id + quantity——品名/單價由後端從目錄抄快照，前端不傳價格。
-// - 客戶從 @/api/member 取（報價單的「客戶」就是會員）；商品從 @/api/product 取。
+// - 客戶從 @/api/member 取（報價單的「客戶」就是會員）；產品從 @/api/product 取。
 // - 每個函式對應後端 apps/quotation/apis.py 的一個端點，一眼對得上。
 import http from './index'
 

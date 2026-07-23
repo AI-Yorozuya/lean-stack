@@ -5,7 +5,7 @@ CRUD ＋ 關聯 ＋ 鐵則（把訂單建起來的部分）：
 - 建立                  → POST /order
 - 修改                  → PUT  /order/{id}
 - 刪除                  → DELETE /order/{id}
-（會員從 apps/member、商品從 apps/product 各自的端點取——這裡不重複。）
+（客戶從 apps/member、產品從 apps/product 各自的端點取——這裡不重複。）
 
 狀態機轉移端點（主戲：每個動作對應 INTENT 的一條合法轉移）：
 - 收款 → POST /order/{id}/pay      （待付款 → 待出貨）
@@ -16,7 +16,7 @@ CRUD ＋ 關聯 ＋ 鐵則（把訂單建起來的部分）：
 鐵則在門口與 model 兩層把關：
 - {至少一筆明細}   → OrderIn 的 min_length=1（schemas.py）
 - {明細=目錄快照}  → OrderItem.snapshot_from（models.py），本檔只給 product_id + qty
-- {下架商品不可下單} → 本檔建單時擋（is_active）
+- {停售產品不可建單} → 本檔建單時擋（is_active）
 - {小計=數量×單價} → OrderItem.save()（models.py）
 - {總額=明細加總}  → 每次明細變動後 recalc_total()（本檔）
 - {已出貨後不可改} → update_order 先查 is_editable（本檔）
@@ -45,24 +45,24 @@ router = Router(tags=['order'])
 def _add_items(order, items):
     """把 payload 的明細（product_id + quantity）建成訂單明細——各自抄目錄快照。
 
-    下架商品不可下單（{下架=停售}）→ 422。品名/單價由 snapshot_from 從目錄抄，
+    停售產品不可建單 → 422。品名/單價由 snapshot_from 從目錄抄，
     前端傳的價格一律不採信。
     """
     for item in items:
         product = get_object_or_404(Product, pk=item.product_id)
         if not product.is_active:
-            raise HttpError(422, f'商品「{product.name}」已下架，不能下單')
+            raise HttpError(422, f'產品「{product.name}」已停售，不能建單')
         OrderItem.snapshot_from(order, product, item.quantity)
 
 
 @transaction.atomic  # 訂單＋明細要嘛全存、要嘛全不存——不留「有單無明細」的半成品
 def place_order(member, items):
-    """把「一位會員 + 一批明細」做成一張訂單。**共用**：
+    """把「一位客戶 + 一批明細」做成一張訂單。**共用**：
 
     - 後台建單（create_order）：member 由前端傳的 member_id 撈；
-    - 門市下單（apps/web）：member = 憑證裡的本人。
+    - 報價成交生訂單：member = 報價單上的客戶。
 
-    差別只在「下單的人從哪來」；建單的鐵則（快照 / 小計 / 總額）全在這裡發火，一處真相。
+    差別只在「建單的人從哪來」；建單的鐵則（快照 / 小計 / 總額）全在這裡發火，一處真相。
     """
     order = Order.objects.create(member=member)
     _add_items(order, items)      # 各明細從目錄抄快照 + save() 算小計（鐵則）
@@ -73,7 +73,7 @@ def place_order(member, items):
 # ── 訂單 CRUD ────────────────────────────────────────────────
 @router.get('', response=OrderListSchema)
 def list_orders(request, page: int = 1, page_size: int = 10, search: str = '', status: str = '', member_id: int = None):
-    """讀清單——**後端完整篩選**：status 篩狀態、search 模糊搜(會員名/單號)、member_id 精準、page/page_size 分頁。
+    """讀清單——**後端完整篩選**：status 篩狀態、search 模糊搜(客戶名/單號)、member_id 精準、page/page_size 分頁。
 
     頁面上每個控制項都是一個 query 參數，後端一次 filter 完只回那一頁——不是抓全部前端再篩。
     對應前端元件：狀態頁籤(status) + 搜尋框(search) + 分頁(page/page_size) + select(member_id)。
@@ -104,7 +104,7 @@ def get_order(request, order_id: int):
 
 @router.post('', response=OrderSchema)
 def create_order(request, payload: OrderIn):
-    """後台建單：下單的人由前端指定（member_id）——店員替客人建單。"""
+    """後台建單：建單的人由前端指定（member_id）——店員替客戶建單。"""
     member = get_object_or_404(Member, pk=payload.member_id)
     return place_order(member, payload.items)
 
@@ -112,7 +112,7 @@ def create_order(request, payload: OrderIn):
 @router.put('/{order_id}', response=OrderSchema)
 @transaction.atomic
 def update_order(request, order_id: int, payload: OrderIn):
-    """改單（會員與明細整組替換——最好懂的更新語意）。"""
+    """改單（客戶與明細整組替換——最好懂的更新語意）。"""
     order = get_object_or_404(Order, pk=order_id)
     # 鐵則 {已出貨後明細/總額不可改}：生命週期的承重牆，砌在 update 入口。
     if not order.is_editable:

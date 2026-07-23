@@ -102,7 +102,7 @@ async function confirmCancel() {
       <!-- 摘要卡 -->
       <div class="shrink-0 rounded-lg border bg-card p-5 shadow-sm">
         <dl class="grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-4">
-          <div><dt class="text-muted-foreground text-xs">會員</dt><dd class="mt-1 font-medium">{{ order.member.name }}</dd></div>
+          <div><dt class="text-muted-foreground text-xs">客戶</dt><dd class="mt-1 font-medium">{{ order.member.name }}</dd></div>
           <div><dt class="text-muted-foreground text-xs">電話</dt><dd class="mt-1 tabular-nums">{{ order.member.phone || '—' }}</dd></div>
           <div><dt class="text-muted-foreground text-xs">下訂日期</dt><dd class="mt-1 tabular-nums">{{ order.order_date }}</dd></div>
           <div><dt class="text-muted-foreground text-xs">修改日期</dt><dd class="mt-1 tabular-nums">{{ order.updated_at }}</dd></div>

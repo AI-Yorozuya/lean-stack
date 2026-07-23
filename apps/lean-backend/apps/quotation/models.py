@@ -2,7 +2,7 @@
 
 報價單是「報價成交型」生意流的主場單據——客戶問價 → 我報價 → 談成才生訂單。
 三拍疊起來（**刻意跟 order 同一個形**：報價單與訂單是同一承重牆家族，看完 order 這裡零學習成本）：
-- 串關聯：報價單 → 客戶（多對一）；明細 → 報價單（1:N）；明細 → 商品（多對一）。
+- 串關聯：報價單 → 客戶（多對一）；明細 → 報價單（1:N）；明細 → 產品（多對一）。
 - 抄快照：報價當下把品名＋單價存進明細（snapshot_from）——之後目錄改價，歷史報價不動。
 - 跑狀態：Quotation.status 生命週期（草稿→已送出→已成交／已作廢），成交當下生一張訂單。
 
@@ -142,13 +142,13 @@ class Quotation(TimeStampedModel):
 
 
 class QuotationItem(TimeStampedModel):
-    """報價明細：報價當下抄商品的品名＋單價（快照），之後目錄變動不影響歷史。
+    """報價明細：報價當下抄產品的品名＋單價（快照），之後目錄變動不影響歷史。
 
     刻意跟 OrderItem 同形（classmethod 建立 + save 算小計），看完 order 這裡零學習成本。
     """
 
     quotation = models.ForeignKey(Quotation, on_delete=models.CASCADE, related_name='items')
-    # 指回目錄（報表/追溯用）。PROTECT：被明細引用的商品不准硬刪（呼應「下架不刪」）。
+    # 指回目錄（報表/追溯用）。PROTECT：被明細引用的產品不准硬刪（呼應「停售不刪」）。
     product = models.ForeignKey('product.Product', on_delete=models.PROTECT, related_name='quotation_items')
     name = models.CharField(max_length=100)                          # 品名（報價當下快照）
     quantity = models.PositiveIntegerField()                         # 數量（>0 由 schema 驗）

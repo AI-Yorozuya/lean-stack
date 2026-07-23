@@ -11,7 +11,7 @@ from ninja import Field, Schema
 
 # ── 明細 ──────────────────────────────────────────────
 class QuotationItemIn(Schema):
-    product_id: int                               # 從商品目錄挑
+    product_id: int                               # 從產品目錄挑
     quantity: int = Field(..., gt=0)              # 數量必須 > 0
 
 
@@ -26,7 +26,7 @@ class QuotationItemSchema(Schema):
 
 # ── 報價單 ────────────────────────────────────────────
 class QuotationCustomerSchema(Schema):
-    """報價裡帶的客戶摘要（不必回整包會員，夠顯示即可）。"""
+    """報價裡帶的客戶摘要（不必回整包客戶，夠顯示即可）。"""
     id: int
     name: str
     phone: str

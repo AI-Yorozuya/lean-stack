@@ -12,7 +12,7 @@ import { ref, watch, onBeforeMount, onMounted, onBeforeUnmount } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 // 選單 icon 一律取「同一套 lucide、視覺重量相近的實心輪廓物件」——參 top-admin 的
 // constants/icons.js（避免混入 Activity 那種稀疏脈衝線，破壞整體一致性）。
-import { ShoppingCart, Server, ChevronDown, ChevronsLeft, ChevronsRight, User } from '@lucide/vue'
+import { Receipt, Server, ChevronDown, ChevronsLeft, ChevronsRight, User } from '@lucide/vue'
 import { getHealth } from '@/api'
 import HealthBadge from '@/components/HealthBadge.vue'
 // 品牌標：AI萬事屋忍者熊頭（奶油圓底徽章）。import 進來讓 vite 打包＋hash。
@@ -20,14 +20,14 @@ import bearBadge from '@/assets/bearhead_badge.png'
 
 // 導覽：單一項 { to, label, icon }；群組 { label, icon, children:[{ to, label }] }。
 // 標籤設計上限：中文 6 字（側欄寬度就是抓這個預算 + logo 一起定的）。
-// 子母結構示範：會員/商品/訂單收進「銷售管理」母選單（群組＝有 children）；背景任務是單一項。
+// 子母結構示範：客戶/產品/訂單收進「業務」母選單（群組＝有 children）；背景任務是單一項。
 const nav = [
   {
-    label: '銷售管理',
-    icon: ShoppingCart,
+    label: '業務',
+    icon: Receipt,
     children: [
-      { to: '/members', label: '會員' },
-      { to: '/products', label: '商品' },
+      { to: '/members', label: '客戶' },
+      { to: '/products', label: '產品' },
       { to: '/quotations', label: '報價單' },
       { to: '/orders', label: '訂單' },
     ],
@@ -126,7 +126,7 @@ onBeforeUnmount(() => {
       class="flex h-full flex-col overflow-hidden border-r border-border bg-card transition-[width] duration-200"
       :class="expanded ? 'w-44' : 'w-16'"
     >
-      <!-- 品牌列（h-14 對齊頂 bar；整塊是連結，點了回站台入口 = 會員頁）。
+      <!-- 品牌列（h-14 對齊頂 bar；整塊是連結，點了回站台入口 = 客戶頁）。
            px-5 讓熊頭 logo 的左緣＝下方選單 icon 的左緣（nav 的 p-2 + px-3 = 20px），
            整條側欄共用同一條「icon 軌」。寬度 w-44 是抓「6 字標籤 + 品牌字」的下限一起定的。 -->
       <button

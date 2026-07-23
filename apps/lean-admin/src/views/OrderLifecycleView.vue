@@ -25,7 +25,7 @@ const router = useRouter()
 // 欄位定義（餵給 DataTable：產生兩張表共用的 colgroup + 表頭）。備註省略 width = 吃剩餘寬度。
 const columns = [
   { label: '單號', width: 'w-28' },
-  { label: '會員', width: 'w-32' },
+  { label: '客戶', width: 'w-32' },
   { label: '狀態', width: 'w-36', align: 'center' },
   { label: '總額', width: 'w-28', align: 'right' },
   { label: '備註' },
@@ -162,7 +162,7 @@ async function confirmDelete() {
           <div class="flex w-64">
             <Input
               v-model="searchInput"
-              placeholder="搜尋會員姓名或單號…"
+              placeholder="搜尋客戶姓名或單號…"
               class="relative rounded-r-none focus-visible:z-10"
               @keyup.enter="search"
             />
@@ -241,7 +241,7 @@ async function confirmDelete() {
         <DialogHeader>
           <DialogTitle>刪除訂單 {{ deleting?.order_no }}？</DialogTitle>
           <DialogDescription>
-            會員 {{ deleting?.member.name }}、總額 {{ deleting?.total.toLocaleString() }}。刪了就沒了（明細一起刪）。
+            客戶 {{ deleting?.member.name }}、總額 {{ deleting?.total.toLocaleString() }}。刪了就沒了（明細一起刪）。
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>

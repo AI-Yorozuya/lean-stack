@@ -5,7 +5,7 @@ CRUD ＋ 關聯 ＋ 鐵則（把報價單建起來的部分）：
 - 建立                  → POST /quotations
 - 修改                  → PUT  /quotations/{id}
 - 刪除                  → DELETE /quotations/{id}
-（客戶從 apps/member、商品從 apps/product 各自的端點取——這裡不重複。）
+（客戶從 apps/member、產品從 apps/product 各自的端點取——這裡不重複。）
 
 狀態機轉移端點（主戲：每個動作對應一條合法轉移）：
 - 送出 → POST /quotations/{id}/send   （草稿 → 已送出）
@@ -16,7 +16,7 @@ CRUD ＋ 關聯 ＋ 鐵則（把報價單建起來的部分）：
 鐵則在門口與 model 兩層把關：
 - {至少一筆明細}   → QuotationIn 的 min_length=1（schemas.py）
 - {明細=目錄快照}  → QuotationItem.snapshot_from（models.py），本檔只給 product_id + qty
-- {下架商品不可報價} → 本檔建報價時擋（is_active）
+- {停售產品不可報價} → 本檔建報價時擋（is_active）
 - {小計=數量×單價} → QuotationItem.save()（models.py）
 - {總額=明細加總}  → 每次明細變動後 recalc_total()（本檔）
 - {已送出後不可改} → update_quotation 先查 is_editable（本檔）
@@ -46,13 +46,13 @@ router = Router(tags=['quotation'])
 def _add_items(quotation, items):
     """把 payload 的明細（product_id + quantity）建成報價明細——各自抄目錄快照。
 
-    下架商品不可報價（{下架=停售}）→ 422。品名/單價由 snapshot_from 從目錄抄，
+    停售產品不可報價 → 422。品名/單價由 snapshot_from 從目錄抄，
     前端傳的價格一律不採信。
     """
     for item in items:
         product = get_object_or_404(Product, pk=item.product_id)
         if not product.is_active:
-            raise HttpError(422, f'商品「{product.name}」已下架，不能報價')
+            raise HttpError(422, f'產品「{product.name}」已停售，不能報價')
         QuotationItem.snapshot_from(quotation, product, item.quantity)
 
 
@@ -98,7 +98,7 @@ def get_quotation(request, quotation_id: int):
 
 @router.post('', response=QuotationSchema)
 def create_quotation(request, payload: QuotationIn):
-    """後台建報價：客戶由前端指定（customer_id）——業務替客人建報價。"""
+    """後台建報價：客戶由前端指定（customer_id）——業務替客戶建報價。"""
     customer = get_object_or_404(Member, pk=payload.customer_id)
     return make_quotation(customer, payload.items, payload.note)
 

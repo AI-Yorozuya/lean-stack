@@ -1,5 +1,5 @@
-// 商品管理的 API 呼叫。對應後端 apps/product/apis.py。
-// 教學重點：{一 sku 一商品}（撞了後端回 422）、{下架不刪}（沒有 delete，只有下架/上架）。
+// 產品管理的 API 呼叫。對應後端 apps/product/apis.py。
+// 教學重點：{一 sku 一產品}（撞了後端回 422）、{停售不刪}（沒有 delete，只有停售/建立）。
 import http from './index'
 
 export function listProducts({ page = 1, pageSize = 100, search = '', activeOnly = false } = {}) {

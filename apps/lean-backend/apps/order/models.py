@@ -1,21 +1,21 @@
 """訂單管理的資料模型。規則來源：intents/訂單管理.md。
 
 訂單是本 repo 講「狀態與流程」的主場，三拍疊起來：
-- 串關聯：訂單 → 會員（多對一）；明細 → 訂單（1:N）；明細 → 商品（多對一）。
-- 抄快照：下單當下把品名＋單價存進明細（見下 snapshot_from）。
+- 串關聯：訂單 → 客戶（多對一）；明細 → 訂單（1:N）；明細 → 產品（多對一）。
+- 抄快照：建單當下把品名＋單價存進明細（見下 snapshot_from）。
 - 跑狀態：Order.status 生命週期狀態機（待付款→待出貨→已出貨／已取消）＋鐵則。
 
 教學重點（資料模型＝三問的第一問「有什麼？跟誰有關？」）：
 - 三個「東西」＋兩個外部主檔：
     · 訂單 Order、訂單明細 OrderItem（本 app）
-    · 會員 Member（apps/member）＝下單的人；商品 Product（apps/product）＝目錄。
+    · 客戶 Member（apps/member）＝建單的人；產品 Product（apps/product）＝目錄。
 
 四條設計原則（見 intents/資料模型設計原則.md）落在哪：
-- 快照：OrderItem 下單當下把 Product 的品名＋單價「抄一份」（snapshot_from）——
-        之後目錄改價/改名/下架，歷史訂單不動。
+- 快照：OrderItem 建單當下把 Product 的品名＋單價「抄一份」（snapshot_from）——
+        之後目錄改價/改名/停售，歷史訂單不動。
 - 衍生：{明細小計 = 數量 × 單價} → OrderItem.save()；{總額 = 明細加總} → recalc_total()。
 - 業務識別碼：order_no（OR-000123）給人對帳，跟 DB 主鍵 pk 分開。
-- 停用不刪：會員/商品都用狀態關閉（各自 app），訂單對會員/商品用 PROTECT 保住歷史。
+- 停用不刪：客戶/產品都用狀態關閉（各自 app），訂單對客戶/產品用 PROTECT 保住歷史。
 
 其餘鐵則（intents 裡的 {…}）：
 - {一張訂單至少一筆明細}     → 建立/修改入口（apis.py）擋。
@@ -37,7 +37,7 @@ class TransitionError(Exception):
 
 
 class Order(TimeStampedModel):
-    """一次銷售：串會員＋明細（含快照），再由 status 生命週期狀態機管流程。"""
+    """一次銷售：串客戶＋明細（含快照），再由 status 生命週期狀態機管流程。"""
 
     class Status(models.TextChoices):
         # value（存 DB / 走 API）  , label（給人看的中文）
@@ -61,7 +61,7 @@ class Order(TimeStampedModel):
     order_no = models.CharField(max_length=20, unique=True, blank=True)
     member = models.ForeignKey(
         'member.Member',
-        on_delete=models.PROTECT,  # 有訂單的會員不准刪——歷史要留（呼應「停用不刪」）
+        on_delete=models.PROTECT,  # 有訂單的客戶不准刪——歷史要留（呼應「停用不刪」）
         related_name='orders',
     )
     order_date = models.DateField(auto_now_add=True)
@@ -122,22 +122,22 @@ class Order(TimeStampedModel):
 class OrderItem(TimeStampedModel):
     """訂單裡的一個品項。訂單:明細 = 1:N。
 
-    明細的 name / unit_price 是**下單當下的快照**（從 Product 抄一份，見 snapshot_from）——
-    不是即時讀目錄。這樣目錄事後改價/改名/下架，這筆歷史明細都不動。
+    明細的 name / unit_price 是**建單當下的快照**（從 Product 抄一份，見 snapshot_from）——
+    不是即時讀目錄。這樣目錄事後改價/改名/停售，這筆歷史明細都不動。
     """
 
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
-    # 指回目錄（報表/追溯用）。PROTECT：被明細引用的商品不准硬刪（呼應「下架不刪」）。
+    # 指回目錄（報表/追溯用）。PROTECT：被明細引用的產品不准硬刪（呼應「停售不刪」）。
     product = models.ForeignKey('product.Product', on_delete=models.PROTECT, related_name='order_items')
-    name = models.CharField(max_length=100)                          # 品名（下單當下快照）
+    name = models.CharField(max_length=100)                          # 品名（建單當下快照）
     quantity = models.PositiveIntegerField()                         # 數量（>0 由 schema 驗）
-    unit_price = models.DecimalField(max_digits=10, decimal_places=2)  # 單價（下單當下快照）
+    unit_price = models.DecimalField(max_digits=10, decimal_places=2)  # 單價（建單當下快照）
     # 小計不接受手填——save() 算出來存（鐵則入 code 的樣子）。
     subtotal = models.DecimalField(max_digits=12, decimal_places=2, editable=False)
 
     @classmethod
     def snapshot_from(cls, order, product, quantity):
-        """下單當下：把目錄的品名＋單價「抄一份」存進明細（快照）。
+        """建單當下：把目錄的品名＋單價「抄一份」存進明細（快照）。
 
         這是「目錄 vs 明細」那一課的落點：訂單是歷史事實，目錄是當前真相。
         建立後改 product 的價格/名稱，這筆明細不受影響。

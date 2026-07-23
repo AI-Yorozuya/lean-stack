@@ -1,4 +1,4 @@
-"""會員登入的憑證（token）與守衛。規則來源：intents/會員登入.md。
+"""客戶登入的憑證（token）與守衛。規則來源：intents/會員登入.md。
 
 **教學版刻意用 Django 內建的 `django.core.signing`，不用 JWT。**
 - 生產級做法見 top-erp（PyJWT，access + refresh、audience…）；那是「築起高牆」的下游。
@@ -23,7 +23,7 @@ def issue_token(member: Member) -> str:
 
 
 class MemberAuth(HttpBearer):
-    """會員憑證守衛。掛在要「登入才能用」的端點上：
+    """客戶憑證守衛。掛在要「登入才能用」的端點上：
 
         @router.get('/me', auth=member_auth)
         def me(request):
@@ -44,7 +44,7 @@ class MemberAuth(HttpBearer):
             id=data.get('member_id'), status=Member.Status.ACTIVE
         ).first()
         if not member:
-            raise HttpError(401, '會員不存在或已停用')
+            raise HttpError(401, '客戶不存在或已停用')
         return member
 
 

@@ -2,16 +2,6 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "lean-web-preview",
-      "cwd": "apps/lean-web",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": [
-        "run",
-        "dev"
-      ],
-      "autoPort": true
-    },
-    {
       "name": "lean-admin-preview",
       "cwd": "apps/lean-admin",
       "runtimeExecutable": "npm",

@@ -1,8 +1,8 @@
-"""會員的輸入/輸出形狀（ninja Schema）。
+"""客戶的輸入/輸出形狀（ninja Schema）。
 
 教學重點：
 - 「In」＝進來的（建立/修改）；其他＝出去的（回前端）。
-- email 只在「建立」時給——{一 email 一會員}，改資料時不讓動 email（改 email 等於換人）。
+- email 只在「建立」時給——{一 email 一客戶}，改資料時不讓動 email（改 email 等於換人）。
 """
 from ninja import Field, Schema
 
@@ -14,7 +14,7 @@ class MemberIn(Schema):
 
 
 class MemberUpdateIn(Schema):
-    # 刻意沒有 email：鐵則上 email 是會員的識別，建立後不給改。
+    # 刻意沒有 email：鐵則上 email 是客戶的識別，建立後不給改。
     name: str = Field(..., min_length=1, max_length=100)
     phone: str = ''
 
@@ -24,7 +24,7 @@ class MemberSchema(Schema):
     name: str
     email: str
     phone: str
-    registered_at: str       # 註冊日期（= created_at 的日期，TimeStampedModel 自動記）
+    registered_at: str       # 建立日期（= created_at 的日期，TimeStampedModel 自動記）
     status: str              # 狀態 code（ACTIVE / INACTIVE）
     status_display: str      # 中文（啟用 / 停用）
 
@@ -45,7 +45,7 @@ class MemberListSchema(Schema):
 
 # ── 登入 ────────────────────────────────────────────────
 class LoginIn(Schema):
-    """登入輸入：email + 密碼（門市前台 lean-web 送）。"""
+    """登入輸入：email + 密碼。"""
     email: str = Field(..., min_length=1)
     password: str = Field(..., min_length=1)
 

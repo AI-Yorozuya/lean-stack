@@ -1,4 +1,4 @@
-"""商品的輸入/輸出形狀（ninja Schema）。
+"""產品的輸入/輸出形狀（ninja Schema）。
 
 教學重點：sku 只在「建立」時給——業務識別碼建立後要穩定，改資料時不動它。
 """
@@ -15,7 +15,7 @@ class ProductIn(Schema):
 
 
 class ProductUpdateIn(Schema):
-    # 刻意沒有 sku：品號是商品的識別，建立後不給改。
+    # 刻意沒有 sku：品號是產品的識別，建立後不給改。
     name: str = Field(..., min_length=1, max_length=100)
     unit_price: Decimal = Field(..., ge=0)
 
@@ -25,8 +25,8 @@ class ProductSchema(Schema):
     sku: str
     name: str
     unit_price: float
-    image_url: str           # 商品圖網址（門市前台 <img> 用）
-    listed_at: str           # 上架日期（= created_at 的日期，建檔即上架）
+    image_url: str           # 產品圖網址（<img> 用）
+    listed_at: str           # 建立日期（= created_at 的日期，建檔即在售）
     is_active: bool
 
     @staticmethod

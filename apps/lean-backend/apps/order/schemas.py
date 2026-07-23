@@ -12,22 +12,22 @@ from ninja import Field, Schema
 
 # ── 明細 ──────────────────────────────────────────────
 class OrderItemIn(Schema):
-    product_id: int                               # 從商品目錄挑
+    product_id: int                               # 從產品目錄挑
     quantity: int = Field(..., gt=0)              # 數量必須 > 0
 
 
 class OrderItemSchema(Schema):
     id: int
     product_id: int
-    name: str                                  # 下單當下的快照
+    name: str                                  # 建單當下的快照
     quantity: int
-    unit_price: float                          # 下單當下的快照
+    unit_price: float                          # 建單當下的快照
     subtotal: float                            # 後端算的（鐵則），非手填
 
 
 # ── 訂單 ──────────────────────────────────────────────
 class OrderMemberSchema(Schema):
-    """訂單裡帶的會員摘要（不必回整包會員，夠顯示即可）。"""
+    """訂單裡帶的客戶摘要（不必回整包客戶，夠顯示即可）。"""
     id: int
     name: str
     phone: str
@@ -43,7 +43,7 @@ class OrderSchema(Schema):
     id: int
     order_no: str                              # 業務單號（≠ 主鍵）
     member: OrderMemberSchema
-    order_date: str = Field(..., alias='order_date')  # 下訂日期
+    order_date: str = Field(..., alias='order_date')  # 建單日期
     updated_at: str                            # 修改日期（最後一次變動）
     note: str                                  # 備註（自由文字）
     total: float                               # 後端算的（鐵則），非手填

@@ -2,7 +2,7 @@
 // 報價單新增／編輯頁（換頁式，非 dialog）。刻意跟 OrderEditView 同形。同一個 view 兩用：
 //   /quotations/new       → 新增（沒有 :id）
 //   /quotations/:id/edit  → 編輯（有 :id）
-// 表單：選客戶 ＋ 從商品目錄挑明細（後端抄快照）＋ 備註。
+// 表單：選客戶 ＋ 從產品目錄挑明細（後端抄快照）＋ 備註。
 // 編輯只有草稿能改——後端 update_quotation 會擋（送出後回 422）。
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -86,7 +86,7 @@ async function submitForm() {
     return
   }
   if (form.items.some((i) => !i.product_id)) {
-    formError.value = '每一筆明細都要選一個商品'
+    formError.value = '每一筆明細都要選一個產品'
     return
   }
   saving.value = true
@@ -143,7 +143,7 @@ async function submitNewCustomer() {
       <p v-if="errorMsg" class="text-destructive p-5 text-sm">{{ errorMsg }}</p>
 
       <div v-if="!loading && !errorMsg" class="flex min-h-0 flex-1 flex-col gap-4 overflow-auto p-5">
-        <p class="text-muted-foreground text-sm">選客戶、從商品目錄挑明細；小計/總計是顯示用,存檔後以後端計算為準。</p>
+        <p class="text-muted-foreground text-sm">選客戶、從產品目錄挑明細；小計/總計是顯示用,存檔後以後端計算為準。</p>
 
         <div class="flex max-w-2xl flex-col gap-1.5">
           <Label>客戶</Label>
@@ -168,10 +168,10 @@ async function submitNewCustomer() {
         </div>
 
         <div class="flex max-w-2xl flex-col gap-2">
-          <Label>明細（從商品目錄挑；小計 = 數量 × 牌價,自動算）</Label>
+          <Label>明細（從產品目錄挑；小計 = 數量 × 單價,自動算）</Label>
           <div v-for="(item, idx) in form.items" :key="idx" class="flex items-center gap-2">
             <Select v-model="item.product_id">
-              <SelectTrigger class="flex-1"><SelectValue placeholder="選擇商品" /></SelectTrigger>
+              <SelectTrigger class="flex-1"><SelectValue placeholder="選擇產品" /></SelectTrigger>
               <SelectContent>
                 <SelectItem v-for="p in activeProducts" :key="p.id" :value="String(p.id)">
                   {{ p.name }}（{{ p.unit_price.toLocaleString() }}）

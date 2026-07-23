@@ -7,11 +7,11 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
 const routes = [
-  // 進站預設導到會員（最單純的 CRUD 入門頁；沒有獨立首頁）
+  // 進站預設導到客戶（最單純的 CRUD 入門頁；沒有獨立首頁）
   { path: '/', redirect: '/members' },
-  // 會員管理（最單純 CRUD；訂單的「下單的人」就是它）
+  // 客戶管理（最單純 CRUD；訂單的「開單的人」就是它）
   { path: '/members', name: 'members', component: () => import('@/views/MemberListView.vue') },
-  // 商品管理（最單純 CRUD；訂單明細從這個目錄挑、抄快照）
+  // 產品管理（最單純 CRUD；訂單明細從這個目錄挑、抄快照）
   { path: '/products', name: 'products', component: () => import('@/views/ProductListView.vue') },
   // 報價單管理（報價成交型 fork：報價→成交生訂單的承重牆；狀態機草稿→已送出→已成交/已作廢）
   { path: '/quotations', name: 'quotations', component: () => import('@/views/QuotationLifecycleView.vue') },

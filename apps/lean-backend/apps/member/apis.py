@@ -1,6 +1,6 @@
-"""會員管理 API。規則來源：intents/會員管理.md。
+"""客戶管理 API。規則來源：intents/會員管理.md。
 
-- 登入             → POST /member/login   （發憑證；門市前台用）
+- 登入             → POST /member/login   （發憑證）
 - 我是誰（受保護） → GET  /member/me      （帶憑證才進得來）
 - 列表（搜尋 + 分頁）→ GET  /member
 - 建立             → POST /member
@@ -9,7 +9,7 @@
 - 重新啟用         → POST /member/{id}/reactivate
 
 鐵則把關：
-- {一 email 一會員} → email unique（DB），撞了轉 422 白話。
+- {一 email 一客戶} → email unique（DB），撞了轉 422 白話。
 - {停用=關閉不刪}   → 只有 deactivate 改狀態，**沒有 DELETE 端點**。
 - {登入才是本人}   → /login 驗雜湊密碼發憑證；/me 靠 member_auth 守衛（見 auth.py）。
 """
@@ -32,13 +32,13 @@ from apps.member.schemas import (
 router = Router(tags=['member'])
 
 
-# ── 登入 / 我是誰（門市前台 lean-web 用）──────────────────────────
+# ── 登入 / 我是誰 ──────────────────────────
 @router.post('/login', response=LoginOut)
 def login(request, payload: LoginIn):
-    """帳號密碼登入：對到會員 + 密碼正確 → 發一張憑證。
+    """帳號密碼登入：對到客戶 + 密碼正確 → 發一張憑證。
 
     帳號或密碼錯都回同一句 401（不透露是哪個錯，別幫人試帳號）。
-    真驗密碼在這裡發生（雜湊比對）——門市那張「示範密碼」到此變成後端認證。
+    真驗密碼在這裡發生（雜湊比對）——那張「示範密碼」到此變成後端認證。
     """
     member = Member.objects.filter(
         email=payload.email.strip().lower(), status=Member.Status.ACTIVE
@@ -75,8 +75,8 @@ def create_member(request, payload: MemberIn):
     try:
         return Member.objects.create(**payload.dict())
     except IntegrityError:
-        # {一 email 一會員}：DB unique 擋下，轉成前端看得懂的話。
-        raise HttpError(422, f'email「{payload.email}」已被使用（一 email 一會員）')
+        # {一 email 一客戶}：DB unique 擋下，轉成前端看得懂的話。
+        raise HttpError(422, f'email「{payload.email}」已被使用（一 email 一客戶）')
 
 
 @router.put('/{member_id}', response=MemberSchema)
@@ -100,7 +100,7 @@ def deactivate_member(request, member_id: int):
 
 @router.post('/{member_id}/reactivate', response=MemberSchema)
 def reactivate_member(request, member_id: int):
-    """重新啟用：復用舊會員。"""
+    """重新啟用：復用舊客戶。"""
     member = get_object_or_404(Member, pk=member_id)
     member.status = Member.Status.ACTIVE
     member.save(update_fields=['status', 'updated_at'])

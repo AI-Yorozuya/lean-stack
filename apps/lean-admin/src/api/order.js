@@ -2,7 +2,7 @@
 // - 前端不算錢——小計/總額都是後端算好回來的（鐵則住在後端）。
 //   前端表單裡的即時小計只是「顯示給人看」，送出後以後端回傳為準。
 // - 明細只送 product_id + quantity——品名/單價由後端從目錄抄快照，前端不傳價格。
-// - 會員從 @/api/member、商品從 @/api/product 各自取（訂單只管訂單）。
+// - 客戶從 @/api/member、產品從 @/api/product 各自取（訂單只管訂單）。
 // - 每個函式對應後端 apps/order/apis.py 的一個端點，一眼對得上。
 import http from './index'
 

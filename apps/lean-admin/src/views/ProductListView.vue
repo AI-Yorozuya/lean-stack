@@ -1,10 +1,10 @@
 <script setup>
-// 商品管理頁（最單純 CRUD）。規則見 intents/商品管理.md。
-// 教學重點——跟會員同型的「加一頁」，兩條鐵則長在 UI 上：
-//   {一 sku 一商品} → 建立撞 sku 後端回 422,前端顯示白話。
-//   {下架不刪}      → 沒有「刪除」；下架/上架走後端 deactivate/reactivate（UI 目前只顯示狀態文字）。
-// sku 建立後不給改（是商品的識別）——編輯只讓改品名/牌價。
-// 提醒：改牌價只影響「之後的新訂單」,已成立訂單的明細是快照、不受影響（見訂單頁）。
+// 產品管理頁（最單純 CRUD）。規則見 intents/商品管理.md。
+// 教學重點——跟客戶同型的「加一頁」，兩條鐵則長在 UI 上：
+//   {一 sku 一產品} → 建立撞 sku 後端回 422,前端顯示白話。
+//   {停售不刪}      → 沒有「刪除」；停售/在售走後端 deactivate/reactivate（UI 目前只顯示狀態文字）。
+// sku 建立後不給改（是產品的識別）——編輯只讓改品名/單價。
+// 提醒：改單價只影響「之後的新訂單」,已成立訂單的明細是快照、不受影響（見訂單頁）。
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { Plus, Search, Pencil } from '@lucide/vue'
 import { createProduct, listProducts, updateProduct } from '@/api/product'
@@ -33,12 +33,12 @@ const errorMsg = ref('')
 const columns = [
   { label: '品號', width: 'w-36' },
   { label: '品名' },
-  { label: '牌價', width: 'w-28', align: 'right' },
-  { label: '上架日期', width: 'w-32', align: 'center' },
-  { label: '上架狀態', width: 'w-24', align: 'center' },
+  { label: '單價', width: 'w-28', align: 'right' },
+  { label: '建立日期', width: 'w-32', align: 'center' },
+  { label: '銷售狀態', width: 'w-24', align: 'center' },
 ]
 
-// 上架狀態篩選（client-side；商品整包載入，直接濾即可）。
+// 銷售狀態篩選（client-side；產品整包載入，直接濾即可）。
 const filterActive = ref('all') // all | active | inactive
 const filteredProducts = computed(() => {
   if (filterActive.value === 'all') return products.value
@@ -57,13 +57,13 @@ function goPage(p) {
   page.value = Math.min(Math.max(1, p), totalPages.value)
 }
 function setPageSize(n) { pageSize.value = n; page.value = 1 } // 改每頁筆數 → 回第一頁
-watch(filterActive, () => { page.value = 1 }) // 切上架狀態 → 回第一頁
+watch(filterActive, () => { page.value = 1 }) // 切銷售狀態 → 回第一頁
 
 async function load() {
   loading.value = true
   errorMsg.value = ''
   try {
-    // 這頁看全部（含下架,才能重新上架）；訂單頁的商品 select 才用 activeOnly。
+    // 這頁看全部（含停售,才能重新開售）；訂單頁的產品 select 才用 activeOnly。
     products.value = (await listProducts({ pageSize: 100, search: searchInput.value })).items
     page.value = 1 // 每次搜尋後回第一頁
   } catch (e) {
@@ -118,13 +118,13 @@ async function submitForm() {
   }
 }
 
-// 註：下架/上架走後端 deactivate/reactivate（見 api/product.js）。這頁的狀態欄目前只「顯示」，
+// 註：停售/在售走後端 deactivate/reactivate（見 api/product.js）。這頁的狀態欄目前只「顯示」，
 // 「直接在列表切換（inline 修改）」刻意留白 → 認識積木的指名練習：你怎麼講給 AI 加上去？
 </script>
 
 <template>
   <div class="flex h-full flex-col">
-    <h1 class="shrink-0 text-lg font-semibold leading-none tracking-tight">商品列表</h1>
+    <h1 class="shrink-0 text-lg font-semibold leading-none tracking-tight">產品列表</h1>
 
     <div class="mt-5 flex min-h-0 flex-1 flex-col rounded-lg border bg-card p-5 shadow-sm">
       <p v-if="errorMsg" class="text-destructive mb-3 shrink-0 text-sm">{{ errorMsg }}</p>
@@ -137,16 +137,16 @@ async function submitForm() {
             <SelectTrigger class="w-32"><SelectValue placeholder="全部狀態" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">全部狀態</SelectItem>
-              <SelectItem value="active">上架</SelectItem>
-              <SelectItem value="inactive">下架</SelectItem>
+              <SelectItem value="active">在售</SelectItem>
+              <SelectItem value="inactive">停售</SelectItem>
             </SelectContent>
           </Select>
           <div class="flex w-56">
-            <Input v-model="searchInput" placeholder="搜尋商品名稱…" class="relative rounded-r-none focus-visible:z-10" @keyup.enter="load" />
+            <Input v-model="searchInput" placeholder="搜尋產品名稱…" class="relative rounded-r-none focus-visible:z-10" @keyup.enter="load" />
             <Button variant="outline" size="icon" class="shrink-0 rounded-l-none border-l-0" title="搜尋" @click="load"><Search class="size-4" /></Button>
           </div>
         </div>
-        <Button @click="openCreate"><Plus class="size-4" /> 新增商品</Button>
+        <Button @click="openCreate"><Plus class="size-4" /> 新增產品</Button>
       </div>
 
       <!-- 表格：水電全包在 DataTable；狀態欄先做純文字（inline 直接改＝留給學員的指名練習），操作只留編輯 -->
@@ -157,7 +157,7 @@ async function submitForm() {
           <TableCell class="text-right tabular-nums">{{ p.unit_price.toLocaleString() }}</TableCell>
           <TableCell class="tabular-nums">{{ p.listed_at }}</TableCell>
           <TableCell class="text-center">
-            <span :class="p.is_active ? '' : 'text-muted-foreground'">{{ p.is_active ? '上架' : '下架' }}</span>
+            <span :class="p.is_active ? '' : 'text-muted-foreground'">{{ p.is_active ? '在售' : '停售' }}</span>
           </TableCell>
         </template>
         <template #actions="{ item: p }">
@@ -165,7 +165,7 @@ async function submitForm() {
             <Pencil class="size-4" />
           </Button>
         </template>
-        <template #empty>沒有商品——按上方「＋ 新增商品」建第一個</template>
+        <template #empty>沒有產品——按上方「＋ 新增產品」建第一個</template>
       </DataTable>
 
       <!-- 分頁（釘在卡底）-->
@@ -178,8 +178,8 @@ async function submitForm() {
     <Dialog v-model:open="showForm">
       <DialogContent class="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{{ editingId ? '編輯商品' : '新增商品' }}</DialogTitle>
-          <DialogDescription>{{ editingId ? '品號是商品識別,建立後不可改。改牌價只影響之後的新訂單。' : '一個品號只能對到一個商品。' }}</DialogDescription>
+          <DialogTitle>{{ editingId ? '編輯產品' : '新增產品' }}</DialogTitle>
+          <DialogDescription>{{ editingId ? '品號是產品識別,建立後不可改。改單價只影響之後的新訂單。' : '一個品號只能對到一個產品。' }}</DialogDescription>
         </DialogHeader>
         <div class="flex flex-col gap-3 py-2">
           <div class="flex flex-col gap-1.5">
@@ -191,7 +191,7 @@ async function submitForm() {
             <Input v-model="form.name" placeholder="居家深度打掃" />
           </div>
           <div class="flex flex-col gap-1.5">
-            <Label>牌價</Label>
+            <Label>單價</Label>
             <Input v-model.number="form.unit_price" type="number" min="0" placeholder="1800" />
           </div>
           <p v-if="formError" class="text-destructive text-sm">{{ formError }}</p>
