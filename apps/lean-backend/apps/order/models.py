@@ -103,7 +103,12 @@ class Order(TimeStampedModel):
         return [action for action, t in self.TRANSITIONS.items() if self.status in t['from']]
 
     def apply_transition(self, action):
-        """推進狀態機。非法轉移 → TransitionError（終態不可轉、跳步不可轉）。"""
+        """推進狀態機。非法轉移 → TransitionError（終態不可轉、跳步不可轉）。
+
+        收款/作廢會連動帳款分錄（收款→記一筆收款、作廢→沖銷未收應收）——多表寫入，
+        呼叫端請包 transaction.atomic（見 apis.py 的 _transition）。
+        """
+        from apps.billing.models import LedgerEntry   # 局部 import：避免 order↔billing 載入期耦合
         t = self.TRANSITIONS.get(action)
         if t is None:
             raise TransitionError(f'未知的動作：{action}')
@@ -114,9 +119,28 @@ class Order(TimeStampedModel):
             )
         if action == 'pay':
             self.paid_amount = self.total   # [收款金額 = 總額]
-        # 取消：只是把狀態作廢（出貨前才可取消）。已收的錢怎麼退＝金流，INTENT park。
+            LedgerEntry.payment(self.member, self.total, order=self, memo=f'訂單 {self.order_no} 收款')
+        elif action == 'cancel':
+            # 作廢：沖掉這張訂單「還沒收」的應收，不留幽靈欠款（已收的退款＝金流，INTENT park）。
+            LedgerEntry.reversal(self.member, LedgerEntry.order_net(self), order=self,
+                                 memo=f'訂單 {self.order_no} 作廢沖銷')
         self.status = t['to']
         self.save(update_fields=['status', 'paid_amount', 'updated_at'])
+
+    # ── 帳款連動（event-sourced-ledger；每個動作只 append 分錄，見 apps/billing）──
+    def post_initial_charge(self):
+        """訂單建立完成（總額定案後）：開一筆應收。後台建單與成交生訂單都呼叫這個。"""
+        from apps.billing.models import LedgerEntry
+        LedgerEntry.charge(self.member, self.total, order=self, memo=f'訂單 {self.order_no} 應收')
+
+    def post_adjustment(self, old_total):
+        """改單後總額變動 → 補一筆調整（append-only 更正）：差額 >0 追加應收、<0 沖減。"""
+        from apps.billing.models import LedgerEntry
+        delta = self.total - old_total
+        if delta > 0:
+            LedgerEntry.charge(self.member, delta, order=self, memo=f'訂單 {self.order_no} 改單追加')
+        elif delta < 0:
+            LedgerEntry.reversal(self.member, -delta, order=self, memo=f'訂單 {self.order_no} 改單沖減')
 
 
 class OrderItem(TimeStampedModel):

@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     'apps.product',  # 商品目錄（最單純 CRUD；規則見 intents/商品管理.md）
     'apps.quotation',  # 報價單（報價成交型 fork：狀態機＋快照＋成交生訂單承重牆）
     'apps.order',  # 訂單管理（狀態機＋快照＋承重牆；規則見 intents/訂單管理.md）
+    'apps.billing',  # 帳款（收費：event-sourced-ledger 應收帳款，訂單生命週期連動）
 ]
 
 MIDDLEWARE = [

@@ -14,6 +14,7 @@ from apps.member.apis import router as member_router
 from apps.order.apis import router as order_router
 from apps.product.apis import router as product_router
 from apps.quotation.apis import router as quotation_router
+from apps.billing.apis import router as billing_router
 from apps.progress.apis import router as progress_router
 
 # title / version 會顯示在自動產生的 API 文件（/api/v1/docs）。
@@ -29,6 +30,7 @@ api.add_router('/members', member_router)
 api.add_router('/products', product_router)
 api.add_router('/quotations', quotation_router)
 api.add_router('/orders', order_router)
+api.add_router('/billing', billing_router)
 
 # auth 的接法（本 repo 現況）：
 #   - 不在 NinjaAPI 設全域 auth——後台 CRUD 端點刻意公開（內部管理系統，非對外賣場）。

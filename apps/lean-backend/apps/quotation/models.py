@@ -138,6 +138,7 @@ class Quotation(TimeStampedModel):
                 quantity=qi.quantity,
             )
         order.recalc_total()               # 訂單總額 = 明細加總（order 那邊的鐵則）
+        order.post_initial_charge()         # 帳款連動：成交生的訂單也開一筆應收
         return order
 
 

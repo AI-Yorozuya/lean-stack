@@ -67,6 +67,7 @@ def place_order(member, items):
     order = Order.objects.create(member=member)
     _add_items(order, items)      # 各明細從目錄抄快照 + save() 算小計（鐵則）
     order.recalc_total()          # 鐵則：總額 = 明細加總
+    order.post_initial_charge()   # 帳款連動：建單即開一筆應收（見 apps/billing）
     return order
 
 
@@ -117,18 +118,25 @@ def update_order(request, order_id: int, payload: OrderIn):
     # 鐵則 {已出貨後明細/總額不可改}：生命週期的承重牆，砌在 update 入口。
     if not order.is_editable:
         raise HttpError(422, f'「{order.get_status_display()}」的訂單不可改明細（已出貨後鎖定）')
+    old_total = order.total          # 改單前總額（算帳款差額用）
     order.member = get_object_or_404(Member, pk=payload.member_id)
     order.save(update_fields=['member', 'updated_at'])
     order.items.all().delete()
     _add_items(order, payload.items)
     order.recalc_total()
+    order.post_adjustment(old_total)  # 帳款連動：總額變動補一筆調整（append-only 更正）
     return order
 
 
 @router.delete('/{order_id}', response=MessageSchema)
+@transaction.atomic
 def delete_order(request, order_id: int):
+    from apps.billing.models import LedgerEntry
     order = get_object_or_404(Order, pk=order_id)
     order_no = order.order_no
+    # 帳款連動：先沖掉這張訂單的未收淨額，再刪——不留幽靈欠款（分錄本身 append-only 留著，order 轉 null）。
+    LedgerEntry.reversal(order.member, LedgerEntry.order_net(order), order=order,
+                         memo=f'訂單 {order_no} 刪除沖銷')
     order.delete()  # 明細跟著刪（models 的 on_delete=CASCADE）
     return {'message': f'訂單 {order_no} 已刪除'}
 
@@ -146,6 +154,8 @@ def update_order_note(request, order_id: int, payload: OrderNoteIn):
 
 # ── 訂單狀態機：一個動作一個端點，都走 model 的 apply_transition ──
 # 非法轉移由 model 擋（TransitionError）→ 這裡統一轉成 422 給前端顯示白話原因。
+# 整段包 atomic：收款/作廢會連動帳款分錄（多表寫入），要嘛全成、要嘛全退。
+@transaction.atomic
 def _transition(order_id, action):
     order = get_object_or_404(
         Order.objects.select_related('member').prefetch_related('items'), pk=order_id
