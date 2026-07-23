@@ -174,3 +174,108 @@
 .scroll-thin::-webkit-scrollbar-thumb:hover {
   background-color: rgb(15 23 42 / 0.85);
 }
+
+/* ── 列印：整頁只印「訂單單據」(.print-doc，teleport 到 body)；螢幕上完全隱藏 ── */
+.print-doc {
+  display: none;
+}
+@media print {
+  /* 藏掉整個 app（側欄/頂 bar/螢幕內容/動作鈕），只留單據 */
+  #app {
+    display: none !important;
+  }
+  .print-doc {
+    display: block !important;
+  }
+  html,
+  body {
+    height: auto !important;
+    overflow: visible !important;
+    background: #fff !important;
+  }
+  @page {
+    margin: 14mm;
+  }
+}
+
+/* 單據內容樣式（teleport 到 body，只有列印時看得到；背景色強制印出）*/
+.print-doc {
+  color: #111;
+  font-size: 12px;
+  line-height: 1.5;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+.print-doc .pd-head {
+  text-align: center;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #111;
+}
+.print-doc .pd-logo {
+  height: 48px;
+  margin: 0 auto 6px;
+  object-fit: contain;
+}
+.print-doc .pd-company {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+.print-doc .pd-sub {
+  margin-top: 2px;
+  font-size: 11px;
+  color: #555;
+}
+.print-doc .pd-title {
+  margin: 14px 0;
+  text-align: center;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.3em;
+}
+.print-doc table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.print-doc .pd-info {
+  margin-bottom: 12px;
+}
+.print-doc .pd-info th,
+.print-doc .pd-info td {
+  border: 1px solid #999;
+  padding: 5px 8px;
+  text-align: left;
+  vertical-align: top;
+}
+.print-doc .pd-info th {
+  width: 90px;
+  white-space: nowrap;
+  background: #f3f3f3;
+  font-weight: 600;
+}
+.print-doc .pd-items th,
+.print-doc .pd-items td {
+  border: 1px solid #999;
+  padding: 6px 8px;
+}
+.print-doc .pd-items thead th {
+  background: #f3f3f3;
+  font-weight: 600;
+}
+.print-doc .pd-items .l {
+  text-align: left;
+}
+.print-doc .pd-items .r {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.print-doc .pd-items tfoot td {
+  background: #fafafa;
+  font-weight: 700;
+}
+.print-doc .pd-foot {
+  margin-top: 16px;
+  text-align: center;
+  font-size: 10px;
+  color: #666;
+}

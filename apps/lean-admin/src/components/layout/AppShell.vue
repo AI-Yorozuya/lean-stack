@@ -35,9 +35,9 @@ const nav = [
 ]
 
 const route = useRoute()
-// active 一律 exact 比對（leaf 頁面）。
-const isItemActive = (to) => route.path === to
-const isGroupActive = (item) => item.children.some((c) => route.path === c.to)
+// active 用前綴比對：子路由（如 /orders/21、/orders/21/edit）也讓父項（訂單）保持 active。
+const isItemActive = (to) => route.path === to || route.path.startsWith(to + '/')
+const isGroupActive = (item) => item.children.some((c) => isItemActive(c.to))
 
 // ── 群組展開狀態 ──
 // 開合只認 openGroups 這一個真相（不再用「active 子項」臨時算開，那會讓群組一離開就自動收、忽開忽關）。
