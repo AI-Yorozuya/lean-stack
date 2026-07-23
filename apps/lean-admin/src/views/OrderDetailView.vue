@@ -112,47 +112,42 @@ async function confirmCancel() {
 
     <!-- 內容 -->
     <div v-else-if="order" class="mt-5 flex min-h-0 flex-1 flex-col gap-4 overflow-auto">
-      <!-- 金額摘要 band：先講錢（ERP 詳細頁慣例）。三格：總額 / 已收 / 未收餘額 -->
-      <div class="grid shrink-0 grid-cols-3 divide-x rounded-lg border bg-card shadow-sm">
-        <div class="px-5 py-4">
-          <div class="text-muted-foreground text-xs">訂單總額</div>
-          <div class="mt-1 text-xl font-semibold tabular-nums">{{ money(order.total) }}</div>
+      <!-- 上排兩張卡：客戶 ｜ 收款 -->
+      <div class="grid shrink-0 gap-4 lg:grid-cols-2">
+        <!-- 客戶卡 -->
+        <div class="rounded-lg border bg-card shadow-sm">
+          <div class="border-b px-5 py-3 text-sm font-medium">客戶</div>
+          <dl class="grid grid-cols-2 gap-x-6 gap-y-4 p-5 text-sm">
+            <div class="col-span-2">
+              <dt class="text-muted-foreground text-xs">客戶名稱</dt>
+              <dd class="mt-1">
+                <button type="button" class="hover:text-primary inline-flex items-center gap-1 font-medium hover:underline" @click="router.push(`/billing/customers/${order.member.id}`)">
+                  {{ order.member.name }} <ArrowUpRight class="size-3.5 opacity-60" />
+                </button>
+              </dd>
+            </div>
+            <div><dt class="text-muted-foreground text-xs">電話</dt><dd class="mt-1 tabular-nums">{{ order.member.phone || '—' }}</dd></div>
+            <div><dt class="text-muted-foreground text-xs">下訂日期</dt><dd class="mt-1 tabular-nums">{{ order.order_date }}</dd></div>
+            <div class="col-span-2"><dt class="text-muted-foreground text-xs">備註</dt><dd class="mt-1">{{ order.note || '—' }}</dd></div>
+          </dl>
         </div>
-        <div class="px-5 py-4">
-          <div class="text-muted-foreground text-xs">已收</div>
-          <div class="mt-1 text-xl font-semibold tabular-nums">{{ money(order.paid_amount) }}</div>
-        </div>
-        <div class="px-5 py-4">
-          <div class="text-muted-foreground text-xs">未收餘額</div>
-          <div class="mt-1 text-xl font-semibold tabular-nums" :class="outstanding > 0 ? 'text-foreground' : 'text-muted-foreground'">{{ money(outstanding) }}</div>
-        </div>
-      </div>
 
-      <!-- 基本資料：框線 descriptions 格（label 淡底 + value），仿 ERP 的 el-descriptions -->
-      <div class="shrink-0 overflow-hidden rounded-lg border bg-card shadow-sm">
-        <div class="border-b px-5 py-3 text-sm font-medium">基本資料</div>
-        <div class="grid grid-cols-1 text-sm sm:grid-cols-2">
-          <div class="flex border-b">
-            <div class="text-muted-foreground w-28 shrink-0 border-r bg-muted/40 px-4 py-2.5">客戶</div>
-            <button type="button" class="hover:text-primary flex flex-1 items-center gap-1 px-4 py-2.5 text-left font-medium hover:underline" @click="router.push(`/billing/customers/${order.member.id}`)">
-              {{ order.member.name }} <ArrowUpRight class="size-3.5 opacity-60" />
-            </button>
-          </div>
-          <div class="flex border-b sm:border-l">
-            <div class="text-muted-foreground w-28 shrink-0 border-r bg-muted/40 px-4 py-2.5">電話</div>
-            <div class="flex-1 px-4 py-2.5 tabular-nums">{{ order.member.phone || '—' }}</div>
-          </div>
-          <div class="flex border-b">
-            <div class="text-muted-foreground w-28 shrink-0 border-r bg-muted/40 px-4 py-2.5">下訂日期</div>
-            <div class="flex-1 px-4 py-2.5 tabular-nums">{{ order.order_date }}</div>
-          </div>
-          <div class="flex border-b sm:border-l">
-            <div class="text-muted-foreground w-28 shrink-0 border-r bg-muted/40 px-4 py-2.5">修改日期</div>
-            <div class="flex-1 px-4 py-2.5 tabular-nums">{{ order.updated_at }}</div>
-          </div>
-          <div class="flex sm:col-span-2">
-            <div class="text-muted-foreground w-28 shrink-0 border-r bg-muted/40 px-4 py-2.5">備註</div>
-            <div class="flex-1 px-4 py-2.5">{{ order.note || '—' }}</div>
+        <!-- 收款卡 -->
+        <div class="rounded-lg border bg-card shadow-sm">
+          <div class="border-b px-5 py-3 text-sm font-medium">收款</div>
+          <div class="flex flex-col gap-3 p-5 text-sm">
+            <div class="flex items-center justify-between">
+              <span class="text-muted-foreground">訂單總額</span>
+              <span class="font-medium tabular-nums">{{ money(order.total) }}</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-muted-foreground">已收</span>
+              <span class="tabular-nums">{{ money(order.paid_amount) }}</span>
+            </div>
+            <div class="flex items-center justify-between border-t pt-3">
+              <span class="font-medium">未收餘額</span>
+              <span class="text-xl font-semibold tabular-nums" :class="outstanding > 0 ? 'text-foreground' : 'text-muted-foreground'">{{ money(outstanding) }}</span>
+            </div>
           </div>
         </div>
       </div>

@@ -6,14 +6,14 @@
 // 編輯只有出貨前（待付款/待出貨）能改——後端 update_order 會擋（非法回 422）。
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { Plus, X, ArrowLeft } from '@lucide/vue'
+import { Plus, X, ArrowLeft, ChevronDown } from '@lucide/vue'
 import { createOrder, getOrder, updateOrder } from '@/api/order'
-import { createMember, listMembers } from '@/api/member'
 import { listProducts } from '@/api/product'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import CustomerSelectDialog from '@/components/CustomerSelectDialog.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -21,10 +21,11 @@ const isCreate = !route.params.id // 沒有 :id = 新增模式
 const orderId = isCreate ? null : Number(route.params.id)
 
 const order = ref(null)
-const members = ref([])
 const products = ref([])
 const loading = ref(true)
 const errorMsg = ref('')
+const selectedMember = ref(null)       // 已選客戶（顯示用；id 進 form.member_id）
+const showCustomerDialog = ref(false)
 
 const activeProducts = computed(() => products.value.filter((p) => p.is_active))
 const productMap = computed(() => Object.fromEntries(products.value.map((p) => [String(p.id), p])))
@@ -52,18 +53,15 @@ const formTotal = computed(() => form.items.reduce((sum, i) => sum + itemSubtota
 
 onMounted(async () => {
   try {
-    // 客戶/產品目錄兩種模式都要（下拉選單用）；編輯模式再多抓這張訂單來帶入表單。
-    const [m, p] = await Promise.all([
-      listMembers({ pageSize: 100 }),
-      listProducts({ pageSize: 100 }),
-    ])
-    members.value = m.items
+    // 產品目錄給明細下拉用；客戶改由對話框自己搜尋分頁載入（不預抓整包）。
+    const p = await listProducts({ pageSize: 100 })
     products.value = p.items
     if (isCreate) {
       form.items = [blankItem()] // 新增：一張空明細起手
     } else {
       const o = await getOrder(orderId)
       order.value = o
+      selectedMember.value = o.member
       form.member_id = String(o.member.id)
       form.items = o.items.map((i) => ({ product_id: String(i.product_id), quantity: i.quantity }))
     }
@@ -106,27 +104,10 @@ async function submitForm() {
   }
 }
 
-// ── 快速新增客戶 ──
-const showNewMember = ref(false)
-const newMember = reactive({ name: '', email: '', phone: '' })
-const newMemberError = ref('')
-async function submitNewMember() {
-  newMemberError.value = ''
-  if (!newMember.name || !newMember.email) {
-    newMemberError.value = '姓名與 email 必填'
-    return
-  }
-  try {
-    const created = await createMember({ ...newMember })
-    members.value = (await listMembers({ pageSize: 100 })).items
-    form.member_id = String(created.id)
-    newMember.name = ''
-    newMember.email = ''
-    newMember.phone = ''
-    showNewMember.value = false
-  } catch (e) {
-    newMemberError.value = e.response?.data?.detail || '建立失敗'
-  }
+// 對話框選定客戶（含新客戶建立後回選）。
+function onSelectCustomer(m) {
+  selectedMember.value = m
+  form.member_id = String(m.id)
 }
 </script>
 
@@ -144,26 +125,22 @@ async function submitNewMember() {
       <div v-if="!loading && !errorMsg" class="flex min-h-0 flex-1 flex-col gap-4 overflow-auto p-5">
         <p class="text-muted-foreground text-sm">選客戶、從產品目錄挑明細；小計/總計是顯示用,存檔後以後端計算為準。</p>
 
-        <div class="flex max-w-2xl flex-col gap-1.5">
+        <div class="flex max-w-md flex-col gap-1.5">
           <Label>客戶</Label>
-          <div class="flex gap-2">
-            <Select v-model="form.member_id">
-              <SelectTrigger class="flex-1"><SelectValue placeholder="選擇客戶" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem v-for="m in members" :key="m.id" :value="String(m.id)">{{ m.name }}</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button variant="outline" @click="showNewMember = !showNewMember">＋ 新客戶</Button>
-          </div>
-          <div v-if="showNewMember" class="bg-muted flex flex-col gap-2 rounded-md p-2">
-            <div class="flex gap-2">
-              <Input v-model="newMember.name" placeholder="姓名" />
-              <Input v-model="newMember.email" placeholder="email" />
-              <Input v-model="newMember.phone" placeholder="電話（選填）" />
-              <Button @click="submitNewMember">建立</Button>
-            </div>
-            <p v-if="newMemberError" class="text-destructive text-sm">{{ newMemberError }}</p>
-          </div>
+          <!-- 新增：開對話框搜尋挑選（客戶多也不怕）；編輯：唯讀（訂單成立後不可換客戶）。 -->
+          <button
+            v-if="isCreate"
+            type="button"
+            class="bg-background hover:bg-muted/50 flex h-9 items-center justify-between rounded-md border px-3 text-sm transition-colors"
+            @click="showCustomerDialog = true"
+          >
+            <span :class="selectedMember ? 'font-medium' : 'text-muted-foreground'">{{ selectedMember ? selectedMember.name : '選擇客戶…' }}</span>
+            <ChevronDown class="size-4 opacity-60" />
+          </button>
+          <template v-else>
+            <div class="bg-muted/40 flex h-9 items-center rounded-md border px-3 text-sm font-medium">{{ selectedMember?.name }}</div>
+            <p class="text-muted-foreground text-xs">訂單成立後不可換客戶（帳已開給原客戶）。</p>
+          </template>
         </div>
 
         <div class="flex max-w-2xl flex-col gap-2">
@@ -197,5 +174,7 @@ async function submitNewMember() {
         <Button :disabled="saving || loading" @click="submitForm">儲存</Button>
       </div>
     </div>
+
+    <CustomerSelectDialog v-model:open="showCustomerDialog" @select="onSelectCustomer" />
   </div>
 </template>

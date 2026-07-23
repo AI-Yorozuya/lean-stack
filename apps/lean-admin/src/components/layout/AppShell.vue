@@ -12,7 +12,7 @@ import { ref, watch, onBeforeMount, onMounted, onBeforeUnmount } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 // 選單 icon 一律取「同一套 lucide、視覺重量相近的實心輪廓物件」——參 top-admin 的
 // constants/icons.js（避免混入 Activity 那種稀疏脈衝線，破壞整體一致性）。
-import { Receipt, Landmark, Server, ChevronDown, ChevronsLeft, ChevronsRight, User } from '@lucide/vue'
+import { Receipt, Wallet, Server, ChevronDown, ChevronsLeft, ChevronsRight, User } from '@lucide/vue'
 import { getHealth } from '@/api'
 import HealthBadge from '@/components/HealthBadge.vue'
 // 品牌標：AI萬事屋忍者熊頭（奶油圓底徽章）。import 進來讓 vite 打包＋hash。
@@ -35,7 +35,7 @@ const nav = [
   },
   {
     label: '會計',
-    icon: Landmark,
+    icon: Wallet,
     children: [
       { to: '/billing', label: '帳款' },
     ],
