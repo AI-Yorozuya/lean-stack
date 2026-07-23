@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import CustomerSelectDialog from '@/components/CustomerSelectDialog.vue'
 
 const route = useRoute()
@@ -120,58 +121,82 @@ function onSelectCustomer(m) {
       <h1 class="text-lg font-semibold leading-none tracking-tight">{{ isCreate ? '新增報價' : `編輯報價 ${quotation?.quote_no || ''}` }}</h1>
     </div>
 
-    <!-- 大卡片：表單（可捲）+ 底部按鈕 -->
-    <div class="mt-5 flex min-h-0 flex-1 flex-col rounded-lg border bg-card shadow-sm">
-      <p v-if="errorMsg" class="text-destructive p-5 text-sm">{{ errorMsg }}</p>
+    <!-- 表單：分卡片區塊（客戶 / 明細 / 備註），底部按鈕列釘住 -->
+    <div class="mt-5 flex min-h-0 flex-1 flex-col">
+      <p v-if="errorMsg" class="text-destructive text-sm">{{ errorMsg }}</p>
 
-      <div v-if="!loading && !errorMsg" class="flex min-h-0 flex-1 flex-col gap-4 overflow-auto p-5">
-        <p class="text-muted-foreground text-sm">選客戶、從產品目錄挑明細；小計/總計是顯示用,存檔後以後端計算為準。</p>
-
-        <div class="flex max-w-md flex-col gap-1.5">
-          <Label>客戶</Label>
-          <!-- 開對話框搜尋挑選（客戶多也不怕）；找不到可在框裡建新客戶。 -->
-          <button
-            type="button"
-            class="bg-background hover:bg-muted/50 flex h-9 items-center justify-between rounded-md border px-3 text-sm transition-colors"
-            @click="showCustomerDialog = true"
-          >
-            <span :class="selectedCustomer ? 'font-medium' : 'text-muted-foreground'">{{ selectedCustomer ? selectedCustomer.name : '選擇客戶…' }}</span>
-            <ChevronDown class="size-4 opacity-60" />
-          </button>
-        </div>
-
-        <div class="flex max-w-2xl flex-col gap-2">
-          <Label>明細（從產品目錄挑；小計 = 數量 × 單價,自動算）</Label>
-          <div v-for="(item, idx) in form.items" :key="idx" class="flex items-center gap-2">
-            <Select v-model="item.product_id">
-              <SelectTrigger class="flex-1"><SelectValue placeholder="選擇產品" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem v-for="p in activeProducts" :key="p.id" :value="String(p.id)">
-                  {{ p.name }}（{{ p.unit_price.toLocaleString() }}）
-                </SelectItem>
-              </SelectContent>
-            </Select>
-            <Input v-model.number="item.quantity" type="number" min="1" class="w-20" />
-            <span class="text-muted-foreground w-28 text-right text-sm tabular-nums">= {{ itemSubtotal(item).toLocaleString() }}</span>
-            <Button variant="ghost" size="icon-sm" class="text-destructive" @click="removeItem(idx)"><X class="size-4" /></Button>
+      <div v-if="!loading && !errorMsg" class="flex min-h-0 flex-1 flex-col gap-4 overflow-auto pb-2">
+        <!-- 客戶卡 -->
+        <div class="overflow-hidden rounded-lg border bg-card shadow-sm">
+          <div class="border-b px-4 py-2.5 text-sm font-semibold">客戶</div>
+          <div class="p-4">
+            <button
+              type="button"
+              class="bg-background hover:bg-muted/50 flex h-9 w-full max-w-md items-center justify-between rounded-md border px-3 text-sm transition-colors"
+              @click="showCustomerDialog = true"
+            >
+              <span :class="selectedCustomer ? 'font-medium' : 'text-muted-foreground'">{{ selectedCustomer ? selectedCustomer.name : '選擇客戶…' }}</span>
+              <ChevronDown class="size-4 opacity-60" />
+            </button>
           </div>
-          <Button variant="outline" size="sm" class="w-fit" @click="addItem"><Plus class="size-4" /> 加一筆明細</Button>
         </div>
 
-        <div class="flex max-w-2xl flex-col gap-1.5">
-          <Label>備註（選填）</Label>
-          <Input v-model="form.note" placeholder="給這張報價的備註…" maxlength="200" />
+        <!-- 明細卡：正式表格，新增品項在 header 右 -->
+        <div class="overflow-hidden rounded-lg border bg-card shadow-sm">
+          <div class="flex items-center justify-between border-b px-4 py-2.5">
+            <span class="text-sm font-semibold">明細</span>
+            <Button variant="outline" size="sm" @click="addItem"><Plus class="size-4" /> 新增品項</Button>
+          </div>
+          <div class="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>品名</TableHead>
+                  <TableHead class="w-24 text-center">數量</TableHead>
+                  <TableHead class="w-32 text-right">小計</TableHead>
+                  <TableHead class="w-12"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <TableRow v-for="(item, idx) in form.items" :key="idx">
+                  <TableCell>
+                    <Select v-model="item.product_id">
+                      <SelectTrigger><SelectValue placeholder="選擇產品" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem v-for="p in activeProducts" :key="p.id" :value="String(p.id)">
+                          {{ p.name }}（{{ p.unit_price.toLocaleString() }}）
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </TableCell>
+                  <TableCell class="text-center">
+                    <Input v-model.number="item.quantity" type="number" min="1" class="mx-auto w-20 text-center" />
+                  </TableCell>
+                  <TableCell class="text-right tabular-nums">{{ itemSubtotal(item).toLocaleString() }}</TableCell>
+                  <TableCell class="text-center">
+                    <Button variant="ghost" size="icon-sm" class="text-destructive" @click="removeItem(idx)"><X class="size-4" /></Button>
+                  </TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          </div>
+          <p v-if="formError" class="text-destructive px-4 pt-2 text-sm">{{ formError }}</p>
+          <div class="flex items-center justify-end border-t px-4 py-2.5 text-sm">
+            <span class="font-semibold">總計 <span class="tabular-nums">{{ formTotal.toLocaleString() }}</span></span>
+          </div>
         </div>
 
-        <p class="font-semibold">
-          總計：{{ formTotal.toLocaleString() }}
-          <span class="text-muted-foreground ml-2 text-sm font-normal">（顯示用；存檔後以後端計算為準）</span>
-        </p>
-        <p v-if="formError" class="text-destructive text-sm">{{ formError }}</p>
+        <!-- 備註卡 -->
+        <div class="overflow-hidden rounded-lg border bg-card shadow-sm">
+          <div class="border-b px-4 py-2.5 text-sm font-semibold">備註<span class="text-muted-foreground ml-1 text-xs font-normal">（選填）</span></div>
+          <div class="p-4">
+            <Input v-model="form.note" placeholder="給這張報價的備註…" maxlength="200" />
+          </div>
+        </div>
       </div>
 
-      <!-- 底部按鈕列（釘在卡底）-->
-      <div class="flex shrink-0 justify-end gap-2 border-t p-4">
+      <!-- 底部按鈕列 -->
+      <div class="flex shrink-0 justify-end gap-2 pt-4">
         <Button variant="outline" @click="goBack">取消</Button>
         <Button :disabled="saving || loading" @click="submitForm">儲存</Button>
       </div>
