@@ -1,5 +1,5 @@
 <script setup>
-// 報價單新增／編輯頁（換頁式，非 dialog）。刻意跟 OrderEditView 同形。同一個 view 兩用：
+// 報價單新增／編輯頁（換頁式，非 dialog）。同一個 view 兩用：
 //   /quotations/new       → 新增（沒有 :id）
 //   /quotations/:id/edit  → 編輯（有 :id）
 // 表單：選客戶 ＋ 從產品目錄挑明細（後端抄快照）＋ 備註。

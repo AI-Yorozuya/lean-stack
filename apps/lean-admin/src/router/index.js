@@ -23,12 +23,12 @@ const routes = [
   { path: '/quotations/:id/edit', name: 'quotation-edit', component: () => import('@/views/QuotationEditView.vue') },
   // 訂單管理（有狀態：生命週期狀態機——本 repo 講「狀態與流程」的主場）
   { path: '/orders', name: 'orders', component: () => import('@/views/OrderListView.vue') },
-  // 訂單新增（換頁式；沒 id = 新增）——要放在 /orders/:id 前面，不然 new 會被當成 id
-  { path: '/orders/new', name: 'order-new', component: () => import('@/views/OrderEditView.vue') },
-  // 訂單詳細頁（唯讀檢視 + 狀態機動作；點清單的單號進來）
+  // 訂單新增/詳細/編輯共用一個 OrderDetailView（跟 ns/top 一樣不另開編輯檔）：
+  //   name=order-new → 新增、order-detail → 檢視、order-edit → 編輯。
+  //   /orders/new 要放在 /orders/:id 前面，不然 new 會被當成 id。
+  { path: '/orders/new', name: 'order-new', component: () => import('@/views/OrderDetailView.vue') },
   { path: '/orders/:id', name: 'order-detail', component: () => import('@/views/OrderDetailView.vue') },
-  // 訂單編輯（同一個 OrderEditView：有 id = 編輯）
-  { path: '/orders/:id/edit', name: 'order-edit', component: () => import('@/views/OrderEditView.vue') },
+  { path: '/orders/:id/edit', name: 'order-edit', component: () => import('@/views/OrderDetailView.vue') },
   // 帳款（收費：event-sourced-ledger 應收帳款；唯讀投影，分錄由訂單生命週期產生）
   { path: '/billing', name: 'billing', component: () => import('@/views/BillingReceivablesView.vue') },
   // 單一客戶的分錄流（含跑動餘額）
