@@ -31,6 +31,6 @@ api.add_router('/quotations', quotation_router)
 api.add_router('/orders', order_router)
 
 # auth 的接法（本 repo 現況）：
-#   - 不在 NinjaAPI 設全域 auth——後台 CRUD 端點刻意公開（帳房是內部後台）。
+#   - 不在 NinjaAPI 設全域 auth——後台 CRUD 端點刻意公開（內部管理系統，非對外賣場）。
 #   - 要「登入才能用」的端點，在該 router / endpoint 上設 auth=member_auth
 #     （見 apps/member 的 /me）。憑證怎麼發/驗見 apps/member/auth.py。
