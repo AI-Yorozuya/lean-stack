@@ -28,6 +28,7 @@ from django.shortcuts import get_object_or_404
 from ninja import Router
 from ninja.errors import HttpError
 
+from apps.billing.models import LedgerEntry
 from apps.member.models import Member
 from apps.order.models import Order, OrderItem, TransitionError
 from apps.order.schemas import (
@@ -148,13 +149,20 @@ def update_order(request, order_id: int, payload: OrderIn):
 
 @router.delete('/{order_id}', response=MessageSchema)
 def delete_order(request, order_id: int):
+    """刪除訂單。財務單據不隨便刪——正確流程是「先作廢，再刪」：
+    - 活單（待付款/待出貨）不可刪：先到詳細頁「作廢」（沖銷未收、保留軌跡）。
+    - 已作廢且**從未收款**的訂單＝net-zero、沒發生金流 → 連同它的應收/沖銷分錄一起 purge（受控破口）。
+    - 已作廢但**曾收過款**的訂單＝真金流事件，軌跡必須留 → 擋。
+    """
     order = get_object_or_404(Order, pk=order_id)
-    # 訂單一成立就開了應收（帳款分錄），是財務單據——不可硬刪：刪了斷帳、且會 bulk 改寫 append-only 分錄。
-    # 要取消請用「作廢」（狀態轉已取消並沖銷未收），帳務軌跡保留。
-    if order.ledger_entries.exists():
-        raise HttpError(422, '此訂單已開帳，不能刪除；請用「作廢」取消（保留帳務軌跡）')
+    if order.status != Order.Status.CANCELLED:
+        raise HttpError(422, '只有已作廢的訂單可以刪除；請先在詳細頁「作廢」（沖銷未收、保留軌跡），再刪除')
+    if order.ledger_entries.filter(kind=LedgerEntry.Kind.PAYMENT).exists():
+        raise HttpError(422, '這張作廢訂單曾有收款紀錄，帳務軌跡須保留、不可刪除')
     order_no = order.order_no
-    order.delete()  # 明細跟著刪（models 的 on_delete=CASCADE）
+    with transaction.atomic():
+        LedgerEntry.purge_for_order(order)  # append-only 的受控破口（僅 net-zero 作廢單；見 billing/models）
+        order.delete()  # 明細跟著刪（models 的 on_delete=CASCADE）
     return {'message': f'訂單 {order_no} 已刪除'}
 
 

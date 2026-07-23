@@ -1,12 +1,12 @@
 <script setup>
 // 訂單管理頁：訂單清單（tab 依狀態篩、狀態欄顯示生命週期）。
-// 操作：編輯 → 換頁（/orders/:id/edit，只有待付款可編輯）。訂單一成立就開帳，是財務單據——
-// 不刪除；要取消進詳細頁「作廢」（狀態轉已取消並沖銷未收，帳務軌跡保留）。
+// 操作：編輯（只有待付款可編輯，換頁 /orders/:id/edit）＋刪除（只有已作廢可刪）。
+// 訂單是財務單據：活單不刪、先進詳細頁「作廢」（沖銷未收、保留軌跡）；作廢且未收款的 net-zero 單才可刪。
 // 備註 → inline 彈 dialog 快速改（只改備註、跟狀態無關，見後端 /order/{id}/note）。
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { Plus, Search, Pencil } from '@lucide/vue'
-import { listOrders, updateOrderNote } from '@/api/order'
+import { Plus, Search, Pencil, Trash2 } from '@lucide/vue'
+import { listOrders, updateOrderNote, deleteOrder } from '@/api/order'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import Pagination from '@/components/Pagination.vue'
@@ -38,6 +38,8 @@ const columns = [
 const statusClass = (s) => (s === 'PENDING' || s === 'AWAITING' ? 'font-medium text-foreground' : 'text-muted-foreground')
 // 只有待付款（未收款）可編輯——收款後鎖定明細（帳已開，不讓總額脫鉤）。
 const isEditable = (o) => o.status === 'PENDING'
+// 只有已作廢的訂單可刪（活單先作廢）。作廢但曾收款的單後端仍會擋（軌跡保留）→ 那時 dialog 顯示錯誤。
+const isDeletable = (o) => o.status === 'CANCELLED'
 
 const orders = ref([])
 const loading = ref(false)
@@ -112,6 +114,29 @@ async function saveNote() {
     console.error(e)
   } finally {
     noteSaving.value = false
+  }
+}
+
+// ── 刪除確認 dialog（只有已作廢可刪；曾收款的作廢單後端擋 → 顯示錯誤）──
+const delOrder = ref(null)
+const deleting = ref(false)
+const delError = ref('')
+function openDelete(o) {
+  delOrder.value = o
+  delError.value = ''
+}
+async function confirmDelete() {
+  deleting.value = true
+  delError.value = ''
+  try {
+    await deleteOrder(delOrder.value.id)
+    delOrder.value = null
+    load() // 重撈：更新列表與各狀態計數
+  } catch (e) {
+    delError.value = e.response?.data?.detail || '刪除失敗,請稍後再試'
+    console.error(e)
+  } finally {
+    deleting.value = false
   }
 }
 </script>
@@ -195,6 +220,9 @@ async function saveNote() {
             <Button variant="ghost" size="icon-sm" class="text-muted-foreground hover:text-foreground" :disabled="!isEditable(o)" :title="isEditable(o) ? '編輯' : '收款後不可編輯（進詳細頁可作廢）'" @click="goEdit(o)">
               <Pencil class="size-4" />
             </Button>
+            <Button variant="ghost" size="icon-sm" class="text-muted-foreground hover:text-destructive" :disabled="!isDeletable(o)" :title="isDeletable(o) ? '刪除' : '只有已作廢的訂單可刪除（先進詳細頁作廢）'" @click="openDelete(o)">
+              <Trash2 class="size-4" />
+            </Button>
           </template>
           <template #empty>
             {{ keyword ? '找不到符合的訂單' : (activeStatus === 'all' ? '還沒有訂單——按上方「＋ 新增訂單」開第一張' : '此狀態目前沒有訂單') }}
@@ -221,6 +249,21 @@ async function saveNote() {
         <DialogFooter>
           <Button variant="outline" @click="noteOrder = null">取消</Button>
           <Button :disabled="noteSaving" @click="saveNote">儲存</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    <!-- 刪除確認 dialog（只有已作廢可刪）-->
+    <Dialog :open="!!delOrder" @update:open="(v) => { if (!v) delOrder = null }">
+      <DialogContent class="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>刪除訂單 · {{ delOrder?.order_no }}？</DialogTitle>
+          <DialogDescription>此訂單已作廢。刪除會連同它 net-zero 的帳務分錄一起清除、不可復原（曾收款的作廢單後端會擋下、軌跡保留）。</DialogDescription>
+        </DialogHeader>
+        <p v-if="delError" class="text-destructive px-1 text-sm">{{ delError }}</p>
+        <DialogFooter>
+          <Button variant="outline" @click="delOrder = null">取消</Button>
+          <Button variant="destructive" :disabled="deleting" @click="confirmDelete">確定刪除</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

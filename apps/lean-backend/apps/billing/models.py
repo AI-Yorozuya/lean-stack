@@ -64,8 +64,9 @@ class LedgerEntry(TimeStampedModel):
     )  # 客戶＝抽象槽（宿主 Member）
     kind = models.CharField(max_length=10, choices=Kind.choices)
     amount = models.DecimalField(max_digits=12, decimal_places=2)  # 一律正數（金額大小；方向看 kind）
-    # 這筆帳關聯的訂單（追溯用）。PROTECT：有帳款分錄的訂單不准硬刪——刪了帳就斷了根，
-    # 且刪除會 bulk 改寫分錄的 order_id（繞過 append-only）。財務單據要作廢、不是刪除。
+    # 這筆帳關聯的訂單（追溯用）。PROTECT：一般有帳款分錄的訂單不准硬刪——刪了帳就斷了根。
+    # 財務單據優先「作廢」（沖銷未收、保留軌跡）；唯一例外＝已作廢且從未收款的 net-zero 單，
+    # 可經 purge_for_order 連分錄受控清除（先刪分錄再刪單，不留孤兒、不改 order_id）。
     order = models.ForeignKey(
         'order.Order',
         on_delete=models.PROTECT, null=True, blank=True,
@@ -147,3 +148,16 @@ class LedgerEntry(TimeStampedModel):
     def reversal(cls, customer, amount, order=None, memo=''):
         """沖銷一筆先前的應收（作廢/改單沖減）。"""
         return cls._post(cls.Kind.REVERSAL, customer, amount, order, memo)
+
+    # ── append-only 的唯一受控破口 ───────────────────────────────
+    @classmethod
+    def purge_for_order(cls, order):
+        """清除一張訂單的所有分錄。**只給「已作廢且從未收款」的 net-zero 訂單**用——
+        那是一張沒發生任何真實金流的作廢單（只有應收＋等額沖銷、抵到 0），purge 不損失任何帳務事實，
+        客戶餘額也不受影響。一旦有過收款（PAYMENT）＝真金流事件、軌跡必須留，由呼叫端（order 的
+        delete_order）先擋住、不會走到這裡。
+
+        走底層 QuerySet.delete 繞過 LedgerQuerySet.delete 的封鎖——這是唯一被允許的例外，
+        且必須在「先刪分錄、再刪訂單」的交易裡用，才不會踩到 order FK 的 PROTECT。
+        """
+        return models.QuerySet.delete(cls.objects.filter(order=order))
