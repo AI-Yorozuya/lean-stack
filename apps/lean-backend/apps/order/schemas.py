@@ -7,6 +7,8 @@
   這防止前端亂塞價格，也是「目錄=單一真相」的落點。
 - 出去的 name / unit_price / subtotal / total 都是後端算/抄好的，前端只顯示。
 """
+from datetime import date
+
 from ninja import Field, Schema
 
 
@@ -37,6 +39,11 @@ class OrderIn(Schema):
     member_id: int
     # 鐵則 {一張訂單至少一筆明細}：min_length=1 在門口就擋掉空單。
     items: list[OrderItemIn] = Field(..., min_length=1)
+    # 收貨資訊（選填）。
+    contact_name: str = ''
+    contact_phone: str = ''
+    shipping_address: str = ''
+    expected_ship_date: date | None = None
 
 
 class OrderSchema(Schema):
@@ -46,6 +53,11 @@ class OrderSchema(Schema):
     order_date: str = Field(..., alias='order_date')  # 建單日期
     updated_at: str                            # 修改日期（最後一次變動）
     note: str                                  # 備註（自由文字）
+    # 收貨資訊。
+    contact_name: str
+    contact_phone: str
+    shipping_address: str
+    expected_ship_date: str | None
     total: float                               # 後端算的（鐵則），非手填
     items: list[OrderItemSchema]
     # 狀態機相關。
@@ -61,6 +73,10 @@ class OrderSchema(Schema):
     @staticmethod
     def resolve_updated_at(obj):
         return str(obj.updated_at.date())      # 只到日期（列表夠用）
+
+    @staticmethod
+    def resolve_expected_ship_date(obj):
+        return str(obj.expected_ship_date) if obj.expected_ship_date else None
 
     @staticmethod
     def resolve_status_display(obj):

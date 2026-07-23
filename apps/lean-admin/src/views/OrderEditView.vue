@@ -30,7 +30,7 @@ const showCustomerDialog = ref(false)
 const activeProducts = computed(() => products.value.filter((p) => p.is_active))
 const productMap = computed(() => Object.fromEntries(products.value.map((p) => [String(p.id), p])))
 
-const form = reactive({ member_id: '', items: [] })
+const form = reactive({ member_id: '', items: [], contact_name: '', contact_phone: '', shipping_address: '', expected_ship_date: '' })
 const formError = ref('')
 const saving = ref(false)
 
@@ -64,6 +64,10 @@ onMounted(async () => {
       selectedMember.value = o.member
       form.member_id = String(o.member.id)
       form.items = o.items.map((i) => ({ product_id: String(i.product_id), quantity: i.quantity }))
+      form.contact_name = o.contact_name || ''
+      form.contact_phone = o.contact_phone || ''
+      form.shipping_address = o.shipping_address || ''
+      form.expected_ship_date = o.expected_ship_date || ''
     }
   } catch (e) {
     errorMsg.value = '載入失敗,請稍後再試'
@@ -91,6 +95,10 @@ async function submitForm() {
   const payload = {
     member_id: Number(form.member_id),
     items: form.items.map((i) => ({ product_id: Number(i.product_id), quantity: Number(i.quantity) })),
+    contact_name: form.contact_name,
+    contact_phone: form.contact_phone,
+    shipping_address: form.shipping_address,
+    expected_ship_date: form.expected_ship_date || null,
   }
   try {
     if (isCreate) await createOrder(payload)
@@ -159,6 +167,20 @@ function onSelectCustomer(m) {
             <Button variant="ghost" size="icon-sm" class="text-destructive" @click="removeItem(idx)"><X class="size-4" /></Button>
           </div>
           <Button variant="outline" size="sm" class="w-fit" @click="addItem"><Plus class="size-4" /> 加一筆明細</Button>
+        </div>
+
+        <!-- 收貨資訊（選填）-->
+        <div class="flex max-w-2xl flex-col gap-3">
+          <Label>收貨資訊（選填）</Label>
+          <div class="grid grid-cols-2 gap-3">
+            <Input v-model="form.contact_name" placeholder="聯絡人" />
+            <Input v-model="form.contact_phone" placeholder="聯絡人電話" />
+          </div>
+          <Input v-model="form.shipping_address" placeholder="收貨地址" maxlength="200" />
+          <div class="flex items-center gap-2">
+            <span class="text-muted-foreground shrink-0 text-sm">預計出貨日</span>
+            <Input v-model="form.expected_ship_date" type="date" class="w-44" />
+          </div>
         </div>
 
         <p class="font-semibold">

@@ -55,16 +55,26 @@ def _add_items(order, items):
         OrderItem.snapshot_from(order, product, item.quantity)
 
 
+def _shipping_fields(payload):
+    """從 payload 撈收貨資訊（聯絡人/電話/地址/預計出貨）——建單/改單共用。"""
+    return {
+        'contact_name': payload.contact_name,
+        'contact_phone': payload.contact_phone,
+        'shipping_address': payload.shipping_address,
+        'expected_ship_date': payload.expected_ship_date,
+    }
+
+
 @transaction.atomic  # 訂單＋明細要嘛全存、要嘛全不存——不留「有單無明細」的半成品
-def place_order(member, items):
+def place_order(member, items, shipping=None):
     """把「一位客戶 + 一批明細」做成一張訂單。**共用**：
 
-    - 後台建單（create_order）：member 由前端傳的 member_id 撈；
-    - 報價成交生訂單：member = 報價單上的客戶。
+    - 後台建單（create_order）：member 由前端傳的 member_id 撈、帶收貨資訊；
+    - 報價成交生訂單：member = 報價單上的客戶（無收貨資訊，之後改單再補）。
 
     差別只在「建單的人從哪來」；建單的鐵則（快照 / 小計 / 總額）全在這裡發火，一處真相。
     """
-    order = Order.objects.create(member=member)
+    order = Order.objects.create(member=member, **(shipping or {}))
     _add_items(order, items)      # 各明細從目錄抄快照 + save() 算小計（鐵則）
     order.recalc_total()          # 鐵則：總額 = 明細加總
     order.post_initial_charge()   # 帳款連動：建單即開一筆應收（見 apps/billing）
@@ -107,7 +117,7 @@ def get_order(request, order_id: int):
 def create_order(request, payload: OrderIn):
     """後台建單：建單的人由前端指定（member_id）——店員替客戶建單。"""
     member = get_object_or_404(Member, pk=payload.member_id)
-    return place_order(member, payload.items)
+    return place_order(member, payload.items, shipping=_shipping_fields(payload))
 
 
 @router.put('/{order_id}', response=OrderSchema)
@@ -123,6 +133,12 @@ def update_order(request, order_id: int, payload: OrderIn):
     if payload.member_id != order.member_id:
         raise HttpError(422, '訂單成立後不可換客戶（帳已開給原客戶）；要換請作廢後重開一張')
     old_total = order.total          # 改單前總額（算帳款差額用）
+    # 收貨資訊隨改單更新（跟金額無關，不影響帳款）。
+    order.contact_name = payload.contact_name
+    order.contact_phone = payload.contact_phone
+    order.shipping_address = payload.shipping_address
+    order.expected_ship_date = payload.expected_ship_date
+    order.save(update_fields=['contact_name', 'contact_phone', 'shipping_address', 'expected_ship_date', 'updated_at'])
     order.items.all().delete()
     _add_items(order, payload.items)
     order.recalc_total()

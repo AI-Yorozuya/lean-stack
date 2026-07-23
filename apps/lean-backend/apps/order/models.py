@@ -72,6 +72,11 @@ class Order(TimeStampedModel):
     status = models.CharField(max_length=12, choices=Status.choices, default=Status.PENDING)
     paid_amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0'))
     note = models.CharField(max_length=200, blank=True)  # 備註（自由文字，選填）
+    # ── 收貨資訊（讓訂單是一張像樣的銷貨單；聯絡人可與客戶不同，地址是這張單送去哪）──
+    contact_name = models.CharField('聯絡人', max_length=50, blank=True)
+    contact_phone = models.CharField('聯絡人電話', max_length=30, blank=True)
+    shipping_address = models.CharField('收貨地址', max_length=200, blank=True)
+    expected_ship_date = models.DateField('預計出貨日', null=True, blank=True)
 
     def __str__(self):
         return f'{self.order_no} {self.member} ${self.total} [{self.get_status_display()}]'
