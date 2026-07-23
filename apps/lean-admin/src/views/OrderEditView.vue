@@ -150,6 +150,22 @@ function onSelectCustomer(m) {
           </div>
         </div>
 
+        <!-- 收貨卡 -->
+        <div class="overflow-hidden rounded-lg border bg-card shadow-sm">
+          <div class="border-b px-4 py-2.5 text-sm font-semibold">收貨資訊<span class="text-muted-foreground ml-1 text-xs font-normal">（選填）</span></div>
+          <div class="flex max-w-2xl flex-col gap-3 p-4">
+            <div class="grid grid-cols-2 gap-3">
+              <Input v-model="form.contact_name" placeholder="聯絡人" />
+              <Input v-model="form.contact_phone" placeholder="聯絡人電話" />
+            </div>
+            <Input v-model="form.shipping_address" placeholder="收貨地址" maxlength="200" />
+            <div class="flex items-center gap-2">
+              <span class="text-muted-foreground shrink-0 text-sm">預計出貨日</span>
+              <Input v-model="form.expected_ship_date" type="date" class="w-44" />
+            </div>
+          </div>
+        </div>
+
         <!-- 明細卡 -->
         <div class="overflow-hidden rounded-lg border bg-card shadow-sm">
           <div class="border-b px-4 py-2.5 text-sm font-semibold">明細</div>
@@ -172,22 +188,6 @@ function onSelectCustomer(m) {
           </div>
           <div class="flex items-center justify-end border-t px-4 py-2.5 text-sm">
             <span class="font-semibold">總計 <span class="tabular-nums">{{ formTotal.toLocaleString() }}</span></span>
-          </div>
-        </div>
-
-        <!-- 收貨卡 -->
-        <div class="overflow-hidden rounded-lg border bg-card shadow-sm">
-          <div class="border-b px-4 py-2.5 text-sm font-semibold">收貨資訊<span class="text-muted-foreground ml-1 text-xs font-normal">（選填）</span></div>
-          <div class="flex max-w-2xl flex-col gap-3 p-4">
-            <div class="grid grid-cols-2 gap-3">
-              <Input v-model="form.contact_name" placeholder="聯絡人" />
-              <Input v-model="form.contact_phone" placeholder="聯絡人電話" />
-            </div>
-            <Input v-model="form.shipping_address" placeholder="收貨地址" maxlength="200" />
-            <div class="flex items-center gap-2">
-              <span class="text-muted-foreground shrink-0 text-sm">預計出貨日</span>
-              <Input v-model="form.expected_ship_date" type="date" class="w-44" />
-            </div>
           </div>
         </div>
       </div>
