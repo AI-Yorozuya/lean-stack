@@ -6,7 +6,7 @@
 // 編輯走另一頁（只有待付款可編輯）；這裡只做「看 + 推狀態」。
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowLeft, Pencil, ArrowUpRight } from '@lucide/vue'
+import { ArrowLeft, Pencil, ArrowUpRight, Printer } from '@lucide/vue'
 import { getOrder, transitionOrder } from '@/api/order'
 import { Button } from '@/components/ui/button'
 import LoadingState from '@/components/LoadingState.vue'
@@ -72,6 +72,11 @@ async function doAction(action) {
   }
 }
 
+// 列印訂單：叫瀏覽器列印（配 @media print 樣式，只印訂單內容、藏側欄/按鈕）。
+function printOrder() {
+  window.print()
+}
+
 // 取消是終態、不可逆 → 先確認
 const showCancel = ref(false)
 async function confirmCancel() {
@@ -84,14 +89,15 @@ async function confirmCancel() {
   <div class="flex h-full flex-col">
     <!-- 回上頁 header：返回 + 單號 + 彩色狀態徽章 + 動作區（靠右）-->
     <div class="flex shrink-0 items-center gap-3">
-      <Button variant="outline" size="sm" class="rounded-full" @click="router.push('/orders')"><ArrowLeft class="size-4" /> 回上一頁</Button>
+      <Button variant="outline" size="sm" class="no-print rounded-full" @click="router.push('/orders')"><ArrowLeft class="size-4" /> 回上一頁</Button>
       <h1 class="text-lg font-semibold leading-none tracking-tight">訂單 {{ order?.order_no || '' }}</h1>
       <span
         v-if="order"
         :class="['inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium', badgeClass(order.status)]"
       >{{ order.status_display }}</span>
 
-      <div v-if="order" class="ml-auto flex items-center gap-2">
+      <div v-if="order" class="no-print ml-auto flex items-center gap-2">
+        <Button variant="outline" @click="printOrder"><Printer class="size-4" /> 列印訂單</Button>
         <Button v-if="has('pay')" :disabled="acting" @click="doAction('pay')">收款</Button>
         <Button v-if="has('ship')" :disabled="acting" @click="doAction('ship')">出貨</Button>
         <Button v-if="isEditable" variant="outline" :disabled="acting" @click="router.push(`/orders/${order.id}/edit`)">
