@@ -29,8 +29,24 @@ from django.db.models import Q, Sum
 from apps._common.models import TimeStampedModel
 
 
+class LedgerQuerySet(models.QuerySet):
+    """append-only 砌在 QuerySet 層——連 bulk 路徑也擋。
+
+    只擋單筆 instance.save()/delete() 不夠：`.update()`/`.delete()` 走 SQL、不經 Model.save()，
+    一行 `LedgerEntry.objects.filter(...).update(amount=0)` 就能竄改帳。財務台帳的不可竄改保證
+    必須連 bulk 面一起守，所以在這裡把 update/delete 兩條 bulk 入口也封死。
+    """
+    def update(self, *args, **kwargs):
+        raise ValueError('帳款分錄不可修改（append-only）——要更正請新增一筆沖銷/調整')
+
+    def delete(self, *args, **kwargs):
+        raise ValueError('帳款分錄不可刪除（append-only）——要沖掉請新增一筆沖銷')
+
+
 class LedgerEntry(TimeStampedModel):
     """帳款分錄：客戶帳上的一個事件。**append-only**——建了就不准改、不准刪。"""
+
+    objects = LedgerQuerySet.as_manager()
 
     class Kind(models.TextChoices):
         # value（存 DB / 走 API）    , label（給人看的中文）
@@ -48,10 +64,11 @@ class LedgerEntry(TimeStampedModel):
     )  # 客戶＝抽象槽（宿主 Member）
     kind = models.CharField(max_length=10, choices=Kind.choices)
     amount = models.DecimalField(max_digits=12, decimal_places=2)  # 一律正數（金額大小；方向看 kind）
-    # 這筆帳關聯的訂單（追溯用）。SET_NULL：訂單真被刪了帳仍在（但訂單用 PROTECT 保護，通常不會）。
+    # 這筆帳關聯的訂單（追溯用）。PROTECT：有帳款分錄的訂單不准硬刪——刪了帳就斷了根，
+    # 且刪除會 bulk 改寫分錄的 order_id（繞過 append-only）。財務單據要作廢、不是刪除。
     order = models.ForeignKey(
         'order.Order',
-        on_delete=models.SET_NULL, null=True, blank=True,
+        on_delete=models.PROTECT, null=True, blank=True,
         related_name='ledger_entries',
     )
     memo = models.CharField(max_length=200, blank=True)  # 這筆帳的說明（如「訂單 OR-000012 應收」）
@@ -109,7 +126,9 @@ class LedgerEntry(TimeStampedModel):
     # ── 開帳原語（都只是 append 一筆；訂單生命週期呼叫這些）───────
     @classmethod
     def _post(cls, kind, customer, amount, order=None, memo=''):
-        """唯一的寫入口：append 一筆分錄。金額 0 就不記（省得留一堆空事件）。"""
+        """唯一的寫入口：append 一筆分錄。金額 0 不記（省得留空事件）；負數＝呼叫端算錯，擋。"""
+        if amount < 0:
+            raise ValueError(f'分錄金額不可為負（{kind} {amount}）——方向由 kind 決定，amount 一律正數')
         if amount == 0:
             return None
         return cls.objects.create(kind=kind, customer=customer, amount=amount, order=order, memo=memo)

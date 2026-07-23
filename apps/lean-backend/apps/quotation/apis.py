@@ -142,7 +142,9 @@ def update_quotation_note(request, quotation_id: int, payload: QuotationNoteIn):
 # 整段包 atomic：win 會生訂單（多表寫入），要嘛全成、要嘛全退。
 @transaction.atomic
 def _transition(quotation_id, action):
-    quotation = get_object_or_404(_QS, pk=quotation_id)
+    # select_for_update(of=self)：鎖住報價這一列，序列化並發轉移——否則兩個 win 請求可能都通過
+    # 狀態檢查、各生一張訂單各開一筆應收（客戶被重複計帳）。of=self 避開 join 進來的 nullable order。
+    quotation = get_object_or_404(_QS.select_for_update(of=('self',)), pk=quotation_id)
     try:
         quotation.apply_transition(action)
     except TransitionError as e:

@@ -1,11 +1,12 @@
 <script setup>
 // 訂單管理頁：訂單清單（tab 依狀態篩、狀態欄顯示生命週期）。
-// 操作：編輯 → 換頁（/orders/:id/edit）；刪除 → 確認 dialog。
+// 操作：編輯 → 換頁（/orders/:id/edit，只有待付款可編輯）。訂單一成立就開帳，是財務單據——
+// 不刪除；要取消進詳細頁「作廢」（狀態轉已取消並沖銷未收，帳務軌跡保留）。
 // 備註 → inline 彈 dialog 快速改（只改備註、跟狀態無關，見後端 /order/{id}/note）。
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { Plus, Search, Pencil, Trash2 } from '@lucide/vue'
-import { listOrders, deleteOrder, updateOrderNote } from '@/api/order'
+import { Plus, Search, Pencil } from '@lucide/vue'
+import { listOrders, updateOrderNote } from '@/api/order'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import Pagination from '@/components/Pagination.vue'
@@ -35,8 +36,8 @@ const columns = [
 
 // 狀態不用 tag，改文字樣式：進行中（待付款/待出貨）粗體黑字，終態（已出貨/已取消）灰字。
 const statusClass = (s) => (s === 'PENDING' || s === 'AWAITING' ? 'font-medium text-foreground' : 'text-muted-foreground')
-// 出貨前（待付款/待出貨）才可編輯。
-const isEditable = (o) => o.status === 'PENDING' || o.status === 'AWAITING'
+// 只有待付款（未收款）可編輯——收款後鎖定明細（帳已開，不讓總額脫鉤）。
+const isEditable = (o) => o.status === 'PENDING'
 
 const orders = ref([])
 const loading = ref(false)
@@ -112,14 +113,6 @@ async function saveNote() {
   } finally {
     noteSaving.value = false
   }
-}
-
-// ── 刪除確認 dialog ──
-const deleting = ref(null)
-async function confirmDelete() {
-  await deleteOrder(deleting.value.id)
-  deleting.value = null
-  load()
 }
 </script>
 
@@ -199,11 +192,8 @@ async function confirmDelete() {
             <TableCell class="tabular-nums">{{ o.updated_at }}</TableCell>
           </template>
           <template #actions="{ item: o }">
-            <Button variant="ghost" size="icon-sm" class="text-muted-foreground hover:text-foreground" :disabled="!isEditable(o)" :title="isEditable(o) ? '編輯' : '已出貨/已取消不可編輯'" @click="goEdit(o)">
+            <Button variant="ghost" size="icon-sm" class="text-muted-foreground hover:text-foreground" :disabled="!isEditable(o)" :title="isEditable(o) ? '編輯' : '收款後不可編輯（進詳細頁可作廢）'" @click="goEdit(o)">
               <Pencil class="size-4" />
-            </Button>
-            <Button variant="ghost" size="icon-sm" class="text-destructive hover:text-destructive" title="刪除" @click="deleting = o">
-              <Trash2 class="size-4" />
             </Button>
           </template>
           <template #empty>
@@ -231,22 +221,6 @@ async function confirmDelete() {
         <DialogFooter>
           <Button variant="outline" @click="noteOrder = null">取消</Button>
           <Button :disabled="noteSaving" @click="saveNote">儲存</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-
-    <!-- 刪除確認 dialog -->
-    <Dialog :open="!!deleting" @update:open="(v) => { if (!v) deleting = null }">
-      <DialogContent class="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>刪除訂單 {{ deleting?.order_no }}？</DialogTitle>
-          <DialogDescription>
-            客戶 {{ deleting?.member.name }}、總額 {{ deleting?.total.toLocaleString() }}。刪了就沒了（明細一起刪）。
-          </DialogDescription>
-        </DialogHeader>
-        <DialogFooter>
-          <Button variant="outline" @click="deleting = null">取消</Button>
-          <Button variant="destructive" @click="confirmDelete">確定刪除</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

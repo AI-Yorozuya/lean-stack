@@ -53,8 +53,9 @@ class Order(TimeStampedModel):
         'ship':   {'from': (Status.AWAITING,),                 'to': Status.SHIPPED,   'verb': '出貨'},
         'cancel': {'from': (Status.PENDING, Status.AWAITING),  'to': Status.CANCELLED, 'verb': '取消'},
     }
-    # 鐵則 {已出貨後明細/總額不可改}：只有這兩個狀態能動明細（出貨前）。
-    EDITABLE_STATUSES = (Status.PENDING, Status.AWAITING)
+    # 鐵則 {已收款後明細/總額不可改}：只有待付款（未收款）能動明細。
+    # 收款後鎖定——否則改了總額但錢已收，帳會脫鉤（已收款訂單改小→負淨額→作廢會吞掉客戶溢繳）。
+    EDITABLE_STATUSES = (Status.PENDING,)
 
     # 業務識別碼（單號）≠ DB 主鍵：對外對帳看 order_no，pk 是內部的事。
     # 建立時自動從 pk 衍生（見 save()）；unique 保證不撞。
@@ -122,7 +123,9 @@ class Order(TimeStampedModel):
             LedgerEntry.payment(self.member, self.total, order=self, memo=f'訂單 {self.order_no} 收款')
         elif action == 'cancel':
             # 作廢：沖掉這張訂單「還沒收」的應收，不留幽靈欠款（已收的退款＝金流，INTENT park）。
-            LedgerEntry.reversal(self.member, LedgerEntry.order_net(self), order=self,
+            # clamp ≥0：淨額為負代表客戶溢繳（貸方餘額），作廢不該把它吞掉，所以只沖非負部分。
+            outstanding = max(LedgerEntry.order_net(self), Decimal('0'))
+            LedgerEntry.reversal(self.member, outstanding, order=self,
                                  memo=f'訂單 {self.order_no} 作廢沖銷')
         self.status = t['to']
         self.save(update_fields=['status', 'paid_amount', 'updated_at'])

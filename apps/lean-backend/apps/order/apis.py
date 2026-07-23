@@ -114,13 +114,15 @@ def create_order(request, payload: OrderIn):
 @transaction.atomic
 def update_order(request, order_id: int, payload: OrderIn):
     """改單（客戶與明細整組替換——最好懂的更新語意）。"""
-    order = get_object_or_404(Order, pk=order_id)
-    # 鐵則 {已出貨後明細/總額不可改}：生命週期的承重牆，砌在 update 入口。
+    # select_for_update：鎖住這張訂單，序列化並發改單/收款（否則兩個請求可能各記一次調整）。
+    order = get_object_or_404(Order.objects.select_for_update(), pk=order_id)
+    # 鐵則 {已收款後明細/總額不可改}：生命週期的承重牆，砌在 update 入口。
     if not order.is_editable:
-        raise HttpError(422, f'「{order.get_status_display()}」的訂單不可改明細（已出貨後鎖定）')
+        raise HttpError(422, f'「{order.get_status_display()}」的訂單不可改明細（已收款後鎖定）')
+    # 訂單一成立就把應收開給「當時的客戶」，分錄 append-only 不會改指向——所以不准換客戶。
+    if payload.member_id != order.member_id:
+        raise HttpError(422, '訂單成立後不可換客戶（帳已開給原客戶）；要換請作廢後重開一張')
     old_total = order.total          # 改單前總額（算帳款差額用）
-    order.member = get_object_or_404(Member, pk=payload.member_id)
-    order.save(update_fields=['member', 'updated_at'])
     order.items.all().delete()
     _add_items(order, payload.items)
     order.recalc_total()
@@ -129,14 +131,13 @@ def update_order(request, order_id: int, payload: OrderIn):
 
 
 @router.delete('/{order_id}', response=MessageSchema)
-@transaction.atomic
 def delete_order(request, order_id: int):
-    from apps.billing.models import LedgerEntry
     order = get_object_or_404(Order, pk=order_id)
+    # 訂單一成立就開了應收（帳款分錄），是財務單據——不可硬刪：刪了斷帳、且會 bulk 改寫 append-only 分錄。
+    # 要取消請用「作廢」（狀態轉已取消並沖銷未收），帳務軌跡保留。
+    if order.ledger_entries.exists():
+        raise HttpError(422, '此訂單已開帳，不能刪除；請用「作廢」取消（保留帳務軌跡）')
     order_no = order.order_no
-    # 帳款連動：先沖掉這張訂單的未收淨額，再刪——不留幽靈欠款（分錄本身 append-only 留著，order 轉 null）。
-    LedgerEntry.reversal(order.member, LedgerEntry.order_net(order), order=order,
-                         memo=f'訂單 {order_no} 刪除沖銷')
     order.delete()  # 明細跟著刪（models 的 on_delete=CASCADE）
     return {'message': f'訂單 {order_no} 已刪除'}
 
@@ -157,8 +158,11 @@ def update_order_note(request, order_id: int, payload: OrderNoteIn):
 # 整段包 atomic：收款/作廢會連動帳款分錄（多表寫入），要嘛全成、要嘛全退。
 @transaction.atomic
 def _transition(order_id, action):
+    # select_for_update(of=self)：鎖住訂單這一列，序列化並發轉移——否則兩個 pay 請求可能都通過
+    # 狀態檢查、各記一筆收款分錄（重複計）。of=('self',) 只鎖訂單、不鎖 join 進來的客戶。
     order = get_object_or_404(
-        Order.objects.select_related('member').prefetch_related('items'), pk=order_id
+        Order.objects.select_for_update(of=('self',)).select_related('member').prefetch_related('items'),
+        pk=order_id,
     )
     try:
         order.apply_transition(action)

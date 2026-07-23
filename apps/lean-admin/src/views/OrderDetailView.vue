@@ -32,8 +32,8 @@ const acting = ref(false)
 const statusClass = (s) => (s === 'PENDING' || s === 'AWAITING' ? 'font-medium text-foreground' : 'text-muted-foreground')
 // 合法動作由後端回（available_actions）：有 pay/ship 才顯示推進鈕、有 cancel 才顯示取消。
 const has = (a) => order.value?.available_actions?.includes(a) ?? false
-// 非終態（還有動作可做）＝可編輯。
-const isEditable = computed(() => (order.value?.available_actions?.length ?? 0) > 0)
+// 只有待付款（未收款）可編輯——收款後鎖定明細（跟後端 EDITABLE_STATUSES 一致）。
+const isEditable = computed(() => order.value?.status === 'PENDING')
 
 async function load() {
   loading.value = true
