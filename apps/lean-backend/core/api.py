@@ -13,6 +13,7 @@ from apps.health.apis import router as health_router
 from apps.member.apis import router as member_router
 from apps.order.apis import router as order_router
 from apps.product.apis import router as product_router
+from apps.quotation.apis import router as quotation_router
 from apps.progress.apis import router as progress_router
 from apps.web.apis import router as web_router
 
@@ -27,6 +28,7 @@ api.add_router('/health', health_router)
 api.add_router('/progress', progress_router)
 api.add_router('/members', member_router)
 api.add_router('/products', product_router)
+api.add_router('/quotations', quotation_router)
 api.add_router('/orders', order_router)
 api.add_router('/web', web_router)  # 門市前台 BFF：整個 router 掛 member_auth（登入才能用）
 
