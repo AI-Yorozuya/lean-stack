@@ -28,6 +28,7 @@ const nav = [
     children: [
       { to: '/members', label: '會員' },
       { to: '/products', label: '商品' },
+      { to: '/quotations', label: '報價單' },
       { to: '/orders', label: '訂單' },
     ],
   },
