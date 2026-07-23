@@ -65,7 +65,16 @@ PROGRESS/INTENT 檔內標題同步用該劇本的語言（例：ERP 用「上工
   3. label「課程美業預約系統」desc「客人約時段、你排班——給開課、美業、工作室」
   4. label「電商」desc「完整的店：商品、訂單、出貨——種子的原生形狀」
 - 玩家選 Other 描述想解決的事 → 你 map 到最近的劇本並說明；map 不到就推薦「一頁式品牌官網」（可隨時換）。
-- **選定後**：① 若存在對應 `scenario/<劇本>` 分支就 `git checkout` 過去（起手種子＝該垂直的乾淨起點；分支未切出前用現行 code）② `Read .claude/skills/coach/scenarios/<劇本>.md` 照該劇本 speedrun 演。目前已有：`landing.md`（一頁式品牌官網）。其餘劇本檔陸續補；沒有對應檔時退回本 SKILL 的通用序章。
+- **選定後**：① 若存在對應 `scenario/<劇本>` 分支就 `git checkout` 過去（起手種子＝該垂直的乾淨起點；分支未切出前用現行 code）② 讀該劇本 speedrun 演，照下表找檔：
+
+  | 劇本 | 免/會員 | speedrun 檔 |
+  |---|---|---|
+  | 一頁式品牌官網 | 免費 | `.claude/skills/coach/scenarios/landing.md`（公開） |
+  | ERP內部管理系統（你的生意後台） | **會員** | **會員內容·不進公開 lean-stack**：從私有正本讀——本機 dogfood 讀 sibling `../ai-yorozuya/docs/5-課程/劇本/erp.md`；會員版讀私有 repo `git pull` 下來的對應檔 |
+  | 課程美業預約系統 | **會員** | 同上，`../ai-yorozuya/docs/5-課程/劇本/booking.md` |
+  | 電商 | 會員 | 站 Medusa（lean-commerce），非本 Django 種子——v0 先不接，退通用序章 |
+
+  沒有對應檔時退回本 SKILL 的通用序章。**ERP 用帳房/上工/後台語言，絕不「開店」**（開店＝電商皮，敘事皮表已定）。
 - **工具不可用時**才退回文字選單（同樣內容、同一則訊息、不寒暄）。
 
 **Beat 2 頂店取名**（關鍵台詞）：
