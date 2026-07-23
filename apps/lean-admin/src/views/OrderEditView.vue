@@ -120,10 +120,9 @@ function onSelectProduct(p) {
     <p v-if="errorMsg" class="text-destructive mt-4 shrink-0 text-sm">{{ errorMsg }}</p>
     <LoadingState v-if="loading" class="mt-5" />
 
-    <div v-else-if="!errorMsg" class="scroll-thin mt-5 min-h-0 flex-1 overflow-auto pb-2">
-      <div class="flex flex-col gap-4">
+    <div v-else-if="!errorMsg" class="mt-5 flex min-h-0 flex-1 flex-col gap-4">
         <!-- 客戶卡 -->
-        <div class="overflow-hidden rounded-lg border bg-card shadow-sm">
+        <div class="shrink-0 overflow-hidden rounded-lg border bg-card shadow-sm">
           <div class="border-b px-4 py-2.5 text-sm font-semibold">客戶</div>
           <div class="p-4">
             <!-- 編輯模式也顯示同一個欄位，只是 disable（訂單成立後不可換客戶）-->
@@ -140,7 +139,7 @@ function onSelectProduct(p) {
         </div>
 
         <!-- 收貨卡 -->
-        <div class="overflow-hidden rounded-lg border bg-card shadow-sm">
+        <div class="shrink-0 overflow-hidden rounded-lg border bg-card shadow-sm">
           <div class="border-b px-4 py-2.5 text-sm font-semibold">收貨資訊<span class="text-muted-foreground ml-1 text-xs font-normal">（選填）</span></div>
           <div class="p-4">
             <div class="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_1fr_2fr_1.2fr]">
@@ -152,23 +151,35 @@ function onSelectProduct(p) {
           </div>
         </div>
 
-        <!-- 明細卡：可捲動表格，新增品項在 header 右（開對話框搜尋分頁選）-->
-        <div class="overflow-hidden rounded-lg border bg-card shadow-sm">
-          <div class="flex items-center justify-between border-b px-4 py-2.5">
+        <!-- 明細卡：撐滿剩餘高度，超過就表格 body 內部捲動（同列表頁 DataTable 的 flex 做法）-->
+        <div class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border bg-card shadow-sm">
+          <div class="flex shrink-0 items-center justify-between border-b px-4 py-2.5">
             <span class="text-sm font-semibold">明細</span>
             <Button variant="outline" size="sm" @click="showProductDialog = true"><Plus class="size-4" /> 新增品項</Button>
           </div>
-          <div class="scroll-thin max-h-[22rem] overflow-y-auto">
-            <Table>
-              <TableHeader class="bg-card sticky top-0 z-10">
+          <!-- 表頭：獨立表，overflow-y-scroll 預留捲軸槽 → 右緣跟表身對齊、底線不被捲軸切斷 -->
+          <div class="scroll-thin shrink-0 overflow-x-hidden overflow-y-scroll border-b bg-card">
+            <Table class="table-fixed [&_th]:border-b-0">
+              <colgroup>
+                <col /><col class="w-28" /><col class="w-24" /><col class="w-32" /><col class="w-12" />
+              </colgroup>
+              <TableHeader>
                 <TableRow>
                   <TableHead>品名</TableHead>
-                  <TableHead class="w-28 text-right">單價</TableHead>
-                  <TableHead class="w-28 text-center">數量</TableHead>
-                  <TableHead class="w-32 text-right">小計</TableHead>
-                  <TableHead class="w-12"></TableHead>
+                  <TableHead class="text-right">單價</TableHead>
+                  <TableHead class="text-center">數量</TableHead>
+                  <TableHead class="text-right">小計</TableHead>
+                  <TableHead></TableHead>
                 </TableRow>
               </TableHeader>
+            </Table>
+          </div>
+          <!-- 表身：撐滿剩餘高度、內部捲動（捲軸只在這裡出現）-->
+          <div class="scroll-thin min-h-0 flex-1 overflow-y-scroll">
+            <Table class="table-fixed [&_thead]:hidden">
+              <colgroup>
+                <col /><col class="w-28" /><col class="w-24" /><col class="w-32" /><col class="w-12" />
+              </colgroup>
               <TableBody>
                 <TableRow v-for="(item, idx) in form.items" :key="item.product_id">
                   <TableCell class="font-medium">{{ item.name }}</TableCell>
@@ -181,27 +192,36 @@ function onSelectProduct(p) {
                     <Button variant="ghost" size="icon-sm" class="text-destructive" @click="removeItem(idx)"><X class="size-4" /></Button>
                   </TableCell>
                 </TableRow>
-                <TableRow v-if="!form.items.length">
+                <TableRow v-if="!form.items.length" class="hover:bg-transparent">
                   <TableCell colspan="5" class="text-muted-foreground py-10 text-center">還沒有品項——按右上「＋ 新增品項」挑一項</TableCell>
                 </TableRow>
               </TableBody>
-              <TableFooter v-if="form.items.length" class="bg-card sticky bottom-0">
-                <TableRow>
-                  <TableCell colspan="3" class="text-right font-semibold">總計</TableCell>
+            </Table>
+          </div>
+          <!-- 表尾：總計永遠釘底，同 colgroup + 預留捲軸槽對齊上表 -->
+          <div class="scroll-thin shrink-0 overflow-x-hidden overflow-y-scroll border-t bg-card">
+            <Table class="table-fixed [&_td]:border-b-0">
+              <colgroup>
+                <col /><col class="w-28" /><col class="w-24" /><col class="w-32" /><col class="w-12" />
+              </colgroup>
+              <TableBody>
+                <TableRow class="hover:bg-transparent">
+                  <TableCell></TableCell>
+                  <TableCell></TableCell>
+                  <TableCell class="text-right font-semibold">總計</TableCell>
                   <TableCell class="text-right font-semibold tabular-nums">{{ money(formTotal) }}</TableCell>
                   <TableCell></TableCell>
                 </TableRow>
-              </TableFooter>
+              </TableBody>
             </Table>
           </div>
-          <p v-if="formError" class="text-destructive px-4 py-2 text-sm">{{ formError }}</p>
+          <p v-if="formError" class="text-destructive shrink-0 border-t px-4 py-2 text-sm">{{ formError }}</p>
         </div>
 
-        <div class="flex justify-end gap-2">
+        <div class="flex shrink-0 justify-end gap-2">
           <Button variant="outline" @click="goBack">取消</Button>
           <Button :disabled="saving" @click="submitForm">儲存</Button>
         </div>
-      </div>
     </div>
 
     <CustomerSelectDialog v-model:open="showCustomerDialog" @select="onSelectCustomer" />
