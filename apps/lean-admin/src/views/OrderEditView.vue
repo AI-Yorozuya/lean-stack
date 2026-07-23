@@ -131,7 +131,6 @@ function onSelectCustomer(m) {
       <p v-if="errorMsg" class="text-destructive p-5 text-sm">{{ errorMsg }}</p>
 
       <div v-if="!loading && !errorMsg" class="flex min-h-0 flex-1 flex-col gap-4 overflow-auto p-5">
-        <p class="text-muted-foreground text-sm">選客戶、從產品目錄挑明細；小計/總計是顯示用,存檔後以後端計算為準。</p>
 
         <div class="flex max-w-md flex-col gap-1.5">
           <Label>客戶</Label>

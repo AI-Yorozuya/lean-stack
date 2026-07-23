@@ -112,34 +112,55 @@ async function confirmCancel() {
 
     <!-- 內容 -->
     <div v-else-if="order" class="mt-5 flex min-h-0 flex-1 flex-col gap-4 overflow-auto">
-      <!-- 上排兩張卡：客戶 ｜ 收貨 -->
+      <!-- 上排兩張卡：客戶 ｜ 收貨（框線 descriptions，label 淡底，密排不留白）-->
       <div class="grid shrink-0 gap-4 lg:grid-cols-2">
         <!-- 客戶卡 -->
-        <div class="rounded-lg border bg-card shadow-sm">
-          <div class="border-b px-5 py-3 text-sm font-medium">客戶</div>
-          <dl class="grid grid-cols-2 gap-x-6 gap-y-4 p-5 text-sm">
-            <div class="col-span-2">
-              <dt class="text-muted-foreground text-xs">客戶名稱</dt>
-              <dd class="mt-1">
+        <div class="overflow-hidden rounded-lg border bg-card shadow-sm">
+          <div class="border-b px-4 py-2.5 text-sm font-semibold">客戶</div>
+          <dl class="grid grid-cols-1 text-sm sm:grid-cols-2">
+            <div class="flex border-b sm:col-span-2">
+              <dt class="text-muted-foreground w-24 shrink-0 border-r bg-muted/40 px-3 py-2">客戶名稱</dt>
+              <dd class="flex-1 px-3 py-2">
                 <button type="button" class="hover:text-primary inline-flex items-center gap-1 font-medium hover:underline" @click="router.push(`/billing/customers/${order.member.id}`)">
                   {{ order.member.name }} <ArrowUpRight class="size-3.5 opacity-60" />
                 </button>
               </dd>
             </div>
-            <div><dt class="text-muted-foreground text-xs">客戶電話</dt><dd class="mt-1 tabular-nums">{{ order.member.phone || '—' }}</dd></div>
-            <div><dt class="text-muted-foreground text-xs">下訂日期</dt><dd class="mt-1 tabular-nums">{{ order.order_date }}</dd></div>
-            <div><dt class="text-muted-foreground text-xs">聯絡人</dt><dd class="mt-1">{{ order.contact_name || '—' }}</dd></div>
-            <div><dt class="text-muted-foreground text-xs">聯絡人電話</dt><dd class="mt-1 tabular-nums">{{ order.contact_phone || '—' }}</dd></div>
+            <div class="flex border-b">
+              <dt class="text-muted-foreground w-24 shrink-0 border-r bg-muted/40 px-3 py-2">客戶電話</dt>
+              <dd class="flex-1 px-3 py-2 tabular-nums">{{ order.member.phone || '—' }}</dd>
+            </div>
+            <div class="flex border-b sm:border-l">
+              <dt class="text-muted-foreground w-24 shrink-0 border-r bg-muted/40 px-3 py-2">下訂日期</dt>
+              <dd class="flex-1 px-3 py-2 tabular-nums">{{ order.order_date }}</dd>
+            </div>
+            <div class="flex">
+              <dt class="text-muted-foreground w-24 shrink-0 border-r bg-muted/40 px-3 py-2">聯絡人</dt>
+              <dd class="flex-1 px-3 py-2">{{ order.contact_name || '—' }}</dd>
+            </div>
+            <div class="flex border-t sm:border-t-0 sm:border-l">
+              <dt class="text-muted-foreground w-24 shrink-0 border-r bg-muted/40 px-3 py-2">聯絡人電話</dt>
+              <dd class="flex-1 px-3 py-2 tabular-nums">{{ order.contact_phone || '—' }}</dd>
+            </div>
           </dl>
         </div>
 
         <!-- 收貨卡 -->
-        <div class="rounded-lg border bg-card shadow-sm">
-          <div class="border-b px-5 py-3 text-sm font-medium">收貨</div>
-          <dl class="grid grid-cols-1 gap-y-4 p-5 text-sm">
-            <div><dt class="text-muted-foreground text-xs">收貨地址</dt><dd class="mt-1">{{ order.shipping_address || '—' }}</dd></div>
-            <div><dt class="text-muted-foreground text-xs">預計出貨日</dt><dd class="mt-1 tabular-nums">{{ order.expected_ship_date || '—' }}</dd></div>
-            <div><dt class="text-muted-foreground text-xs">備註</dt><dd class="mt-1">{{ order.note || '—' }}</dd></div>
+        <div class="overflow-hidden rounded-lg border bg-card shadow-sm">
+          <div class="border-b px-4 py-2.5 text-sm font-semibold">收貨</div>
+          <dl class="text-sm">
+            <div class="flex border-b">
+              <dt class="text-muted-foreground w-24 shrink-0 border-r bg-muted/40 px-3 py-2">收貨地址</dt>
+              <dd class="flex-1 px-3 py-2">{{ order.shipping_address || '—' }}</dd>
+            </div>
+            <div class="flex border-b">
+              <dt class="text-muted-foreground w-24 shrink-0 border-r bg-muted/40 px-3 py-2">預計出貨日</dt>
+              <dd class="flex-1 px-3 py-2 tabular-nums">{{ order.expected_ship_date || '—' }}</dd>
+            </div>
+            <div class="flex">
+              <dt class="text-muted-foreground w-24 shrink-0 border-r bg-muted/40 px-3 py-2">備註</dt>
+              <dd class="flex-1 px-3 py-2">{{ order.note || '—' }}</dd>
+            </div>
           </dl>
         </div>
       </div>
