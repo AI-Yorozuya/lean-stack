@@ -10,7 +10,7 @@ import { ArrowLeft, Pencil, ArrowUpRight } from '@lucide/vue'
 import { getOrder, transitionOrder } from '@/api/order'
 import { Button } from '@/components/ui/button'
 import LoadingState from '@/components/LoadingState.vue'
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, TableFooter } from '@/components/ui/table'
 import {
   Dialog,
   DialogContent,
@@ -84,9 +84,7 @@ async function confirmCancel() {
   <div class="flex h-full flex-col">
     <!-- 回上頁 header：返回 + 單號 + 彩色狀態徽章 + 動作區（靠右）-->
     <div class="flex shrink-0 items-center gap-3">
-      <Button variant="ghost" size="icon-sm" title="返回訂單列表" @click="router.push('/orders')">
-        <ArrowLeft class="size-4" />
-      </Button>
+      <Button variant="outline" size="sm" class="rounded-full" @click="router.push('/orders')"><ArrowLeft class="size-4" /> 回上一頁</Button>
       <h1 class="text-lg font-semibold leading-none tracking-tight">訂單 {{ order?.order_no || '' }}</h1>
       <span
         v-if="order"
@@ -165,17 +163,17 @@ async function confirmCancel() {
         </div>
       </div>
 
-      <!-- 品項卡（bordered table，隨內容展開；整頁捲動）-->
+      <!-- 品項卡：可捲動表格（表頭/總計釘住），總計對齊小計欄 -->
       <div class="shrink-0 overflow-hidden rounded-lg border bg-card shadow-sm">
         <div class="border-b px-5 py-3 text-sm font-medium">品項</div>
-        <div class="overflow-x-auto">
+        <div class="scroll-thin max-h-[22rem] overflow-auto">
           <Table>
-            <TableHeader>
+            <TableHeader class="bg-card sticky top-0 z-10">
               <TableRow>
                 <TableHead>品名</TableHead>
-                <TableHead class="text-right">單價</TableHead>
-                <TableHead class="text-right">數量</TableHead>
-                <TableHead class="text-right">小計</TableHead>
+                <TableHead class="w-28 text-right">單價</TableHead>
+                <TableHead class="w-24 text-right">數量</TableHead>
+                <TableHead class="w-32 text-right">小計</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -186,10 +184,13 @@ async function confirmCancel() {
                 <TableCell class="text-right tabular-nums">{{ money(it.subtotal) }}</TableCell>
               </TableRow>
             </TableBody>
+            <TableFooter class="bg-card sticky bottom-0">
+              <TableRow>
+                <TableCell colspan="3" class="text-right font-semibold">總計</TableCell>
+                <TableCell class="text-right font-semibold tabular-nums">{{ money(order.total) }}</TableCell>
+              </TableRow>
+            </TableFooter>
           </Table>
-        </div>
-        <div class="flex items-center justify-end border-t px-5 py-3 text-sm">
-          <span class="font-semibold">總計 <span class="tabular-nums">{{ money(order.total) }}</span></span>
         </div>
       </div>
 

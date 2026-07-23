@@ -1,10 +1,9 @@
 <script setup>
-// 客戶挑選對話框（建單/報價時選客戶用）。參考 top-erp 的 OrderUserSelectDialog：
-// 搜尋 + 伺服器端分頁的表格，點一列就選定——客戶多的時候，這比塞滿的下拉好用。
-// 附「＋新客戶」快速建立：建完直接選定，不用離開這個框。
+// 產品挑選對話框（建單/報價加品項時用）。跟 CustomerSelectDialog 同形：
+// 搜尋 + 伺服器端分頁的表格，點一列就把該產品加進明細——產品多也不怕，比塞滿的下拉好用。
 import { ref, computed, watch } from 'vue'
-import { Search, Plus } from '@lucide/vue'
-import { listMembers, createMember } from '@/api/member'
+import { Search } from '@lucide/vue'
+import { listProducts } from '@/api/product'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
@@ -31,10 +30,13 @@ const page = ref(1)
 const pageSize = 8
 const totalPages = computed(() => Math.max(1, Math.ceil(count.value / pageSize)))
 
+const money = (n) => Number(n).toLocaleString()
+
 async function load() {
   loading.value = true
   try {
-    const res = await listMembers({ page: page.value, pageSize, search: keyword.value })
+    // activeOnly：只挑得到「在售」的產品（停售的不該再開新單）。
+    const res = await listProducts({ page: page.value, pageSize, search: keyword.value, activeOnly: true })
     rows.value = res.items
     count.value = res.count
   } catch (e) {
@@ -44,13 +46,11 @@ async function load() {
   }
 }
 
-// 每次打開重置＋載第一頁。
 watch(() => props.open, (v) => {
   if (v) {
     searchInput.value = ''
     keyword.value = ''
     page.value = 1
-    showNew.value = false
     load()
   }
 })
@@ -68,39 +68,20 @@ function pick(row) {
   emit('select', row)
   emit('update:open', false)
 }
-
-// ── 新客戶快速建立 ──
-const showNew = ref(false)
-const newC = ref({ name: '', email: '', phone: '' })
-const newErr = ref('')
-async function createNew() {
-  newErr.value = ''
-  if (!newC.value.name || !newC.value.email) {
-    newErr.value = '姓名與 email 必填'
-    return
-  }
-  try {
-    const created = await createMember({ ...newC.value })
-    pick(created)  // 建完直接選定並關框
-  } catch (e) {
-    newErr.value = e.response?.data?.detail || '建立失敗'
-  }
-}
 </script>
 
 <template>
   <Dialog :open="open" @update:open="(v) => emit('update:open', v)">
     <DialogContent class="sm:max-w-2xl">
       <DialogHeader>
-        <DialogTitle>選擇客戶</DialogTitle>
+        <DialogTitle>選擇產品</DialogTitle>
       </DialogHeader>
 
-      <!-- 搜尋列 + 新客戶 -->
       <div class="flex items-center gap-2">
         <div class="flex flex-1">
           <Input
             v-model="searchInput"
-            placeholder="搜尋客戶姓名或 email…"
+            placeholder="搜尋產品名稱或品號…"
             class="rounded-r-none focus-visible:z-10"
             @keyup.enter="search"
           />
@@ -108,44 +89,31 @@ async function createNew() {
             <Search class="size-4" />
           </Button>
         </div>
-        <Button variant="outline" @click="showNew = !showNew"><Plus class="size-4" /> 新客戶</Button>
       </div>
 
-      <!-- 新客戶快速建立 -->
-      <div v-if="showNew" class="bg-muted flex flex-col gap-2 rounded-md p-3">
-        <div class="flex gap-2">
-          <Input v-model="newC.name" placeholder="姓名" />
-          <Input v-model="newC.email" placeholder="email" />
-          <Input v-model="newC.phone" placeholder="電話（選填）" />
-          <Button class="shrink-0" @click="createNew">建立並選定</Button>
-        </div>
-        <p v-if="newErr" class="text-destructive text-sm">{{ newErr }}</p>
-      </div>
-
-      <!-- 客戶表格（點一列即選定）-->
       <div class="max-h-[320px] min-h-[220px] overflow-auto rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>姓名</TableHead>
-              <TableHead>email</TableHead>
-              <TableHead class="w-32">電話</TableHead>
+              <TableHead>品名</TableHead>
+              <TableHead class="w-32">品號</TableHead>
+              <TableHead class="w-28 text-right">單價</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             <TableRow
-              v-for="c in rows"
-              :key="c.id"
+              v-for="p in rows"
+              :key="p.id"
               class="hover:bg-muted/60 cursor-pointer"
-              @click="pick(c)"
+              @click="pick(p)"
             >
-              <TableCell class="font-medium">{{ c.name }}</TableCell>
-              <TableCell class="text-muted-foreground">{{ c.email }}</TableCell>
-              <TableCell class="tabular-nums">{{ c.phone || '—' }}</TableCell>
+              <TableCell class="font-medium">{{ p.name }}</TableCell>
+              <TableCell class="text-muted-foreground tabular-nums">{{ p.sku }}</TableCell>
+              <TableCell class="text-right tabular-nums">{{ money(p.unit_price) }}</TableCell>
             </TableRow>
             <TableRow v-if="!loading && !rows.length">
               <TableCell colspan="3" class="text-muted-foreground py-8 text-center">
-                {{ keyword ? '找不到符合的客戶——按「＋新客戶」建一位' : '還沒有客戶' }}
+                {{ keyword ? '找不到符合的產品' : '還沒有產品' }}
               </TableCell>
             </TableRow>
           </TableBody>
