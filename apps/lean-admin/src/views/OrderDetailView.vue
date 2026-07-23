@@ -1,11 +1,12 @@
 <script setup>
-// 訂單詳細頁（唯讀檢視 + 狀態機動作）。參考 top-admin 的 OrderDetailView 骨架、精簡版：
-//   回上頁 header ＋「下一步」推進鈕（收款/出貨）＋ 取消；下面兩張卡（摘要 / 明細）。
-// 狀態機動作直接照後端回的 available_actions 長——合法才顯示按鈕，非法後端擋（422）。
-// 編輯走另一頁（/orders/:id/edit）；這裡只做「看 + 推狀態」。
+// 訂單詳細頁（唯讀檢視 + 狀態機動作）。版面參考 top-erp / ns-erp 的訂單詳細：
+//   header（單號 + 彩色狀態徽章 + 動作鈕）→ 金額摘要 band（總額/已收/未收，先講錢）
+//   → 基本資料（框線 descriptions 格）→ 明細表。客戶名連到「客戶帳款」（會計連結）。
+// 狀態機動作照後端回的 available_actions 長——合法才顯示按鈕，非法後端擋（422）。
+// 編輯走另一頁（只有待付款可編輯）；這裡只做「看 + 推狀態」。
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowLeft, Pencil } from '@lucide/vue'
+import { ArrowLeft, Pencil, ArrowUpRight } from '@lucide/vue'
 import { getOrder, transitionOrder } from '@/api/order'
 import { Button } from '@/components/ui/button'
 import LoadingState from '@/components/LoadingState.vue'
@@ -28,12 +29,21 @@ const loading = ref(true)
 const errorMsg = ref('')
 const acting = ref(false)
 
-// 狀態文字樣式：進行中粗體黑、終態灰（跟清單一致）。
-const statusClass = (s) => (s === 'PENDING' || s === 'AWAITING' ? 'font-medium text-foreground' : 'text-muted-foreground')
+const money = (n) => Number(n).toLocaleString()
+// 狀態徽章：進行中的兩狀態各給一個語意色，終態走灰——一眼看出這單走到哪。
+const STATUS_BADGE = {
+  PENDING: 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300',
+  AWAITING: 'bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300',
+  SHIPPED: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300',
+  CANCELLED: 'bg-muted text-muted-foreground',
+}
+const badgeClass = (s) => STATUS_BADGE[s] || 'bg-muted text-muted-foreground'
 // 合法動作由後端回（available_actions）：有 pay/ship 才顯示推進鈕、有 cancel 才顯示取消。
 const has = (a) => order.value?.available_actions?.includes(a) ?? false
 // 只有待付款（未收款）可編輯——收款後鎖定明細（跟後端 EDITABLE_STATUSES 一致）。
 const isEditable = computed(() => order.value?.status === 'PENDING')
+// 這張訂單的未收餘額 = 總額 − 已收（帳款那邊是客戶層級總帳，這裡看單筆）。
+const outstanding = computed(() => (order.value ? order.value.total - order.value.paid_amount : 0))
 
 async function load() {
   loading.value = true
@@ -72,13 +82,16 @@ async function confirmCancel() {
 
 <template>
   <div class="flex h-full flex-col">
-    <!-- 回上頁 header：返回 + 單號 + 狀態 + 動作區（靠右）-->
+    <!-- 回上頁 header：返回 + 單號 + 彩色狀態徽章 + 動作區（靠右）-->
     <div class="flex shrink-0 items-center gap-3">
       <Button variant="ghost" size="icon-sm" title="返回訂單列表" @click="router.push('/orders')">
         <ArrowLeft class="size-4" />
       </Button>
       <h1 class="text-lg font-semibold leading-none tracking-tight">訂單 {{ order?.order_no || '' }}</h1>
-      <span v-if="order" :class="statusClass(order.status)" class="text-sm">· {{ order.status_display }}</span>
+      <span
+        v-if="order"
+        :class="['inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium', badgeClass(order.status)]"
+      >{{ order.status_display }}</span>
 
       <div v-if="order" class="ml-auto flex items-center gap-2">
         <Button v-if="has('pay')" :disabled="acting" @click="doAction('pay')">收款</Button>
@@ -87,7 +100,7 @@ async function confirmCancel() {
           <Pencil class="size-4" /> 編輯
         </Button>
         <Button v-if="has('cancel')" variant="outline" class="text-destructive hover:text-destructive" :disabled="acting" @click="showCancel = true">
-          取消訂單
+          作廢
         </Button>
       </div>
     </div>
@@ -99,15 +112,49 @@ async function confirmCancel() {
 
     <!-- 內容 -->
     <div v-else-if="order" class="mt-5 flex min-h-0 flex-1 flex-col gap-4 overflow-auto">
-      <!-- 摘要卡 -->
-      <div class="shrink-0 rounded-lg border bg-card p-5 shadow-sm">
-        <dl class="grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-4">
-          <div><dt class="text-muted-foreground text-xs">客戶</dt><dd class="mt-1 font-medium">{{ order.member.name }}</dd></div>
-          <div><dt class="text-muted-foreground text-xs">電話</dt><dd class="mt-1 tabular-nums">{{ order.member.phone || '—' }}</dd></div>
-          <div><dt class="text-muted-foreground text-xs">下訂日期</dt><dd class="mt-1 tabular-nums">{{ order.order_date }}</dd></div>
-          <div><dt class="text-muted-foreground text-xs">修改日期</dt><dd class="mt-1 tabular-nums">{{ order.updated_at }}</dd></div>
-          <div class="col-span-2 sm:col-span-4"><dt class="text-muted-foreground text-xs">備註</dt><dd class="mt-1">{{ order.note || '—' }}</dd></div>
-        </dl>
+      <!-- 金額摘要 band：先講錢（ERP 詳細頁慣例）。三格：總額 / 已收 / 未收餘額 -->
+      <div class="grid shrink-0 grid-cols-3 divide-x rounded-lg border bg-card shadow-sm">
+        <div class="px-5 py-4">
+          <div class="text-muted-foreground text-xs">訂單總額</div>
+          <div class="mt-1 text-xl font-semibold tabular-nums">{{ money(order.total) }}</div>
+        </div>
+        <div class="px-5 py-4">
+          <div class="text-muted-foreground text-xs">已收</div>
+          <div class="mt-1 text-xl font-semibold tabular-nums">{{ money(order.paid_amount) }}</div>
+        </div>
+        <div class="px-5 py-4">
+          <div class="text-muted-foreground text-xs">未收餘額</div>
+          <div class="mt-1 text-xl font-semibold tabular-nums" :class="outstanding > 0 ? 'text-foreground' : 'text-muted-foreground'">{{ money(outstanding) }}</div>
+        </div>
+      </div>
+
+      <!-- 基本資料：框線 descriptions 格（label 淡底 + value），仿 ERP 的 el-descriptions -->
+      <div class="shrink-0 overflow-hidden rounded-lg border bg-card shadow-sm">
+        <div class="border-b px-5 py-3 text-sm font-medium">基本資料</div>
+        <div class="grid grid-cols-1 text-sm sm:grid-cols-2">
+          <div class="flex border-b">
+            <div class="text-muted-foreground w-28 shrink-0 border-r bg-muted/40 px-4 py-2.5">客戶</div>
+            <button type="button" class="hover:text-primary flex flex-1 items-center gap-1 px-4 py-2.5 text-left font-medium hover:underline" @click="router.push(`/billing/customers/${order.member.id}`)">
+              {{ order.member.name }} <ArrowUpRight class="size-3.5 opacity-60" />
+            </button>
+          </div>
+          <div class="flex border-b sm:border-l">
+            <div class="text-muted-foreground w-28 shrink-0 border-r bg-muted/40 px-4 py-2.5">電話</div>
+            <div class="flex-1 px-4 py-2.5 tabular-nums">{{ order.member.phone || '—' }}</div>
+          </div>
+          <div class="flex border-b">
+            <div class="text-muted-foreground w-28 shrink-0 border-r bg-muted/40 px-4 py-2.5">下訂日期</div>
+            <div class="flex-1 px-4 py-2.5 tabular-nums">{{ order.order_date }}</div>
+          </div>
+          <div class="flex border-b sm:border-l">
+            <div class="text-muted-foreground w-28 shrink-0 border-r bg-muted/40 px-4 py-2.5">修改日期</div>
+            <div class="flex-1 px-4 py-2.5 tabular-nums">{{ order.updated_at }}</div>
+          </div>
+          <div class="flex sm:col-span-2">
+            <div class="text-muted-foreground w-28 shrink-0 border-r bg-muted/40 px-4 py-2.5">備註</div>
+            <div class="flex-1 px-4 py-2.5">{{ order.note || '—' }}</div>
+          </div>
+        </div>
       </div>
 
       <!-- 明細卡 -->
@@ -126,31 +173,29 @@ async function confirmCancel() {
             <TableBody>
               <TableRow v-for="it in order.items" :key="it.id">
                 <TableCell class="font-medium">{{ it.name }}</TableCell>
-                <TableCell class="text-right tabular-nums">{{ it.unit_price.toLocaleString() }}</TableCell>
+                <TableCell class="text-right tabular-nums">{{ money(it.unit_price) }}</TableCell>
                 <TableCell class="text-right tabular-nums">{{ it.quantity }}</TableCell>
-                <TableCell class="text-right tabular-nums">{{ it.subtotal.toLocaleString() }}</TableCell>
+                <TableCell class="text-right tabular-nums">{{ money(it.subtotal) }}</TableCell>
               </TableRow>
             </TableBody>
           </Table>
         </div>
-        <!-- 總計列（已收 / 總計）-->
-        <div class="flex shrink-0 items-center justify-end gap-8 border-t px-5 py-3 text-sm">
-          <span class="text-muted-foreground">已收 <span class="text-foreground tabular-nums">{{ order.paid_amount.toLocaleString() }}</span></span>
-          <span class="font-semibold">總計 <span class="tabular-nums">{{ order.total.toLocaleString() }}</span></span>
+        <div class="flex shrink-0 items-center justify-end border-t px-5 py-3 text-sm">
+          <span class="font-semibold">總計 <span class="tabular-nums">{{ money(order.total) }}</span></span>
         </div>
       </div>
     </div>
 
-    <!-- 取消確認 -->
+    <!-- 作廢確認 -->
     <Dialog :open="showCancel" @update:open="(v) => { if (!v) showCancel = false }">
       <DialogContent class="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>取消訂單 {{ order?.order_no }}？</DialogTitle>
-          <DialogDescription>取消後進入「已取消」終態、不可再改（出貨前才可取消）。</DialogDescription>
+          <DialogTitle>作廢訂單 {{ order?.order_no }}？</DialogTitle>
+          <DialogDescription>作廢後進入「已取消」終態、不可再改，並沖銷這張訂單還沒收的應收（帳務軌跡保留）。</DialogDescription>
         </DialogHeader>
         <DialogFooter>
-          <Button variant="outline" @click="showCancel = false">不取消</Button>
-          <Button variant="destructive" :disabled="acting" @click="confirmCancel">確定取消訂單</Button>
+          <Button variant="outline" @click="showCancel = false">不作廢</Button>
+          <Button variant="destructive" :disabled="acting" @click="confirmCancel">確定作廢</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

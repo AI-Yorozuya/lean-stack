@@ -12,7 +12,7 @@ import { ref, watch, onBeforeMount, onMounted, onBeforeUnmount } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 // 選單 icon 一律取「同一套 lucide、視覺重量相近的實心輪廓物件」——參 top-admin 的
 // constants/icons.js（避免混入 Activity 那種稀疏脈衝線，破壞整體一致性）。
-import { Receipt, Server, ChevronDown, ChevronsLeft, ChevronsRight, User } from '@lucide/vue'
+import { Receipt, Landmark, Server, ChevronDown, ChevronsLeft, ChevronsRight, User } from '@lucide/vue'
 import { getHealth } from '@/api'
 import HealthBadge from '@/components/HealthBadge.vue'
 // 品牌標：AI萬事屋忍者熊頭（奶油圓底徽章）。import 進來讓 vite 打包＋hash。
@@ -20,7 +20,8 @@ import bearBadge from '@/assets/bearhead_badge.png'
 
 // 導覽：單一項 { to, label, icon }；群組 { label, icon, children:[{ to, label }] }。
 // 標籤設計上限：中文 6 字（側欄寬度就是抓這個預算 + logo 一起定的）。
-// 子母結構示範：客戶/產品/訂單收進「業務」母選單（群組＝有 children）；背景任務是單一項。
+// 子母結構示範：業務（客戶/產品/報價單/訂單）與會計（帳款）分兩個母選單；背景任務是單一項。
+// 業務＝日常開單做生意；會計＝錢的帳（應收帳款等），刻意分開＝內部管理系統的部門分工。
 const nav = [
   {
     label: '業務',
@@ -30,6 +31,12 @@ const nav = [
       { to: '/products', label: '產品' },
       { to: '/quotations', label: '報價單' },
       { to: '/orders', label: '訂單' },
+    ],
+  },
+  {
+    label: '會計',
+    icon: Landmark,
+    children: [
       { to: '/billing', label: '帳款' },
     ],
   },

@@ -1,5 +1,5 @@
 <script setup>
-// 報價單管理頁：報價清單（tab 依狀態篩、狀態欄顯示生命週期）。刻意跟 OrderLifecycleView 同形。
+// 報價單管理頁：報價清單（tab 依狀態篩、狀態欄顯示生命週期）。刻意跟 OrderListView 同形。
 // 操作：編輯 → 換頁（/quotations/:id/edit，只有草稿能改）；刪除 → 確認 dialog；備註 → inline dialog。
 // 狀態機動作（送出/成交/作廢）在詳細頁做——這裡點單號進去。
 import { computed, onMounted, ref } from 'vue'
