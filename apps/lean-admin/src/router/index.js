@@ -29,6 +29,10 @@ const routes = [
   { path: '/orders/:id', name: 'order-detail', component: () => import('@/views/OrderDetailView.vue') },
   // 訂單編輯（同一個 OrderEditView：有 id = 編輯）
   { path: '/orders/:id/edit', name: 'order-edit', component: () => import('@/views/OrderEditView.vue') },
+  // 帳款（收費：event-sourced-ledger 應收帳款；唯讀投影，分錄由訂單生命週期產生）
+  { path: '/billing', name: 'billing', component: () => import('@/views/BillingReceivablesView.vue') },
+  // 單一客戶的分錄流（含跑動餘額）
+  { path: '/billing/customers/:id', name: 'customer-ledger', component: () => import('@/views/CustomerLedgerView.vue') },
   // 背景任務頁（celery 範例：任務清單 + 進度輪詢，lazy load）
   { path: '/job', name: 'job', component: () => import('@/views/BackgroundTaskView.vue') },
   // 新頁面路由加在這

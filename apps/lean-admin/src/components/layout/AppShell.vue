@@ -30,6 +30,7 @@ const nav = [
       { to: '/products', label: '產品' },
       { to: '/quotations', label: '報價單' },
       { to: '/orders', label: '訂單' },
+      { to: '/billing', label: '帳款' },
     ],
   },
   { to: '/job', label: '背景任務', icon: Server },

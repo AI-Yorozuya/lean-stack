@@ -35,6 +35,7 @@ class LedgerEntrySchema(Schema):
     amount: float          # 金額大小（正數）
     signed_amount: float   # 對餘額的影響（應收 +、收款/沖銷 −）
     order_no: str | None   # 關聯訂單單號（沒有為 null）
+    order_id: int | None   # 關聯訂單 id（給前端做連結）
     memo: str
     running_balance: float  # 到這筆為止的累計餘額（後端逐筆累加）
 

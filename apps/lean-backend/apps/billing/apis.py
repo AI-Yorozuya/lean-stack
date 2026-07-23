@@ -83,6 +83,7 @@ def customer_ledger(request, customer_id: int):
             'amount': e.amount,
             'signed_amount': e.signed_amount,
             'order_no': e.order.order_no if e.order else None,
+            'order_id': e.order_id,
             'memo': e.memo,
             'running_balance': running,
         })
