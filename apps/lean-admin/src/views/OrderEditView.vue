@@ -11,7 +11,9 @@ import { createOrder, getOrder, updateOrder } from '@/api/order'
 import { listProducts } from '@/api/product'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import CustomerSelectDialog from '@/components/CustomerSelectDialog.vue'
 
 const route = useRoute()
@@ -143,49 +145,75 @@ function onSelectCustomer(m) {
               <span :class="selectedMember ? 'font-medium' : 'text-muted-foreground'">{{ selectedMember ? selectedMember.name : '選擇客戶…' }}</span>
               <ChevronDown class="size-4 opacity-60" />
             </button>
-            <template v-else>
-              <div class="bg-muted/40 flex h-9 w-full max-w-md items-center rounded-md border px-3 text-sm font-medium">{{ selectedMember?.name }}</div>
-              <p class="text-muted-foreground mt-1.5 text-xs">訂單成立後不可換客戶（帳已開給原客戶）。</p>
-            </template>
+            <div v-else class="bg-muted/40 flex h-9 w-full max-w-md items-center rounded-md border px-3 text-sm font-medium">{{ selectedMember?.name }}</div>
           </div>
         </div>
 
         <!-- 收貨卡 -->
         <div class="overflow-hidden rounded-lg border bg-card shadow-sm">
           <div class="border-b px-4 py-2.5 text-sm font-semibold">收貨資訊<span class="text-muted-foreground ml-1 text-xs font-normal">（選填）</span></div>
-          <div class="flex max-w-2xl flex-col gap-3 p-4">
-            <div class="grid grid-cols-2 gap-3">
-              <Input v-model="form.contact_name" placeholder="聯絡人" />
-              <Input v-model="form.contact_phone" placeholder="聯絡人電話" />
+          <div class="flex flex-col gap-3 p-4">
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_1fr_1.6fr]">
+              <div class="flex flex-col gap-1">
+                <Label class="text-muted-foreground text-xs">聯絡人</Label>
+                <Input v-model="form.contact_name" />
+              </div>
+              <div class="flex flex-col gap-1">
+                <Label class="text-muted-foreground text-xs">聯絡人電話</Label>
+                <Input v-model="form.contact_phone" />
+              </div>
+              <div class="flex flex-col gap-1">
+                <Label class="text-muted-foreground text-xs">收貨地址</Label>
+                <Input v-model="form.shipping_address" maxlength="200" />
+              </div>
             </div>
-            <Input v-model="form.shipping_address" placeholder="收貨地址" maxlength="200" />
-            <div class="flex items-center gap-2">
-              <span class="text-muted-foreground shrink-0 text-sm">預計出貨日</span>
-              <Input v-model="form.expected_ship_date" type="date" class="w-44" />
+            <div class="flex flex-col gap-1 sm:w-48">
+              <Label class="text-muted-foreground text-xs">預計出貨日</Label>
+              <Input v-model="form.expected_ship_date" type="date" />
             </div>
           </div>
         </div>
 
-        <!-- 明細卡 -->
+        <!-- 明細卡：正式表格，加一筆在 header 右邊（品項多也不怕，整頁捲動）-->
         <div class="overflow-hidden rounded-lg border bg-card shadow-sm">
-          <div class="border-b px-4 py-2.5 text-sm font-semibold">明細</div>
-          <div class="flex flex-col gap-2 p-4">
-            <div v-for="(item, idx) in form.items" :key="idx" class="flex items-center gap-2">
-              <Select v-model="item.product_id">
-                <SelectTrigger class="max-w-md flex-1"><SelectValue placeholder="選擇產品" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem v-for="p in activeProducts" :key="p.id" :value="String(p.id)">
-                    {{ p.name }}（{{ p.unit_price.toLocaleString() }}）
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-              <Input v-model.number="item.quantity" type="number" min="1" class="w-20" />
-              <span class="text-muted-foreground w-28 text-right text-sm tabular-nums">= {{ itemSubtotal(item).toLocaleString() }}</span>
-              <Button variant="ghost" size="icon-sm" class="text-destructive" @click="removeItem(idx)"><X class="size-4" /></Button>
-            </div>
-            <Button variant="outline" size="sm" class="w-fit" @click="addItem"><Plus class="size-4" /> 加一筆明細</Button>
-            <p v-if="formError" class="text-destructive text-sm">{{ formError }}</p>
+          <div class="flex items-center justify-between border-b px-4 py-2.5">
+            <span class="text-sm font-semibold">明細</span>
+            <Button variant="outline" size="sm" @click="addItem"><Plus class="size-4" /> 新增品項</Button>
           </div>
+          <div class="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>品名</TableHead>
+                  <TableHead class="w-24 text-center">數量</TableHead>
+                  <TableHead class="w-32 text-right">小計</TableHead>
+                  <TableHead class="w-12"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <TableRow v-for="(item, idx) in form.items" :key="idx">
+                  <TableCell>
+                    <Select v-model="item.product_id">
+                      <SelectTrigger><SelectValue placeholder="選擇產品" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem v-for="p in activeProducts" :key="p.id" :value="String(p.id)">
+                          {{ p.name }}（{{ p.unit_price.toLocaleString() }}）
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </TableCell>
+                  <TableCell class="text-center">
+                    <Input v-model.number="item.quantity" type="number" min="1" class="mx-auto w-20 text-center" />
+                  </TableCell>
+                  <TableCell class="text-right tabular-nums">{{ itemSubtotal(item).toLocaleString() }}</TableCell>
+                  <TableCell class="text-center">
+                    <Button variant="ghost" size="icon-sm" class="text-destructive" @click="removeItem(idx)"><X class="size-4" /></Button>
+                  </TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          </div>
+          <p v-if="formError" class="text-destructive px-4 pt-2 text-sm">{{ formError }}</p>
           <div class="flex items-center justify-end border-t px-4 py-2.5 text-sm">
             <span class="font-semibold">總計 <span class="tabular-nums">{{ formTotal.toLocaleString() }}</span></span>
           </div>
@@ -193,7 +221,7 @@ function onSelectCustomer(m) {
       </div>
 
       <!-- 底部按鈕列 -->
-      <div class="flex shrink-0 justify-end gap-2 border-t pt-4">
+      <div class="flex shrink-0 justify-end gap-2 pt-4">
         <Button variant="outline" @click="goBack">取消</Button>
         <Button :disabled="saving || loading" @click="submitForm">儲存</Button>
       </div>
